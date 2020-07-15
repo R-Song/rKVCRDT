@@ -1,6 +1,6 @@
 namespace RAC.Operations
 {
-    public interface Operation
+    public interface IOperation
     {
         
     }

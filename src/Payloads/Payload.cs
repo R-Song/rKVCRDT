@@ -1,6 +1,6 @@
 namespace RAC.Payloads
 {
-    class Payload
+    public class Payload
     {
 
     }
