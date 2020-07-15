@@ -1,7 +1,9 @@
 namespace RAC.Payloads
 {
-    public class Payload
+    public abstract class Payload
     {
+        public string uid;
+        public long size;
 
     }
 
