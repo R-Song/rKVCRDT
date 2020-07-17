@@ -1,11 +1,10 @@
 using RAC;
 using RAC.Operations;
-using RAC.Parsers;
 using RAC.Payloads;
 
-namespace RAC.Objects
+namespace RAC
 {
-    public class Object
+    public abstract class Object
     {
         public string uid;
         public BaseType baseType;

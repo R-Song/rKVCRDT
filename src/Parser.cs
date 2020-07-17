@@ -1,4 +1,4 @@
-namespace RAC.Parsers
+namespace RAC
 {
     class Parser
     {
