@@ -6,18 +6,27 @@ namespace RAC.Operations
     public abstract class Operation
     {
         public string uid;
+        public Parameters parameters;
         public Payload payload;
-        public List<string> parameters;
+        
 
-        public Operation(string uid, List<string> parameters)
+        public Operation(string uid, Parameters parameters)
         {
             this.uid = uid;
             this.parameters = parameters;
             this.payload = Global.memoryManager.GetPaylod(uid);
         }
 
-        public abstract void SetValue(string uid, List<string> parameters);
+        public abstract Response SetValue(Parameters parameters);
+        public abstract Response GetValue();
+        public virtual Response DelelteValue()
+        {
+            Response res = new Response();
 
+            // TODD: deletion things
+
+            return res;
+        }
 
     }
 }
