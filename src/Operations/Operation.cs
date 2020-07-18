@@ -1,15 +1,23 @@
-
+using RAC.Payloads;
+using System.Collections.Generic;
 
 namespace RAC.Operations
 {
-    public interface IOperation
+    public abstract class Operation
     {
-        Response SetValue(Object obj, Request req);
-        Response GetValue(Object obj);
-        Response UpdateValue(Object obj, Request req);
-        Response Synchronization(Object obj);
-        Response Delete(Object obj);
-        
-    }
+        public string uid;
+        public Payload payload;
+        public List<string> parameters;
 
+        public Operation(string uid, List<string> parameters)
+        {
+            this.uid = uid;
+            this.parameters = parameters;
+            this.payload = Global.memoryManager.GetPaylod(uid);
+        }
+
+        public abstract void SetValue(string uid, List<string> parameters);
+
+
+    }
 }

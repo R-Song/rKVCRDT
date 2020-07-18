@@ -6,12 +6,8 @@ namespace RAC
 {
     public abstract class Object
     {
-        public string uid;
-        public BaseType baseType;
-        public ReplicationType replicationType;
-        private IOperation operation;
         private Parser parser;
-        private Payload payload;
+        private Request req;
 
         public Response HandleRequest(Request req)
         {
