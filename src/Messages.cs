@@ -12,9 +12,11 @@ namespace RAC
     {
 
 
-        public string content;
+        public string content; // TODO: add setter that covert everything to string
 
         public Status status;
+
+
     }
 
     public class Request

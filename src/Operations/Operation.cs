@@ -1,25 +1,42 @@
+using System;
+
 using RAC.Payloads;
-using System.Collections.Generic;
+using RAC.Errors;
 
 namespace RAC.Operations
 {
-    public abstract class Operation
+    public abstract class Operation<PayloadType> where PayloadType: Payload
     {
         public string uid;
         public Parameters parameters;
-        public Payload payload;
         
+        public PayloadType payload;
 
         public Operation(string uid, Parameters parameters)
         {
             this.uid = uid;
             this.parameters = parameters;
-            this.payload = Global.memoryManager.GetPaylod(uid);
+ 
+            try
+            {
+                this.payload = (PayloadType) Global.memoryManager.GetPayload(uid);
+            }
+            catch (PayloadNotFoundException) 
+            {
+                this.payload = null;
+            }
+            
         }
 
-        public abstract Response SetValue(Parameters parameters);
+        public void Save()
+        {
+            Console.WriteLine("succseefully stored");
+            Global.memoryManager.StorePayload(uid, payload);
+        }
+
+        public abstract Response SetValue();
         public abstract Response GetValue();
-        public virtual Response DelelteValue()
+        public virtual Response DeleteValue()
         {
             Response res = new Response();
 
@@ -29,4 +46,5 @@ namespace RAC.Operations
         }
 
     }
+    
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 
 using RAC.Payloads;
+using RAC.Errors;
 
 namespace RAC
 {
@@ -20,9 +21,17 @@ namespace RAC
             return true;
         }
 
-        public Payload GetPaylod(string uid)
+        public Payload GetPayload(string uid)
         {
-            return storage[uid];
+            try
+            {
+                return storage[uid];
+            }
+            catch (KeyNotFoundException)
+            {
+                throw new PayloadNotFoundException();
+            }
+            
         }
     }
 }

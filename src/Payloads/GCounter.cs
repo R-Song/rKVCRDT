@@ -3,15 +3,15 @@ using System.Collections.Generic;
 
 namespace RAC.Payloads
 {
-    class GCPayload : Payload
+    public class GCPayload : Payload
     {
         private uint numNodes;
         public List<int> valueVector {set; get;}
 
-        public GCPayload(string uid, uint numNodes)
+        public GCPayload(string uid, uint numReplicas)
         {
             this.uid = uid;
-            this.valueVector = new List<int>((int) numNodes);
+            this.valueVector = new List<int>((int) numReplicas);
         }
 
     }

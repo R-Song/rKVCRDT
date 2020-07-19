@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+
+
 namespace RAC
 {
 
@@ -24,6 +26,11 @@ namespace RAC
 
         public List<Param> paramsList;
 
+        public Parameters(int size)
+        {
+            paramsList = new List<Param>(size);
+        }
+
         public T GetParam<T>(int index)
         {
             Param<T> p = (Param<T>)paramsList[index];
@@ -33,7 +40,7 @@ namespace RAC
         public void addParam<T>(int index, T data)
         {
             Param<T> p = new Param<T>(data);
-            paramsList.Add(p);
+            paramsList.Insert(index, p);
         }
 
     }
