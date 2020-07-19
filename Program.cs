@@ -8,6 +8,9 @@ namespace RAC
     {
         static void Main(string[] args)
         {
+            Config.numReplicas = 1;
+            Config.replicaId = 0;
+
             Parameters pm1 = new Parameters(1);
             pm1.addParam<int>(0, 1);
 

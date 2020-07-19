@@ -1,6 +1,9 @@
-using RAC.Payloads;
 using System.Linq;
 using System.Collections;
+
+using RAC.Payloads;
+
+
 
 namespace RAC.Operations
 {
@@ -27,7 +30,7 @@ namespace RAC.Operations
         {
             Response res = new Response();
 
-            GCPayload pl = new GCPayload(uid, (int)Config.numReplicas, 0);
+            GCPayload pl = new GCPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
 
             pl.valueVector.Insert(pl.replicaid, this.parameters.GetParam<int>(0));
 
