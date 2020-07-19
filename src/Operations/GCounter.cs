@@ -47,18 +47,6 @@ namespace RAC.Operations
 
         }
 
-        public Response Decrement()
-        {
-            Response res = new Response();
-
-
-            this.payload.valueVector[this.payload.replicaid] -= this.parameters.GetParam<int>(0);
-
-            return res;
-
-        }
-
-
     }
 
 
