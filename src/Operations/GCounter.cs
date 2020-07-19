@@ -27,14 +27,27 @@ namespace RAC.Operations
         {
             Response res = new Response();
 
-            GCPayload pl = new GCPayload(uid, Config.numReplicas);
+            GCPayload pl = new GCPayload(uid, (int)Config.numReplicas, 0);
 
-            pl.valueVector.Insert(0, this.parameters.GetParam<int>(0));
+            pl.valueVector.Insert(pl.replicaid, this.parameters.GetParam<int>(0));
 
             this.payload = pl;
             
             return res;
         }
+
+        public Response Increment()
+        {
+            Response res = new Response();
+
+
+            this.payload.valueVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
+
+            return res;
+
+        }
+
+
     }
 
 

@@ -16,8 +16,14 @@ namespace RAC
             g1.Save();
 
             GCounter g2 = new GCounter("1", pm1);
-
             Console.WriteLine(g2.GetValue().content);
+
+             GCounter g3 = new GCounter("1", pm1);
+             g3.Increment();
+             g3.Save();
+
+            GCounter g4 = new GCounter("1", pm1);
+            Console.WriteLine(g4.GetValue().content);
 
 
             Console.WriteLine("Hello World!");
