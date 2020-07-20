@@ -12,6 +12,8 @@ namespace RAC.Operations
         
         public PayloadType payload;
 
+        // TODO: add a payload changed flag
+
         public Operation(string uid, Parameters parameters)
         {
             this.uid = uid;

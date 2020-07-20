@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Text.Json;
+using Newtonsoft.Json;
 
 using RAC.Operations;
 
 namespace RAC
 {
+
     public class CRDType
     {
         public Type type;
@@ -46,37 +47,58 @@ namespace RAC
     static partial class API
     {
 
-        public delegate void APIDel();
-
         public static Dictionary<Type, CRDType> typeList = new Dictionary<Type, CRDType>();
         public static Dictionary<string, Type> typeCodeList = new Dictionary<string, Type>();
+
+        
 
         public static void AddNewType(string typeName, string typeCode)
         {
             // TODO: sanity check
-            Type t = Type.GetType(typeName);
+            Type t = Type.GetType("RAC.Operations." + typeName);
 
             typeCodeList.Add(typeCode, t);
             typeList.Add(t, new CRDType(t));
         }
-
         
         public static void AddNewAPI(string typeName, string methodName, string apiCode, string methodParams)
         {
             // TODO: sanity check
-            Type t = Type.GetType(typeName);
+            Type t = Type.GetType("RAC.Operations." + typeName);
 
             CRDType type = typeList[t];
             type.AddNewAPI(apiCode, methodName, methodParams.Split(','));
 
         }
 
-        public static void APIs()
+        public static Response Invoke(string typeCode, string uid, string apiCode, Parameters parameters)
+        {
+            Type opType = typeCodeList[typeCode];
+            CRDType t = typeList[opType];
+
+            MethodInfo method = t.MethodsList[apiCode];
+
+            var opObject = Convert.ChangeType(Activator.CreateInstance(opType, new object[]{uid, parameters}), opType);
+            Response res = (Response)method.Invoke(opObject, null);
+            
+            MethodInfo saveMethod = opObject.GetType().GetMethod("Save");
+            saveMethod.Invoke(opObject, null);
+
+            return res;
+        }
+
+        public static void initAPIs()
+        {
+            APIs();
+        }
+
+        private static void APIs()
         {
             // GCounter
             AddNewType("GCounter", "gc");
             AddNewAPI("GCounter", "GetValue", "g", "");
             AddNewAPI("GCounter", "SetValue", "s", "int");
+            AddNewAPI("GCounter", "Increment", "i", "int");
             
 
         }
@@ -84,5 +106,7 @@ namespace RAC
 
 
     }
+
+
 
 }
