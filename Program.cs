@@ -15,16 +15,24 @@ namespace RAC
         {
             this.i = i;
         }
+
+        public override string ToString()
+        {
+            return "hahaha" + i;
+        }
     }
 
     class Program
     {
         static void Main(string[] args)
         {
-            Type t = Type.GetType("System.Int32");
+            test t = new test(5);
+            object o = (object)t;
 
-            Console.WriteLine(t);
+            Console.WriteLine(o);
 
+
+            return ;
             Config.numReplicas = 1;
             Config.replicaId = 0;
 

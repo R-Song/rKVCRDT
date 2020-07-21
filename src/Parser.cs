@@ -1,6 +1,7 @@
 using System; 
 using System.IO; 
 using System.Collections.Generic;
+using System.Text;
 
 namespace RAC
 {   
@@ -32,7 +33,7 @@ namespace RAC
                     data = stringToTypeMethod(input[i]);
                 }
 
-                pm.addParam(i, data);
+                pm.AddParam(i, data);
                 
             }
 
@@ -103,6 +104,22 @@ namespace RAC
             res = API.Invoke(typeCode, uid, apiCode, pm);
 
             return res;
+        }
+
+        public static string BuildCommand(string typeCode, string apiCode, string uid, Parameters pm)
+        {
+            StringBuilder sb = new StringBuilder(64);
+            sb.AppendLine(typeCode);
+            sb.AppendLine(uid);
+            sb.AppendLine(apiCode);
+            
+            foreach (object o in pm.AllParams())
+            {
+                sb.Append(o.ToString());
+            }
+
+            return sb.ToString();
+
         }
 
     }

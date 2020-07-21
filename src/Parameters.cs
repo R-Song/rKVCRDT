@@ -17,15 +17,20 @@ namespace RAC
             paramsList = new List<object>(size);
         }
 
-        public T getParam<T>(int index)
+        public T GetParam<T>(int index)
         {
             return (T)paramsList[index];
             
         }
 
-        public void addParam(int index, object data)
+        public void AddParam(int index, object data)
         {
             paramsList.Insert(index, data);
+        }
+
+        public List<object> AllParams()
+        {
+            return this.paramsList;
         }
 
     }
