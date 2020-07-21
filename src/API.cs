@@ -11,35 +11,66 @@ namespace RAC
     public class CRDType
     {
         public Type type;
-        public Dictionary<string, MethodInfo> MethodsList;
-        public Dictionary<string, string[]> ParamsList;
+        // TODO: setters ang getters...
+        public Dictionary<string, MethodInfo> methodsList;
+        public Dictionary<string, List<Type>> paramsList;
 
         public CRDType(Type type)
         {
             this.type = type;
-            MethodsList = new Dictionary<string, MethodInfo>();
-            ParamsList = new Dictionary<string, string[]>();
+            methodsList = new Dictionary<string, MethodInfo>();
+            paramsList = new Dictionary<string, List<Type>>();
         }
 
         public void AddNewAPI(string apiCode, string methodName, string[] methodParams)
         {
             MethodInfo m = this.type.GetMethod(methodName);
-            this.MethodsList.Add(apiCode, m);
-            this.ParamsList.Add(apiCode, methodParams);
-        }
+            this.methodsList.Add(apiCode, m);
+            
+            List<Type> tlist = new List<Type>();
 
-        public Parameters StringListToParams(string[] methodParams)
-        {
-            Parameters parameters = new Parameters(methodParams.Length);
-
-            foreach (string p in methodParams)
+            if (methodParams.Length > 0)
             {
+                foreach (string p in methodParams)
+                {
+                    Type tt = null;
 
+                    string lowerp = p.ToLower();
+                    switch (lowerp)
+                    {
+                        case "":
+                            continue;
+                        case "int":
+                        case "int32":
+                        case "integer":
+                            tt = typeof(System.Int32);
+                            break;
+                        case "float":
+                            tt = typeof(System.Single);
+                            break;
+                        case "string":
+                            tt = typeof(System.String);
+                            break;
+                        default:
+                            try {
+                                tt = Type.GetType(p, true);
+                            }
+                            catch(TypeLoadException e) {
+                                // TODO: print error
+                                return;
+                            }
+                            break;
+
+                    }
+                    
+                    tlist.Add(tt);
+                }
             }
 
-            return parameters;
-
+            this.paramsList.Add(apiCode, tlist);
+            
         }
+
 
 
     }
@@ -76,7 +107,7 @@ namespace RAC
             Type opType = typeCodeList[typeCode];
             CRDType t = typeList[opType];
 
-            MethodInfo method = t.MethodsList[apiCode];
+            MethodInfo method = t.methodsList[apiCode];
 
             var opObject = Convert.ChangeType(Activator.CreateInstance(opType, new object[]{uid, parameters}), opType);
             Response res = (Response)method.Invoke(opObject, null);
@@ -92,8 +123,10 @@ namespace RAC
             APIs();
         }
 
-        private static void APIs()
+        private static void APIs() // TODO: move this to another file
         {
+            // TODO: add a type conversion table
+
             // GCounter
             AddNewType("GCounter", "gc");
             AddNewAPI("GCounter", "GetValue", "g", "");

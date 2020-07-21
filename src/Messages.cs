@@ -16,6 +16,9 @@ namespace RAC
 
         public Status status;
 
+        public bool ifBroadcastUpdate;
+        public string broadcast;
+
 
     }
 

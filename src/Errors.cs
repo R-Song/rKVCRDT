@@ -13,4 +13,9 @@ namespace RAC.Errors
         {
         }
     }
+
+    public static class Verbose
+    {
+        
+    }
 }

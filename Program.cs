@@ -1,31 +1,70 @@
 ﻿using System;
+using System.IO;
 using RAC.Payloads;
 using RAC.Operations;
 
+using System.Collections.Generic;
+
 namespace RAC
 {
+
+    class test
+    {
+        public int i;
+        public test(int i)
+        {
+            this.i = i;
+        }
+    }
+
     class Program
     {
         static void Main(string[] args)
         {
+            Type t = Type.GetType("System.Int32");
+
+            Console.WriteLine(t);
+
             Config.numReplicas = 1;
             Config.replicaId = 0;
 
             API.initAPIs();
 
-            Parameters pm1 = new Parameters(1);
-            pm1.addParam<int>(0, 1);
 
-            API.Invoke("gc", "0", "s", pm1);
+            string cmd1 = 
+@"gc
+0
+s
+1
+";
 
-            Response res  =  API.Invoke("gc", "0", "g", pm1);
+            string cmd2 = 
+@"gc
+0
+g
+";
+
+            string cmd3 = 
+@"gc
+0
+i
+5
+";
+
+
+            Parser.RunCommand(cmd1);
+
+            Response res  =  Parser.RunCommand(cmd2);
             Console.WriteLine(res.content);
 
-            API.Invoke("gc", "0", "i", pm1);
-
-            res  =  API.Invoke("gc", "0", "g", pm1);
+            res  =  Parser.RunCommand(cmd3);
             Console.WriteLine(res.content);
-            
+
+            res  =  Parser.RunCommand(cmd2);
+            Console.WriteLine(res.content);
+
+            return; 
+
             /*
             GCounter g1 = new GCounter("1", pm1);
             g1.SetValue();

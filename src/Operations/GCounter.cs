@@ -32,7 +32,7 @@ namespace RAC.Operations
 
             GCPayload pl = new GCPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
 
-            pl.valueVector.Insert(pl.replicaid, this.parameters.GetParam<int>(0));
+            pl.valueVector.Insert(pl.replicaid, this.parameters.getParam<int>(0));
 
             this.payload = pl;
             
@@ -44,7 +44,7 @@ namespace RAC.Operations
             Response res = new Response();
 
 
-            this.payload.valueVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
+            this.payload.valueVector[this.payload.replicaid] += this.parameters.getParam<int>(0);
 
             return res;
 

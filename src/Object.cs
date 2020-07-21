@@ -6,7 +6,7 @@ namespace RAC
 {
     public abstract class Object
     {
-        private Parser parser;
+
         private Request req;
 
         public Response HandleRequest(Request req)
