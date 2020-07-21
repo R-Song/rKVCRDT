@@ -9,12 +9,12 @@ namespace RAC
 
         private Request req;
 
-        public Response HandleRequest(Request req)
-        {
-            Response res = new Response();
+        //public Response HandleRequest(Request req)
+        //{
+            //Response res = new Response();
 
-            return res;
-        }
+            //return res;
+        //}
 
     }
 

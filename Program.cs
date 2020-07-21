@@ -10,10 +10,11 @@ namespace RAC
 
     class test
     {
-        public int i;
+        public int i {get; private set;}
         public test(int i)
         {
             this.i = i;
+            
         }
 
         public override string ToString()
@@ -29,7 +30,7 @@ namespace RAC
             test t = new test(5);
             object o = (object)t;
 
-            Console.WriteLine(o);
+            Console.WriteLine(t.i);
 
 
             return ;
@@ -63,13 +64,13 @@ i
             Parser.RunCommand(cmd1);
 
             Response res  =  Parser.RunCommand(cmd2);
-            Console.WriteLine(res.content);
+            //Console.WriteLine(res.content);
 
             res  =  Parser.RunCommand(cmd3);
-            Console.WriteLine(res.content);
+            //Console.WriteLine(res.content);
 
             res  =  Parser.RunCommand(cmd2);
-            Console.WriteLine(res.content);
+            //Console.WriteLine(res.content);
 
             return; 
 

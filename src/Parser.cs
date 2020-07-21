@@ -98,7 +98,7 @@ namespace RAC
             if (!ParseCommand(cmd, out typeCode, out apiCode, out uid, out pm))
             {
                 // TODO: send error
-                return new Response();
+                return new Response(Status.fail);
             }
 
             res = API.Invoke(typeCode, uid, apiCode, pm);

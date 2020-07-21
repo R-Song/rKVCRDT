@@ -19,16 +19,16 @@ namespace RAC.Operations
 
         public override Response GetValue()
         {
-            Response res = new Response();
+            Response res = new Response(Status.success);
             
-            res.content = payload.valueVector.Sum().ToString();
+            //res.content = payload.valueVector.Sum().ToString();
 
             return res;
         }
 
         public override Response SetValue()
         {
-            Response res = new Response();
+            Response res = new Response(Status.success);
 
             GCPayload pl = new GCPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
 
@@ -41,7 +41,7 @@ namespace RAC.Operations
 
         public Response Increment()
         {
-            Response res = new Response();
+            Response res = new Response(Status.success);
 
 
             this.payload.valueVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
@@ -50,6 +50,10 @@ namespace RAC.Operations
 
         }
 
+        public override Response Synchronization()
+        {
+            throw new System.NotImplementedException();
+        }
     }
 
 

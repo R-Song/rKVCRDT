@@ -38,9 +38,10 @@ namespace RAC.Operations
 
         public abstract Response SetValue();
         public abstract Response GetValue();
+        public abstract Response Synchronization();
         public virtual Response DeleteValue()
         {
-            Response res = new Response();
+            Response res = new Response(Status.success);
 
             // TODD: deletion things
 
