@@ -27,6 +27,7 @@ namespace RAC
     {
         static void Main(string[] args)
         {
+            
 
             Config.numReplicas = 2;
             Config.replicaId = 0;
@@ -54,6 +55,14 @@ i
 5
 ";
 
+            string cmd4 = 
+@"gc
+0
+y
+0,2,3
+";
+
+
 
             Parser.RunCommand(cmd1);
 
@@ -61,28 +70,15 @@ i
             //Console.WriteLine(res.content);
 
             res  =  Parser.RunCommand(cmd3);
-            Console.WriteLine(res);
-
-            //res  =  Parser.RunCommand(cmd2);
             //Console.WriteLine(res);
 
+            res  =  Parser.RunCommand(cmd4);
+            //Console.WriteLine(res);
+
+            res  =  Parser.RunCommand(cmd2);
+            Console.WriteLine(res);
+
             return; 
-
-            /*
-            GCounter g1 = new GCounter("1", pm1);
-            g1.SetValue();
-            g1.Save();
-
-            GCounter g2 = new GCounter("1", pm1);
-            Console.WriteLine(g2.GetValue().content);
-
-             GCounter g3 = new GCounter("1", pm1);
-             g3.Increment();
-             g3.Save();
-
-            GCounter g4 = new GCounter("1", pm1);
-            Console.WriteLine(g4.GetValue().content);
-            */
 
             Console.WriteLine("Hello World!");
         }

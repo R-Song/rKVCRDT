@@ -12,8 +12,6 @@ namespace RAC
 
 
         private List<object> paramsList;
-
-        private List<Parser.TypeToString> typeConvertMethodList;
         
         public int size;
 
@@ -21,7 +19,6 @@ namespace RAC
         {
             this.size = size;
             paramsList = new List<object>(size);
-            typeConvertMethodList = new List<Parser.TypeToString>(size);
             
         }
 
@@ -31,16 +28,11 @@ namespace RAC
             
         }
 
-        public Parser.TypeToString GetConverter(int index)
-        {
-            return typeConvertMethodList[index];
-        }
 
         // TODO: change this to private
-        public void AddParam(int index, object data, Parser.TypeToString toStr = null)
+        public void AddParam(int index, object data)
         {
             this.paramsList.Insert(index, data);
-            this.typeConvertMethodList.Insert(index, toStr);
         }
 
         public List<object> AllParams()
