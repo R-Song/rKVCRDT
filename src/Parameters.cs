@@ -6,15 +6,23 @@ using System.Collections.Generic;
 namespace RAC
 {
 
-
+    // TODO: fix the API here
     public class Parameters 
     {
 
+
         private List<object> paramsList;
+
+        private List<Parser.TypeToString> typeConvertMethodList;
+        
+        public int size;
 
         public Parameters(int size)
         {
+            this.size = size;
             paramsList = new List<object>(size);
+            typeConvertMethodList = new List<Parser.TypeToString>(size);
+            
         }
 
         public T GetParam<T>(int index)
@@ -23,9 +31,16 @@ namespace RAC
             
         }
 
-        public void AddParam(int index, object data)
+        public Parser.TypeToString GetConverter(int index)
         {
-            paramsList.Insert(index, data);
+            return typeConvertMethodList[index];
+        }
+
+        // TODO: change this to private
+        public void AddParam(int index, object data, Parser.TypeToString toStr = null)
+        {
+            this.paramsList.Insert(index, data);
+            this.typeConvertMethodList.Insert(index, toStr);
         }
 
         public List<object> AllParams()

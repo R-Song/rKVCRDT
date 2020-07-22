@@ -5,16 +5,16 @@ using System.Text;
 
 namespace RAC
 {   
-    public static class Parser
+    public static partial class Parser
     {   
 
         public delegate object StringToType(string s);
 
-        private static Parameters ParamBuilder(string typeCode, string apiCode, List<string> input)
+        public delegate string TypeToString(object o);
+
+        private static Parameters ParamBuilder(string typeCode, string apiCode, List<string> input, List<TypeToString> typeToStringMethods = null, List<StringToType> stringToTypeMethods = null)
         {
             
-            // TODO:
-            StringToType stringToTypeMethod = null;
             // TODO: sanity check
             List<Type> pmTypesList = API.typeList[API.typeCodeList[typeCode]].paramsList[apiCode];
             Parameters pm = new Parameters(pmTypesList.Count);
@@ -24,16 +24,26 @@ namespace RAC
                 Type t = pmTypesList[i];
                 object data;
 
-                if (stringToTypeMethod is null)
+                StringToType toType = null;
+                TypeToString toStr = null;
+
+                if (typeToStringMethods != null)
+                    toStr = typeToStringMethods[i];
+
+                if (stringToTypeMethods != null)
+                    toType = stringToTypeMethods[i]; 
+
+
+                if (toType is null)
                 {
                     data = Convert.ChangeType(input[i], t);
                 }
                 else
                 {   
-                    data = stringToTypeMethod(input[i]);
+                    data = toType(input[i]);
                 }
 
-                pm.AddParam(i, data);
+                pm.AddParam(i, data, toStr);
                 
             }
 
@@ -112,14 +122,32 @@ namespace RAC
             sb.AppendLine(typeCode);
             sb.AppendLine(uid);
             sb.AppendLine(apiCode);
+
+            TypeToString toStr = null;
             
-            foreach (object o in pm.AllParams())
+            for (int i = 0; i < pm.size; i++)
             {
-                sb.Append(o.ToString());
+                object o = pm.AllParams()[i];
+                toStr = pm.GetConverter(i);
+
+                if (toStr != null)
+                    sb.Append(toStr(o));
+                else
+                    sb.Append(o.ToString());
             }
+
+               
+            
 
             return sb.ToString();
 
+        }
+
+        // TODO: another file
+        public static string ListToString(object l)
+        {   
+            List<int> lst = (List<int>)l;
+            return string.Join(",", lst);
         }
 
     }

@@ -1,9 +1,9 @@
+using System;
 using System.Linq;
 using System.Collections;
 
 using RAC.Payloads;
-
-
+using System.Collections.Generic;
 
 namespace RAC.Operations
 {
@@ -21,7 +21,7 @@ namespace RAC.Operations
         {
             Response res = new Response(Status.success);
             
-            //res.content = payload.valueVector.Sum().ToString();
+            res.AddContent(payload.valueVector.Sum().ToString(), Dest.client); 
 
             return res;
         }
@@ -41,10 +41,19 @@ namespace RAC.Operations
 
         public Response Increment()
         {
-            Response res = new Response(Status.success);
-
+            
+            
 
             this.payload.valueVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
+
+            Response res = new Response(Status.success);
+
+            Parameters syncPm = new Parameters(1);
+            syncPm.AddParam(0, this.payload.valueVector, Parser.ListToString);
+
+            string broadcast = Parser.BuildCommand("gc", "i", this.uid, syncPm);
+            
+            res.AddContent(broadcast, Dest.broadcast);
 
             return res;
 
@@ -52,7 +61,19 @@ namespace RAC.Operations
 
         public override Response Synchronization()
         {
-            throw new System.NotImplementedException();
+            Response res = new Response(Status.success);
+
+            List<int> otherState = this.parameters.GetParam<List<int>>(0);
+            
+            // TODO: add sanity check
+
+            for (int i = 0; i < otherState.Count; i++)
+            {
+                this.payload.valueVector[i] = Math.Max(this.payload.valueVector[i], otherState[i]);
+            }
+
+            return res;
+
         }
     }
 

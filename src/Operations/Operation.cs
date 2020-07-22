@@ -32,7 +32,7 @@ namespace RAC.Operations
 
         public void Save()
         {
-            Console.WriteLine("succseefully stored");
+            Console.WriteLine("successfully stored");
             Global.memoryManager.StorePayload(uid, payload);
         }
 

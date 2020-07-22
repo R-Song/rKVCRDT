@@ -13,6 +13,11 @@ namespace RAC.Payloads
             this.uid = uid;
             this.valueVector = new List<int>(numReplicas);
             this.replicaid = replicaid;
+
+            for (int i = 0; i < valueVector.Capacity; i++)
+            {
+                valueVector.Insert(i, 0);
+            }
         }
 
     }

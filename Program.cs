@@ -27,14 +27,8 @@ namespace RAC
     {
         static void Main(string[] args)
         {
-            test t = new test(5);
-            object o = (object)t;
 
-            Console.WriteLine(t.i);
-
-
-            return ;
-            Config.numReplicas = 1;
+            Config.numReplicas = 2;
             Config.replicaId = 0;
 
             API.initAPIs();
@@ -67,10 +61,10 @@ i
             //Console.WriteLine(res.content);
 
             res  =  Parser.RunCommand(cmd3);
-            //Console.WriteLine(res.content);
+            Console.WriteLine(res);
 
-            res  =  Parser.RunCommand(cmd2);
-            //Console.WriteLine(res.content);
+            //res  =  Parser.RunCommand(cmd2);
+            //Console.WriteLine(res);
 
             return; 
 
