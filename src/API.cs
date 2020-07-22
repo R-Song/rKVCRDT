@@ -9,14 +9,14 @@ using RAC.Operations;
 namespace RAC
 {
 
-    public class CRDType
+    public class CRDTypeInfo
     {
         public Type type;
         // TODO: setters ang getters...
         public Dictionary<string, MethodInfo> methodsList;
         public Dictionary<string, List<string>> paramsList;
 
-        public CRDType(Type type)
+        public CRDTypeInfo(Type type)
         {
             this.type = type;
             methodsList = new Dictionary<string, MethodInfo>();
@@ -37,7 +37,7 @@ namespace RAC
     static partial class API
     {
 
-        public static Dictionary<Type, CRDType> typeList = new Dictionary<Type, CRDType>();
+        public static Dictionary<Type, CRDTypeInfo> typeList = new Dictionary<Type, CRDTypeInfo>();
         public static Dictionary<string, Type> typeCodeList = new Dictionary<string, Type>();
 
         public delegate object StringToType(string s);
@@ -46,7 +46,9 @@ namespace RAC
         // First to type, then to string
         public static Dictionary<string, (StringToType, TypeToString)> converterList = new Dictionary<string, (StringToType, TypeToString)>();
 
-        
+
+        // TODO: MAYBE, use delegate here
+        public delegate Response CRDTOPMethod();
 
         public static void AddNewType(string typeName, string typeCode)
         {
@@ -54,7 +56,7 @@ namespace RAC
             Type t = Type.GetType("RAC.Operations." + typeName);
 
             typeCodeList.Add(typeCode, t);
-            typeList.Add(t, new CRDType(t));
+            typeList.Add(t, new CRDTypeInfo(t));
         }
         
         public static void AddNewAPI(string typeName, string methodName, string apiCode, string methodParams)
@@ -62,7 +64,7 @@ namespace RAC
             // TODO: sanity check
             Type t = Type.GetType("RAC.Operations." + typeName);
 
-            CRDType type = typeList[t];
+            CRDTypeInfo type = typeList[t];
             type.AddNewAPI(apiCode, methodName, methodParams.Split(','));
 
         }
@@ -86,7 +88,7 @@ namespace RAC
         public static Response Invoke(string typeCode, string uid, string apiCode, Parameters parameters)
         {
             Type opType = typeCodeList[typeCode];
-            CRDType t = typeList[opType];
+            CRDTypeInfo t = typeList[opType];
 
             MethodInfo method = t.methodsList[apiCode];
 
@@ -102,6 +104,7 @@ namespace RAC
         public static void initAPIs()
         {
             APIs();
+            //TODO: check if all types has get, set, sync, delete after finish loading API
         }
 
         private static void APIs() // TODO: move this to another file
