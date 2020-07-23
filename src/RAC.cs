@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using RAC.Payloads;
+using RAC.Network;
 
 namespace RAC
 {
@@ -19,9 +20,9 @@ namespace RAC
     {
         public static MemoryManager memoryManager = new MemoryManager();
 
-        // TODO: temp
+        public static Node selfNode;
 
-        public static Dictionary<string, GCPayload> Gcountervec;
+        
 
     }
 
