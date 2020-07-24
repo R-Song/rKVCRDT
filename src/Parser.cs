@@ -28,6 +28,7 @@ namespace RAC
             return pm;
         }
 
+
         public static bool ParseCommand(string cmd, out string typeCode, out string apiCode, out string uid, out Parameters pm)
         {
 

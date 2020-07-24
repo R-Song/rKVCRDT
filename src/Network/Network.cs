@@ -89,7 +89,7 @@ namespace RAC.Network
 
         public override string ToString()
         {
-            return this.identifier + this.from + this.to + this.length + this.content;
+            return "msg content: \n" + this.identifier + this.from + this.to + this.length + this.content;
         }
 
     }
@@ -124,7 +124,7 @@ namespace RAC.Network
 
         public Server()
         {
-
+            
         }
 
         public void AddToQueue(byte[] bytes)
@@ -139,8 +139,8 @@ namespace RAC.Network
             while (await reqQueue.OutputAvailableAsync())
             {
                 data = reqQueue.Receive();
+                MessagePacket msg = new MessagePacket(data);
                 
-                Console.WriteLine("handling ayncshoursly " + data.GetHashCode());
             }
 
         }
@@ -151,7 +151,7 @@ namespace RAC.Network
             try
             {
                 // Set the TcpListener on port 13000.
-                Int32 port = 13;
+                Int32 port = 2020;
                 IPAddress localAddr = IPAddress.Parse("127.0.0.1");
 
                 // TcpListener server = new TcpListener(port);
@@ -166,24 +166,23 @@ namespace RAC.Network
                 // Enter the listening loop.
                 while (true)
                 {
-                    Console.Write("Waiting for a connection... ");
+                    // Console.Write("Waiting for a connection... ");
 
                     // Perform a blocking call to accept requests.
                     // You could also use server.AcceptSocket() here.
                     TcpClient client = server.AcceptTcpClient();
-                    Console.WriteLine("Connected!");
+                    // Console.WriteLine("Connected!");
 
                     // Get a stream object for reading and writing
                     NetworkStream stream = client.GetStream();
 
                     int i;
 
-
                     // Loop to receive all the data sent by the client.
                     while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
                     {
                         // Translate data bytes to a ASCII string.
-                        Console.WriteLine("adding new data");
+                        //Console.WriteLine("ahhhh");
                         AddToQueue(bytes);
                     }
 
@@ -201,6 +200,7 @@ namespace RAC.Network
                 // Stop listening for new clients.
                 Console.WriteLine("Stopped listening");
                 server.Stop();
+                this.reqQueue.Complete();
             }
         }
     }

@@ -73,11 +73,11 @@ namespace RAC
         {
             Server ss = new Server();
 
-            var handler = ss.HandleRequestAync();
+            //var handler = ss.HandleRequestAync();
 
             ss.Run();
 
-            handler.Wait();
+            //handler.Wait();
 
             //ss.Run();
 
@@ -93,8 +93,6 @@ namespace RAC
 
 
             Console.WriteLine(new MessagePacket(mp.Serialize()));
-
-
 
             Config.numReplicas = 2;
             Config.replicaId = 0;
