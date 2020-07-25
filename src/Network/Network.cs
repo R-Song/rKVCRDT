@@ -24,7 +24,6 @@ namespace RAC.Network
         public MessagePacket(string str)
         {
             string s = str;
-            s = s.Substring(s.IndexOf(starter, 0, s.Length, StringComparison.Ordinal));
             // TODO: throw error afterward
 
             using (StringReader reader = new StringReader(s))
@@ -230,6 +229,8 @@ namespace RAC.Network
                     Console.WriteLine("broadcasting " + toSent.to);
                     String destAddr = toSent.to.Split(":")[0];
                     int destPort = Int32.Parse(toSent.to.Split(":")[1]);
+
+                    // TODO: handle this fails
                     dest = new TcpClient(destAddr, destPort);
 
                     Byte[] data = toSent.Serialize();
@@ -278,28 +279,40 @@ namespace RAC.Network
 
                     MessagePacket msg = null;
                     string data = null;
+                    int starterIndex = -1;
+                    int enderIndex = -1;
 
                     // TODO: read async?
                     while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
                     {
-                        // Translate data bytes to a ASCII string.
-                       
+
                         data += Encoding.Unicode.GetString(bytes);  
-                        int starterIndex = data.IndexOf("-RAC-");
-                        int enderIndex = data.IndexOf("-EOF-");
+                        starterIndex = data.IndexOf("-RAC-");
+                        enderIndex = data.IndexOf("-EOF-");
+
                         if ( -1 < starterIndex && starterIndex < enderIndex)  
                         {  
                             data = data.Substring(starterIndex, enderIndex - starterIndex + "-EOF-".Length);
+                            // TODO: handle when client starting to send gibberish, goto next connection
                             break;  
                         }  
                     }
 
                     Console.WriteLine("Received: \n" + data);
 
+                    if (starterIndex <= -1 || enderIndex <= -1 || starterIndex > enderIndex)
+                    {
+                        goto NextConnection;
+                    }
+                    
                     msg = new MessagePacket(data);
                     reqQueue.Post(msg);
                     activeClients[msg.from.Trim('\n', ' ')] = client;      
+                    continue;
                     
+                NextConnection:
+                    stream.Close();
+                    client.Close();
                 }
             }
             catch (SocketException e)
