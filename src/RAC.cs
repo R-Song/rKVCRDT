@@ -22,6 +22,13 @@ namespace RAC
 
         public static Node selfNode;
 
+        public static List<Node> cluster = new List<Node>();
+
+        public static void init()
+        {
+            // TODO:
+        }
+
         
 
     }

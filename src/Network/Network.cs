@@ -104,11 +104,20 @@ namespace RAC.Network
     {
         public int nodeid;
 
-        public IPAddress address;
+        public string address;
 
         public int port;
 
-        public bool isSelf;
+        public bool isSelf = false;
+
+        public Node(int id, string address, int port)
+        {
+            this.nodeid = id;
+            // TODO: sanity check
+            this.address = address;
+            this.port = port;
+
+        }
 
 
     }
@@ -153,39 +162,85 @@ namespace RAC.Network
                     string content = res.contents[i];
                     if (dest == Dest.client)
                     {
-                        // TODO: Global.selfNode.address.ToString()
-                        toSent = new MessagePacket("ahh", data.from, content);
+                        // Do not response server
+                        // TODO: simplify this
+                        bool flag = false;
+                        foreach (Node n in Global.cluster)
+                        {
+                            if (n.address == data.from)
+                            {
+                                flag = true;
+                                break;
+                            }
+                        }
+
+                        if (flag)
+                            continue;
+
+                        toSent = new MessagePacket(Global.selfNode.address, data.from, content);
+                        this.respQueue.Post(toSent);
                     }
                     else if (dest == Dest.broadcast)
                     {
-                        Console.WriteLine("Not done here");
-                        // TODO: handle this
+                        foreach (Node n in Global.cluster)
+                        {
+                            if (!n.isSelf)
+                            {
+                                toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(), n.address.ToString() + ":" + n.port.ToString(), content);
+                                this.respQueue.Post(toSent);
+                            }
+                        }
+                    } 
+                    else if (dest == Dest.none)
+                    {
+                        continue;
                     }
-
-                    Console.WriteLine("perparing response");
                     
-                    this.respQueue.Post(toSent);
                     
                 }
+                 Console.WriteLine("perparing response");
             }   
 
         }
 
         public async Task SendResponseAsync()
         {
-            MessagePacket data;
+            MessagePacket toSent;
 
             while (await this.respQueue.OutputAvailableAsync())
             {
-                data = this.respQueue.Receive();
-                // TODO: handle if client DNE (broadcast)
-                TcpClient dest = activeClients[data.to.Trim()];
-                byte[] msg = data.Serialize();
-                dest.GetStream().Write(msg, 0, msg.Length);
-                Console.WriteLine("sending res to " + data.to);
-                dest.Close();
-                Console.WriteLine("Closed! " + data.to);
+                toSent = this.respQueue.Receive();
+
+                TcpClient dest;
                 
+                // reply to client
+                if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
+                {
+                    Console.WriteLine("replying client " + toSent.to);
+                    byte[] msg = toSent.Serialize();
+                    NetworkStream stream = dest.GetStream();
+                    stream.Write(msg, 0, msg.Length);
+                    
+                    stream.Close();
+                    dest.Close();
+                    
+                }
+                else
+                { // broadcast
+                    Console.WriteLine("broadcasting " + toSent.to);
+                    String destAddr = toSent.to.Split(":")[0];
+                    int destPort = Int32.Parse(toSent.to.Split(":")[1]);
+                    dest = new TcpClient(destAddr, destPort);
+
+                    Byte[] data = toSent.Serialize();
+                    NetworkStream stream = dest.GetStream();
+                    stream.Write(data, 0, data.Length);
+                    
+                    stream.Close();
+                    dest.Close();
+                }
+                
+                Console.WriteLine("Closed! " + toSent.to);
             }   
         }
 
@@ -194,9 +249,8 @@ namespace RAC.Network
             TcpListener server = null;
             try
             {
-                // Set the TcpListener on port 13000.
-                Int32 port = 2020;
-                IPAddress localAddr = IPAddress.Parse("127.0.0.1");
+                IPAddress localAddr = IPAddress.Parse(Global.selfNode.address);
+                Int32 port = Global.selfNode.port;
 
                 // TcpListener server = new TcpListener(port);
                 server = new TcpListener(localAddr, port);
@@ -235,9 +289,12 @@ namespace RAC.Network
                         int enderIndex = data.IndexOf("-EOF-");
                         if ( -1 < starterIndex && starterIndex < enderIndex)  
                         {  
+                            data = data.Substring(starterIndex, enderIndex - starterIndex + "-EOF-".Length);
                             break;  
                         }  
                     }
+
+                    Console.WriteLine("Received: \n" + data);
 
                     msg = new MessagePacket(data);
                     reqQueue.Post(msg);

@@ -4,6 +4,7 @@ using System.Collections;
 
 using RAC.Payloads;
 using System.Collections.Generic;
+using static RAC.API;
 
 namespace RAC.Operations
 {
@@ -32,11 +33,23 @@ namespace RAC.Operations
 
             GCPayload pl = new GCPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
 
-            pl.valueVector.Insert(pl.replicaid, this.parameters.GetParam<int>(0));
+            
+
+            pl.valueVector[pl.replicaid] = this.parameters.GetParam<int>(0);
 
             this.payload = pl;
 
+            // TODO: make success to client default
             res.AddContent("success", Dest.client); 
+
+            Parameters syncPm = new Parameters(1);
+            syncPm.AddParam(0, this.payload.valueVector);
+
+
+
+            string broadcast = Parser.BuildCommand("gc", "y", this.uid, syncPm);
+            res.AddContent(broadcast, Dest.broadcast);
+
             
             return res;
         }
@@ -52,6 +65,7 @@ namespace RAC.Operations
 
             string broadcast = Parser.BuildCommand("gc", "y", this.uid, syncPm);
             
+            res.AddContent("success", Dest.client); 
             res.AddContent(broadcast, Dest.broadcast);
 
             return res;
@@ -66,10 +80,18 @@ namespace RAC.Operations
             
             // TODO: add sanity check
 
+            if (this.payload is null)
+            {
+                GCPayload pl = new GCPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
+                this.payload = pl;
+            }
+
             for (int i = 0; i < otherState.Count; i++)
             {
                 this.payload.valueVector[i] = Math.Max(this.payload.valueVector[i], otherState[i]);
             }
+
+            Console.WriteLine("sync successful");
 
             return res;
 

@@ -24,8 +24,27 @@ namespace RAC
 
         private const int portNum = 13;
 
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
+
+            if (args.Length != 1)
+            {
+                Console.WriteLine("need 1 arg");
+                return 1;
+            }
+
+            int self = Int32.Parse(args[0]);
+
+
+            Node n1 = new Node(0, "127.0.0.1", 5000);
+            Node n2 = new Node(0, "127.0.0.1", 5001);
+
+            Global.cluster.Add(n1);
+            Global.cluster.Add(n2);
+            
+            Global.cluster[self].isSelf = true;
+            Global.selfNode = Global.cluster[self];
+            Config.numReplicas = 2;
 
             API.initAPIs();
 
@@ -38,6 +57,8 @@ namespace RAC
 
             //handler.Wait();
 
+            return 0;
+
             Thread.Sleep(1000);
             string cmd2 =
 @"gc
@@ -49,7 +70,7 @@ g
             Console.WriteLine(res);
 
 
-            return;
+            return 0;
 
             MessagePacket mp = new MessagePacket("127", "192", "a\nb\nc");
 
@@ -102,7 +123,7 @@ y
 
 
 
-            return;
+            return 0;
 
             Console.WriteLine("Hello World!");
         }
