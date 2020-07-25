@@ -75,6 +75,7 @@ client_addr = "Client"
 def msg_construct(server, msg):
     s = rac_starter + client_addr + "\n" + \
         str(server.ip) + ":" + str(server.port) + "\n" + \
+        "c\n" + \
         str(len(msg)) + "\n" + \
         msg + str(rac_ender)
 
@@ -88,7 +89,7 @@ class GCounter:
     def get(self, id):
         req = "gc\n" + \
               str(id) + "\n" + \
-              "g\n"
+              "g"
 
         req = msg_construct(self.server, req)
 
@@ -137,11 +138,12 @@ if __name__ == "__main__":
           
     gc = GCounter(s)
 
-    print(gc.set(9, 20))
+    #print(gc.set(9, 20))
     print(gc.get(9))
     
-    print(gc.inc(9, 14))
-    print(gc.get(9))
+    
+    #print(gc.inc(9, 14))
+    #print(gc.get(9))
 
 
         

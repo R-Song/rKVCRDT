@@ -7,7 +7,7 @@ namespace RAC
 
     static partial class API
     {
-            private static void APIs() // TODO: move this to another file
+            private static void APIs()
             {
                 // int
                 AddConverter("int", Converters.StringToInt, Converters.IntToString);

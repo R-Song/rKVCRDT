@@ -26,7 +26,6 @@ namespace RAC
 
         static int Main(string[] args)
         {
-
             if (args.Length != 1)
             {
                 Console.WriteLine("need 1 arg");
@@ -40,11 +39,11 @@ namespace RAC
             Node n2 = new Node(0, "127.0.0.1", 5001);
 
             Global.cluster.Add(n1);
-            //Global.cluster.Add(n2);
+            Global.cluster.Add(n2);
             
             Global.cluster[self].isSelf = true;
             Global.selfNode = Global.cluster[self];
-            Config.numReplicas = 1;
+            Config.numReplicas = 2;
 
             API.initAPIs();
 

@@ -10,6 +10,11 @@ using System.Threading;
 
 namespace RAC.Network
 {
+    public enum MsgSrc
+    {
+        server,
+        client
+    }
 
     // represent a packet of request
     public class MessagePacket
@@ -18,8 +23,10 @@ namespace RAC.Network
         public readonly string ender = "\n-EOF-";
         public string from;
         public string to;
+        public MsgSrc msgSrc;
         public string length;
         public string content;
+        
 
         public MessagePacket(string str)
         {
@@ -34,22 +41,30 @@ namespace RAC.Network
 
                 while ((line = reader.ReadLine()) != null)
                 {
+                    line = line.Trim('\n',' ');
+
                     switch (lineNumeber)
                     {
                         case 0:
                             // header identifier
                             break;
                         case 1:
-                            this.from = line + "\n";
+                            this.from = line;
                             break;
                         case 2:
-                            this.to = line + "\n"; ;
+                            this.to = line;
                             break;
                         case 3:
-                            this.length = line + "\n"; ;
-                            cl = int.Parse(length);
+                            if (line.Equals("s"))
+                                this.msgSrc = MsgSrc.server;
+                            else if (line.Equals("c"))
+                                this.msgSrc = MsgSrc.client;
                             break;
                         case 4:
+                            this.length = line;
+                            cl = int.Parse(length);
+                            break;
+                        case 5:
                             // TODO: simplify this
                             string rest = line + "\n" + reader.ReadToEnd();
                             if (rest.Length == cl)
@@ -82,6 +97,7 @@ namespace RAC.Network
             //this.from = String.Format("{0}:{1}\n", Global.selfNode.address.ToString(), Global.selfNode.port);
             this.from = string.Format("{0}\n", from.Trim('\n',' '));
             this.to = String.Format("{0}\n", to.Trim('\n',' '));
+            this.msgSrc = MsgSrc.server; // has to be server;
             this.content = content;
             this.length = String.Format("{0}\n", content.Length.ToString());
         }
@@ -89,12 +105,26 @@ namespace RAC.Network
 
         public byte[] Serialize()
         {
-            return Encoding.Unicode.GetBytes(this.starter + this.from + this.to + this.length + this.content + this.ender);
+            string msgSrcstr;
+            if (this.msgSrc == MsgSrc.server)
+                msgSrcstr = "s\n";
+            else
+                msgSrcstr = "c\n";
+
+            return Encoding.Unicode.GetBytes(this.starter + this.from + this.to + msgSrcstr + this.length + this.content + this.ender);
         }
 
         public override string ToString()
         {
-            return "msg content: \n" + this.starter + this.from + this.to + this.length + this.content + this.ender;
+            string msgSrcstr;
+            if (this.msgSrc == MsgSrc.server)
+                msgSrcstr = "s\n";
+            else
+                msgSrcstr = "c\n";
+                
+            
+            // TODO: make this better
+            return "msg content: \n" + this.starter + this.from + this.to + msgSrcstr + this.length + this.content + this.ender;
         }
 
     }
@@ -215,7 +245,7 @@ namespace RAC.Network
                 // reply to client
                 if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
                 {
-                    Console.WriteLine("replying client " + toSent.to);
+                    Console.WriteLine("Replying " + toSent.to);
                     byte[] msg = toSent.Serialize();
                     NetworkStream stream = dest.GetStream();
                     stream.Write(msg, 0, msg.Length);
@@ -307,7 +337,11 @@ namespace RAC.Network
                     
                     msg = new MessagePacket(data);
                     reqQueue.Post(msg);
-                    activeClients[msg.from.Trim('\n', ' ')] = client;      
+                    string clientIP = msg.from;
+
+                    if (msg.msgSrc == MsgSrc.client)
+                        activeClients[clientIP] = client;      
+                        
                     continue;
                     
                 NextConnection:
