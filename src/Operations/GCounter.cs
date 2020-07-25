@@ -35,6 +35,8 @@ namespace RAC.Operations
             pl.valueVector.Insert(pl.replicaid, this.parameters.GetParam<int>(0));
 
             this.payload = pl;
+
+            res.AddContent("success", Dest.client); 
             
             return res;
         }

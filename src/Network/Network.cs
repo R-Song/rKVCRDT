@@ -5,6 +5,8 @@ using System.Text;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace RAC.Network
 {
@@ -12,16 +14,18 @@ namespace RAC.Network
     // represent a packet of request
     public class MessagePacket
     {
-        public readonly string identifier = "-RAC-\n";
+        public readonly string starter = "-RAC-\n";
+        public readonly string ender = "\n-EOF-";
         public string from;
         public string to;
         public string length;
         public string content;
 
-        public MessagePacket(byte[] bytes)
+        public MessagePacket(string str)
         {
-            string s = Encoding.Unicode.GetString(bytes);
-            s = s.Substring(s.IndexOf(identifier, 0, s.Length, StringComparison.Ordinal));
+            string s = str;
+            s = s.Substring(s.IndexOf(starter, 0, s.Length, StringComparison.Ordinal));
+            // TODO: throw error afterward
 
             using (StringReader reader = new StringReader(s))
             {
@@ -47,6 +51,7 @@ namespace RAC.Network
                             cl = int.Parse(length);
                             break;
                         case 4:
+                            // TODO: simplify this
                             string rest = line + "\n" + reader.ReadToEnd();
                             if (rest.Length == cl)
                             {
@@ -76,20 +81,21 @@ namespace RAC.Network
         public MessagePacket(string from, string to, string content)
         {
             //this.from = String.Format("{0}:{1}\n", Global.selfNode.address.ToString(), Global.selfNode.port);
-            this.from = string.Format("{0}\n", from);
-            this.to = String.Format("{0}\n", to);
+            this.from = string.Format("{0}\n", from.Trim('\n',' '));
+            this.to = String.Format("{0}\n", to.Trim('\n',' '));
             this.content = content;
             this.length = String.Format("{0}\n", content.Length.ToString());
         }
+        
 
         public byte[] Serialize()
         {
-            return Encoding.Unicode.GetBytes(this.identifier + this.from + this.to + this.length + this.content);
+            return Encoding.Unicode.GetBytes(this.starter + this.from + this.to + this.length + this.content + this.ender);
         }
 
         public override string ToString()
         {
-            return "msg content: \n" + this.identifier + this.from + this.to + this.length + this.content;
+            return "msg content: \n" + this.starter + this.from + this.to + this.length + this.content + this.ender;
         }
 
     }
@@ -111,7 +117,11 @@ namespace RAC.Network
     public class Server
     {
 
-        public BufferBlock<byte[]> reqQueue = new BufferBlock<byte[]>();
+        public BufferBlock<MessagePacket> reqQueue = new BufferBlock<MessagePacket>();
+        public BufferBlock<MessagePacket> respQueue = new BufferBlock<MessagePacket>();
+
+        // no need for thread safety cuz one only write and the other only read
+        public Dictionary<string, TcpClient> activeClients = new Dictionary<string, TcpClient>();
 
         private IPAddress address;
         private int port;
@@ -127,22 +137,56 @@ namespace RAC.Network
             
         }
 
-        public void AddToQueue(byte[] bytes)
-        {
-            reqQueue.Post(bytes);
-        }
-
         public async Task HandleRequestAync()
         {
-            byte[] data;
+            MessagePacket data;
+            MessagePacket toSent = null;
 
             while (await reqQueue.OutputAvailableAsync())
             {
-                data = reqQueue.Receive();
-                MessagePacket msg = new MessagePacket(data);
+                data = reqQueue.Receive();  
+                Response res = Parser.RunCommand(data.content);
                 
-            }
+                for (int i = 0; i < res.destinations.Count; i++)
+                {
+                    Dest dest = res.destinations[i];
+                    string content = res.contents[i];
+                    if (dest == Dest.client)
+                    {
+                        // TODO: Global.selfNode.address.ToString()
+                        toSent = new MessagePacket("ahh", data.from, content);
+                    }
+                    else if (dest == Dest.broadcast)
+                    {
+                        Console.WriteLine("Not done here");
+                        // TODO: handle this
+                    }
 
+                    Console.WriteLine("perparing response");
+                    
+                    this.respQueue.Post(toSent);
+                    
+                }
+            }   
+
+        }
+
+        public async Task SendResponseAsync()
+        {
+            MessagePacket data;
+
+            while (await this.respQueue.OutputAvailableAsync())
+            {
+                data = this.respQueue.Receive();
+                // TODO: handle if client DNE (broadcast)
+                TcpClient dest = activeClients[data.to.Trim()];
+                byte[] msg = data.Serialize();
+                dest.GetStream().Write(msg, 0, msg.Length);
+                Console.WriteLine("sending res to " + data.to);
+                dest.Close();
+                Console.WriteLine("Closed! " + data.to);
+                
+            }   
         }
 
         public void Run()
@@ -161,33 +205,43 @@ namespace RAC.Network
                 server.Start();
 
                 // Buffer for reading data
-                Byte[] bytes = new Byte[20];
+                Byte[] bytes = new Byte[1024];
 
                 // Enter the listening loop.
                 while (true)
                 {
-                    // Console.Write("Waiting for a connection... ");
+                    Console.Write("Waiting for a connection... ");
 
                     // Perform a blocking call to accept requests.
                     // You could also use server.AcceptSocket() here.
                     TcpClient client = server.AcceptTcpClient();
-                    // Console.WriteLine("Connected!");
+                    Console.WriteLine("Connected!");
 
                     // Get a stream object for reading and writing
                     NetworkStream stream = client.GetStream();
 
                     int i;
 
-                    // Loop to receive all the data sent by the client.
+                    MessagePacket msg = null;
+                    string data = null;
+
+                    // TODO: read async?
                     while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
                     {
                         // Translate data bytes to a ASCII string.
-                        //Console.WriteLine("ahhhh");
-                        AddToQueue(bytes);
+                       
+                        data += Encoding.Unicode.GetString(bytes);  
+                        int starterIndex = data.IndexOf("-RAC-");
+                        int enderIndex = data.IndexOf("-EOF-");
+                        if ( -1 < starterIndex && starterIndex < enderIndex)  
+                        {  
+                            break;  
+                        }  
                     }
 
-                    // Shutdown and end connection
-                    client.Close();
+                    msg = new MessagePacket(data);
+                    reqQueue.Post(msg);
+                    activeClients[msg.from.Trim('\n', ' ')] = client;      
                     
                 }
             }
