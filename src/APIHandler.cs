@@ -5,6 +5,7 @@ using System.Reflection;
 using Newtonsoft.Json;
 
 using RAC.Operations;
+using static RAC.Errors.Log;
 
 namespace RAC
 {
@@ -16,6 +17,9 @@ namespace RAC
         public Dictionary<string, MethodInfo> methodsList;
         public Dictionary<string, List<string>> paramsList;
 
+        // if 4 basic API exists
+        private List<string> checklist = new List<string>();
+
         public CRDTypeInfo(Type type)
         {
             this.type = type;
@@ -26,8 +30,44 @@ namespace RAC
         public void AddNewAPI(string apiCode, string methodName, string[] methodParams)
         {
             MethodInfo m = this.type.GetMethod(methodName);
+
+            if (m is null)
+            {
+                WARNING("Unable to load method: " + methodName);
+                return;
+            }
+
             this.methodsList.Add(apiCode, m);
             this.paramsList.Add(apiCode, new List<string>(methodParams));
+            
+            checklist.Add(methodName);
+        }
+
+        public bool CheckBasicAPI(out string missing)
+        {
+            bool flag = true;
+            missing = "";
+
+            if (!checklist.Contains("GetValue"))
+            {
+                missing += "GetValue ";
+                flag = false;
+            }
+
+            if (!checklist.Contains("SetValue"))
+            {
+                missing += "SetValue ";
+                flag = false;
+            }
+
+            if (!checklist.Contains("Synchronization"))
+            {
+                missing += "Synchronization ";
+                flag = false;
+            }
+
+            return flag;
+
         }
 
 
@@ -52,17 +92,34 @@ namespace RAC
 
         public static void AddNewType(string typeName, string typeCode)
         {
-            // TODO: sanity check
-            Type t = Type.GetType("RAC.Operations." + typeName);
+            Type t;
+            try
+            {
+                t = Type.GetType("RAC.Operations." + typeName, true);
+                typeCodeList.Add(typeCode, t);
+                typeList.Add(t, new CRDTypeInfo(t));
+            }
+            catch (TypeLoadException)
+            {
+                WARNING("Unable to load CRDT: " + typeName);
+                
+            }
 
-            typeCodeList.Add(typeCode, t);
-            typeList.Add(t, new CRDTypeInfo(t));
         }
         
         public static void AddNewAPI(string typeName, string methodName, string apiCode, string methodParams)
-        {
-            // TODO: sanity check
-            Type t = Type.GetType("RAC.Operations." + typeName);
+        {            
+            Type t;
+
+            try
+            {
+                t = Type.GetType("RAC.Operations." + typeName, true);
+            }
+            catch (TypeLoadException)
+            {
+                WARNING("Unable to load CRDT: " + typeName + ", skip adding " + methodName);
+                return;
+            }
 
             CRDTypeInfo type = typeList[t];
             type.AddNewAPI(apiCode, methodName, methodParams.Split(','));
@@ -104,7 +161,20 @@ namespace RAC
         public static void initAPIs()
         {
             APIs();
-            //TODO: check if all types has get, set, sync, delete after finish loading API
+
+            // check if all types has get, set, sync, delete after finish loading API
+            foreach (KeyValuePair<Type, CRDTypeInfo> entry in typeList)
+            {
+                string msg;
+                if (!entry.Value.CheckBasicAPI(out msg))
+                {
+                    WARNING(String.Format("Following basic APIs for type {0} not found, removing the type: {1}", entry.Key.ToString(), msg));
+                    typeList.Remove(entry.Key);
+                }
+
+            }
+
+
         }
 
 

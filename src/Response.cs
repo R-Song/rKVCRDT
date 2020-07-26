@@ -9,7 +9,6 @@ namespace RAC
     {
         success,
         fail
-
     }
 
     public enum Dest
@@ -17,7 +16,6 @@ namespace RAC
         client,
         broadcast,
         none
-
     }
 
     public class Responses

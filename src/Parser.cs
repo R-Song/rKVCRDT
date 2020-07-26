@@ -2,6 +2,7 @@ using System;
 using System.IO; 
 using System.Collections.Generic;
 using System.Text;
+using static RAC.Errors.Log;
 
 namespace RAC
 {   
@@ -73,7 +74,7 @@ namespace RAC
 
                 if (lineNumeber < 2)
                 {
-                    //TODO: send error messages
+                    WARNING("Incorrect command format: " + cmd);
                     return false;
                 }
             } 
@@ -93,8 +94,9 @@ namespace RAC
 
             if (!ParseCommand(cmd, out typeCode, out apiCode, out uid, out pm))
             {
-                // TODO: send error
-                return new Responses(Status.fail);
+                res = new Responses(Status.fail);
+                res.AddReponse(Dest.client, "Incorrect command format " + cmd);
+                return res;
             }
 
             res = API.Invoke(typeCode, uid, apiCode, pm);

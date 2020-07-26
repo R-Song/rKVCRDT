@@ -32,7 +32,7 @@ namespace RAC.Errors
 
         public static string Curtime() 
         {
-            return DateTime.Now.ToString("yyyy’-‘MM’-‘dd’T’HH’:’mm’:’ss");
+            return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         }
 
         [Conditional("DEBUG")]
@@ -54,7 +54,7 @@ namespace RAC.Errors
 
         public static void WARNING(string str)
         {
-            string s = String.Format("-⚠️WARNING⚠️- {0}:\n {1} \n", Curtime(), str);
+            string s = String.Format("-!WARNING!- {0}:\n {1} \n", Curtime(), str);
 
             if (logToLogFile)
                 file.Write(s);
@@ -64,7 +64,7 @@ namespace RAC.Errors
 
         public static void ERROR(string str)
         {
-            string s = String.Format("-🚨ERROR🚨- {0}:\n {1} \n", Curtime(), str);
+            string s = String.Format("!!ERROR!! {0}:\n {1} \n", Curtime(), str);
 
             if (logToLogFile)
                 file.Write(s);
