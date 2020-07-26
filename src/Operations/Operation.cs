@@ -2,6 +2,7 @@ using System;
 
 using RAC.Payloads;
 using RAC.Errors;
+using static RAC.Errors.Log;
 
 namespace RAC.Operations
 {
@@ -12,7 +13,7 @@ namespace RAC.Operations
         
         public PayloadType payload;
 
-        // TODO: add a payload changed flag
+        protected bool payloadNotChanged = false;
 
         public Operation(string uid, Parameters parameters)
         {
@@ -32,8 +33,11 @@ namespace RAC.Operations
 
         public void Save()
         {
-            Console.WriteLine("successfully stored");
-            Global.memoryManager.StorePayload(uid, payload);
+            if (!payloadNotChanged)
+            {
+                Global.memoryManager.StorePayload(uid, payload);
+                LOG(uid + " successfully stored");
+            }
         }
 
         public abstract Responses SetValue();
@@ -43,7 +47,7 @@ namespace RAC.Operations
         {
             Responses res = new Responses(Status.success);
 
-            // TODD: deletion things
+            // TODO: deletion things
 
             return res;
         }

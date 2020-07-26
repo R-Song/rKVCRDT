@@ -32,6 +32,7 @@ namespace RAC.Operations
                 res = new Responses(Status.success);
                 res.AddReponse(Dest.client, payload.valueVector.Sum().ToString()); 
             }
+            payloadNotChanged = true;
             
             return res;
         }
@@ -86,8 +87,6 @@ namespace RAC.Operations
 
             List<int> otherState = this.parameters.GetParam<List<int>>(0);
             
-            // TODO: add sanity check
-
             if (this.payload is null)
             {
                 GCPayload pl = new GCPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
