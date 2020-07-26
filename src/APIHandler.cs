@@ -48,7 +48,7 @@ namespace RAC
 
 
         // TODO: MAYBE, use delegate here
-        public delegate Response CRDTOPMethod();
+        public delegate Responses CRDTOPMethod();
 
         public static void AddNewType(string typeName, string typeCode)
         {
@@ -85,7 +85,7 @@ namespace RAC
         }
 
 
-        public static Response Invoke(string typeCode, string uid, string apiCode, Parameters parameters)
+        public static Responses Invoke(string typeCode, string uid, string apiCode, Parameters parameters)
         {
             Type opType = typeCodeList[typeCode];
             CRDTypeInfo t = typeList[opType];
@@ -93,7 +93,7 @@ namespace RAC
             MethodInfo method = t.methodsList[apiCode];
 
             var opObject = Convert.ChangeType(Activator.CreateInstance(opType, new object[]{uid, parameters}), opType);
-            Response res = (Response)method.Invoke(opObject, null);
+            Responses res = (Responses)method.Invoke(opObject, null);
             
             MethodInfo saveMethod = opObject.GetType().GetMethod("Save");
             saveMethod.Invoke(opObject, null);

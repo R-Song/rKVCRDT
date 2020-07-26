@@ -82,19 +82,19 @@ namespace RAC
             return true;
         }
 
-        public static Response RunCommand(string cmd)
+        public static Responses RunCommand(string cmd)
         {
 
             string typeCode;
             string uid;
             string apiCode;
             Parameters pm;
-            Response res;
+            Responses res;
 
             if (!ParseCommand(cmd, out typeCode, out apiCode, out uid, out pm))
             {
                 // TODO: send error
-                return new Response(Status.fail);
+                return new Responses(Status.fail);
             }
 
             res = API.Invoke(typeCode, uid, apiCode, pm);

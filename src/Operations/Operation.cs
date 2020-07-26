@@ -36,12 +36,12 @@ namespace RAC.Operations
             Global.memoryManager.StorePayload(uid, payload);
         }
 
-        public abstract Response SetValue();
-        public abstract Response GetValue();
-        public abstract Response Synchronization();
-        public virtual Response DeleteValue()
+        public abstract Responses SetValue();
+        public abstract Responses GetValue();
+        public abstract Responses Synchronization();
+        public virtual Responses DeleteValue()
         {
-            Response res = new Response(Status.success);
+            Responses res = new Responses(Status.success);
 
             // TODD: deletion things
 

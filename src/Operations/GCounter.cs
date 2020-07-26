@@ -18,18 +18,27 @@ namespace RAC.Operations
         }
 
 
-        public override Response GetValue()
+        public override Responses GetValue()
         {
-            Response res = new Response(Status.success);
-            
-            res.AddContent(payload.valueVector.Sum().ToString(), Dest.client); 
+            Responses res;
 
+            if (this.payload is null)
+            {
+                res = new Responses(Status.fail);
+                res.AddReponse(Dest.client, "Gcounter with id {0} cannot be found");
+            } 
+            else
+            {
+                res = new Responses(Status.success);
+                res.AddReponse(Dest.client, payload.valueVector.Sum().ToString()); 
+            }
+            
             return res;
         }
 
-        public override Response SetValue()
+        public override Responses SetValue()
         {
-            Response res = new Response(Status.success);
+            Responses res = new Responses(Status.success);
 
             GCPayload pl = new GCPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
 
@@ -39,8 +48,7 @@ namespace RAC.Operations
 
             this.payload = pl;
 
-            // TODO: make success to client default
-            res.AddContent("success", Dest.client); 
+            res.AddReponse(Dest.client); 
 
             Parameters syncPm = new Parameters(1);
             syncPm.AddParam(0, this.payload.valueVector);
@@ -48,33 +56,33 @@ namespace RAC.Operations
 
 
             string broadcast = Parser.BuildCommand("gc", "y", this.uid, syncPm);
-            res.AddContent(broadcast, Dest.broadcast);
+            res.AddReponse(Dest.broadcast, broadcast, false);
 
             
             return res;
         }
 
-        public Response Increment()
+        public Responses Increment()
         {
             this.payload.valueVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
 
-            Response res = new Response(Status.success);
+            Responses res = new Responses(Status.success);
 
             Parameters syncPm = new Parameters(1);
             syncPm.AddParam(0, this.payload.valueVector);
 
             string broadcast = Parser.BuildCommand("gc", "y", this.uid, syncPm);
             
-            res.AddContent("success", Dest.client); 
-            res.AddContent(broadcast, Dest.broadcast);
+            res.AddReponse(Dest.client); 
+            res.AddReponse(Dest.broadcast, broadcast, false);
 
             return res;
 
         }
 
-        public override Response Synchronization()
+        public override Responses Synchronization()
         {
-            Response res = new Response(Status.success);
+            Responses res = new Responses(Status.success);
 
             List<int> otherState = this.parameters.GetParam<List<int>>(0);
             

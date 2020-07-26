@@ -65,7 +65,7 @@ namespace RAC
 g
 ";
 
-            Response res = Parser.RunCommand(cmd2);
+            Responses res = Parser.RunCommand(cmd2);
             Console.WriteLine(res);
 
 

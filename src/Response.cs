@@ -20,7 +20,7 @@ namespace RAC
 
     }
 
-    public class Response
+    public class Responses
     {
 
         public Status status;
@@ -31,19 +31,31 @@ namespace RAC
 
         private int contentLength = 0;
 
-        public Response(Status status)
+        public Responses(Status status)
         {
             contents = new List<string>();
             destinations = new List<Dest>();
             this.status = status;
         }
 
-        public void AddContent(string content, Dest destination = Dest.none)
+        public void AddReponse(Dest destination, string content = "", bool includeStatus = true)
         {
-            this.contents.Add(content);
+
+            string statusContent = content;
+
+            if (includeStatus)
+            {
+                if (this.status == Status.fail)
+                    statusContent = "Operation Failed\n" + statusContent;
+                else
+                    statusContent = "Operation Succeed\n" + statusContent;
+            }
+
+            this.contents.Add(statusContent);
             this.destinations.Add(destination);
             contentLength++;
         }
+
 
         public override string ToString() 
         {
@@ -57,11 +69,6 @@ namespace RAC
         }
 
 
-    }
-
-    public class Request
-    {
-        public string content;
     }
 
 }

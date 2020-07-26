@@ -183,7 +183,7 @@ namespace RAC.Network
             while (await reqQueue.OutputAvailableAsync())
             {
                 data = reqQueue.Receive();  
-                Response res = Parser.RunCommand(data.content);
+                Responses res = Parser.RunCommand(data.content);
                 
                 for (int i = 0; i < res.destinations.Count; i++)
                 {
