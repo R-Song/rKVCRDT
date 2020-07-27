@@ -4,7 +4,7 @@ using System.Collections;
 
 using RAC.Payloads;
 using System.Collections.Generic;
-using static RAC.API;
+using static RAC.Errors.Log;
 
 namespace RAC.Operations
 {
@@ -98,7 +98,7 @@ namespace RAC.Operations
                 this.payload.valueVector[i] = Math.Max(this.payload.valueVector[i], otherState[i]);
             }
 
-            Console.WriteLine("sync successful");
+            DEBUG("Sync successful, new value for " + this.uid + " is " +  this.payload.valueVector.Sum());
 
             return res;
 

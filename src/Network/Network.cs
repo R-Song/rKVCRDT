@@ -146,36 +146,46 @@ namespace RAC.Network
                 TcpClient dest;
                 
                 // reply to client
-                // TODO: client.connected
                 if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
                 {
-                    Console.WriteLine("Replying " + toSent.to);
-                    byte[] msg = toSent.Serialize();
-                    NetworkStream stream = dest.GetStream();
-                    stream.Write(msg, 0, msg.Length);
-                    
-                    stream.Close();
-                    dest.Close();
+                    if (dest.Connected)
+                    {
+                        DEBUG("Replying:\n " + toSent);
+                        byte[] msg = toSent.Serialize();
+                        NetworkStream stream = dest.GetStream();
+
+                        stream.Write(msg, 0, msg.Length);
+                        stream.Close();
+                        dest.Close();
+                    } 
+                    // else do nothing
                     
                 }
                 else
                 { // broadcast
-                    Console.WriteLine("broadcasting " + toSent.to);
+                    DEBUG("Broadcasting:\n " + toSent);
                     String destAddr = toSent.to.Split(":")[0];
                     int destPort = Int32.Parse(toSent.to.Split(":")[1]);
 
-                    // TODO: handle this fails
-                    dest = new TcpClient(destAddr, destPort);
+                    try
+                    {
+                        dest = new TcpClient(destAddr, destPort);
 
-                    Byte[] data = toSent.Serialize();
-                    NetworkStream stream = dest.GetStream();
-                    stream.Write(data, 0, data.Length);
-                    
-                    stream.Close();
-                    dest.Close();
+                        Byte[] data = toSent.Serialize();
+                        NetworkStream stream = dest.GetStream();
+                        stream.Write(data, 0, data.Length);
+                        
+                        stream.Close();
+                        dest.Close();
+                    }
+                    catch (SocketException e)
+                    {
+                        WARNING("Broadcast fails, Connection to server " + destAddr + ":" +
+                        destPort + " cannot be established: " + e.Message);
+                    }
                 }
                 
-                Console.WriteLine("Closed! " + toSent.to);
+                DEBUG("Closed! " + toSent.to);
             }   
         }
 
@@ -225,9 +235,7 @@ namespace RAC.Network
                         data += Encoding.Unicode.GetString(bytes);  
                         starterIndex = data.IndexOf("-RAC-");
                         enderIndex = data.IndexOf("-EOF-");
-
-                        DEBUG("Received string data: \n" + data);        
-
+ 
                         if ( -1 < starterIndex && starterIndex < enderIndex)  
                         {  
                             data = data.Substring(starterIndex, enderIndex - starterIndex + "-EOF-".Length);
@@ -242,17 +250,15 @@ namespace RAC.Network
                     }
 
                     
-
                     if (starterIndex <= -1 || enderIndex <= -1 || starterIndex > enderIndex)
-                    {
-                        WARNING("Received incorrect data, disconnecting...");
-                        goto NextConnection;
-                    }
+                        goto NextConnection;         
                     
                     msg = new MessagePacket(data);
+                    DEBUG("Received packet: \n " + msg.ToString());
                     reqQueue.Post(msg);
                     string clientIP = msg.from;
 
+                    // TODO: find a way to clean up this
                     if (msg.msgSrc == MsgSrc.client)
                         activeClients[clientIP] = client;      
                         
@@ -261,7 +267,7 @@ namespace RAC.Network
                 NextConnection:
                     WARNING("connection from " + ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString() +
                             ":" + ((IPEndPoint)client.Client.RemoteEndPoint).Port.ToString() + 
-                            " is disconnected due to incorrect data received");
+                            " is disconnected due to incorrect data received " + data);       
                     stream.Close();
                     client.Close();
                 }

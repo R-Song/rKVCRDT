@@ -5,12 +5,8 @@ using System.Collections.Generic;
 
 namespace RAC
 {
-
-    // TODO: fix the API here
     public class Parameters 
     {
-
-
         private List<object> paramsList;
         
         public int size;
@@ -28,8 +24,6 @@ namespace RAC
             
         }
 
-
-        // TODO: change this to private
         public void AddParam(int index, object data)
         {
             this.paramsList.Insert(index, data);
