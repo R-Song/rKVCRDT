@@ -134,11 +134,6 @@ namespace RAC.Network
             this.port = node.port;
         }
 
-        public Server()
-        {
-            
-        }
-
         public async Task HandleRequestAync()
         {
             MessagePacket data;
@@ -257,8 +252,8 @@ namespace RAC.Network
             TcpListener server = null;
             try
             {
-                IPAddress localAddr = IPAddress.Parse(Global.selfNode.address);
-                Int32 port = Global.selfNode.port;
+                IPAddress localAddr = IPAddress.Parse(this.address);
+                Int32 port = this.port;
 
                 // TcpListener server = new TcpListener(port);
                 server = new TcpListener(localAddr, port);
