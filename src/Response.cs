@@ -59,14 +59,10 @@ namespace RAC
         {
             StringBuilder sb = new StringBuilder(256);
             for (int i = 0; i < this.contentLength; i++)
-            {   
                 sb.AppendFormat("Content: \n -------- \n{0} \n -------- \n is on its way to {1} ", contents[i], destinations[i]);
-            }
 
             return sb.ToString();
         }
-
-
     }
 
 }

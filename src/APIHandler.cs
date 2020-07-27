@@ -13,7 +13,6 @@ namespace RAC
     public class CRDTypeInfo
     {
         public Type type;
-        // TODO: setters ang getters...
         public Dictionary<string, MethodInfo> methodsList;
         public Dictionary<string, List<string>> paramsList;
 
@@ -38,6 +37,7 @@ namespace RAC
             }
 
             this.methodsList.Add(apiCode, m);
+            // TODO: check params type
             this.paramsList.Add(apiCode, new List<string>(methodParams));
             
             checklist.Add(methodName);
@@ -69,9 +69,6 @@ namespace RAC
             return flag;
 
         }
-
-
-
     }
 
     static partial class API
@@ -171,16 +168,8 @@ namespace RAC
                     WARNING(String.Format("Following basic APIs for type {0} not found, removing the type: {1}", entry.Key.ToString(), msg));
                     typeList.Remove(entry.Key);
                 }
-
             }
-
-
         }
-
-
-
     }
-
-
 
 }

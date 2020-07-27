@@ -29,14 +29,6 @@ namespace RAC
             return pm;
         }
 
-        public static bool ParseCommand(string fullreq)
-        {
-            
-
-            return false;
-        }
-
-
         public static bool ParseCommand(string cmd, out string typeCode, out string apiCode, out string uid, out Parameters pm)
         {
 
@@ -100,7 +92,6 @@ namespace RAC
             }
 
             res = API.Invoke(typeCode, uid, apiCode, pm);
-
             return res;
         }
 
