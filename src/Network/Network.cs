@@ -8,6 +8,7 @@ using System.Threading.Tasks.Dataflow;
 using System.Collections.Generic;
 using System.Threading;
 
+using RAC.Errors;
 using static RAC.Errors.Log;
 
 namespace RAC.Network
@@ -94,8 +95,8 @@ namespace RAC.Network
                     string content = res.contents[i];
                     if (dest == Dest.client)
                     {
-                        // Do not response server
-                        // TODO: simplify this
+                        // Do not response server, prob not needed
+                        /**
                         bool flag = false;
                         foreach (Node n in Global.cluster)
                         {
@@ -108,7 +109,7 @@ namespace RAC.Network
 
                         if (flag)
                             continue;
-
+                        **/
                         toSent = new MessagePacket(Global.selfNode.address, data.from, content);
                         this.respQueue.Post(toSent);
                     }
@@ -118,7 +119,9 @@ namespace RAC.Network
                         {
                             if (!n.isSelf)
                             {
-                                toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(), n.address.ToString() + ":" + n.port.ToString(), content);
+                                toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(), 
+                                                            n.address.ToString() + ":" + n.port.ToString(), 
+                                                            content);
                                 this.respQueue.Post(toSent);
                             }
                         }
@@ -253,7 +256,16 @@ namespace RAC.Network
                     if (starterIndex <= -1 || enderIndex <= -1 || starterIndex > enderIndex)
                         goto NextConnection;         
                     
-                    msg = new MessagePacket(data);
+                    try
+                    {
+                        msg = new MessagePacket(data);
+                    }
+                    catch (MessageLengthDoesNotMatchException e)
+                    {
+                        WARNING("Parsing of incoming packet fails: " + e.Message);
+                        goto NextConnection;
+                    }
+
                     DEBUG("Received packet: \n " + msg.ToString());
                     reqQueue.Post(msg);
                     string clientIP = msg.from;
@@ -267,7 +279,7 @@ namespace RAC.Network
                 NextConnection:
                     WARNING("connection from " + ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString() +
                             ":" + ((IPEndPoint)client.Client.RemoteEndPoint).Port.ToString() + 
-                            " is disconnected due to incorrect data received " + data);       
+                            " is disconnected due to incorrect data received: \n" + data);       
                     stream.Close();
                     client.Close();
                 }

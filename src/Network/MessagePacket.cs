@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Text;
+using RAC.Errors;
+using static RAC.Errors.Log;
 
 namespace RAC.Network
 {
@@ -25,7 +27,6 @@ namespace RAC.Network
         public MessagePacket(string str)
         {
             string s = str;
-            // TODO: throw error afterward
 
             using (StringReader reader = new StringReader(s))
             {
@@ -59,23 +60,15 @@ namespace RAC.Network
                             cl = int.Parse(length);
                             break;
                         case 5:
-                            // TODO: simplify this
                             string rest = line + "\n" + reader.ReadToEnd();
+
                             if (rest.Length == cl)
-                            {
                                 this.content = rest;
-                            }
                             else if (rest.Length < cl)
-                            {
-                                Console.WriteLine(rest.Length);
-                                //TODO: throw error
-                                Console.WriteLine("wrong msg length");
-                                return;
-                            }
+                                throw new MessageLengthDoesNotMatchException("Actual content length " + rest.Length + 
+                                " is shorter then expected length " + cl);
                             else
-                            {
                                 this.content = rest.Substring(0, cl);
-                            }
 
                             break;
 

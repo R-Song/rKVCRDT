@@ -4,6 +4,18 @@ using System.IO;
 
 namespace RAC.Errors
 {
+
+    public class MessageLengthDoesNotMatchException : Exception
+    {
+        public MessageLengthDoesNotMatchException()
+        {
+        }
+
+        public MessageLengthDoesNotMatchException(string message) : base(message)
+        {
+        }
+    }
+
     public class PayloadNotFoundException : Exception
     {
         public PayloadNotFoundException()
