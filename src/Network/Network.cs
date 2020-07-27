@@ -8,6 +8,8 @@ using System.Threading.Tasks.Dataflow;
 using System.Collections.Generic;
 using System.Threading;
 
+using Newtonsoft.Json;
+
 using RAC.Errors;
 using static RAC.Errors.Log;
 
@@ -25,9 +27,10 @@ namespace RAC.Network
 
         public bool isSelf = false;
 
-        public Node(int id, string address, int port)
+        [JsonConstructor]
+        public Node(int nodeid, string address, int port)
         {
-            this.nodeid = id;
+            this.nodeid = nodeid;
 
 
             try 
@@ -36,7 +39,7 @@ namespace RAC.Network
             }
             catch(FormatException e)
             {
-                ERROR("Node " + id + " provided an incorrect ip address", e);
+                ERROR("Node " + nodeid + " provided an incorrect ip address", e);
                 throw e;
             }
             
@@ -44,12 +47,69 @@ namespace RAC.Network
 
             if (port <= 0 || port > 65535)
             {
-                ERROR("Node " + id + " provided an incorrect port number of " + port, new ArgumentOutOfRangeException());
+                ERROR("Node " + nodeid + " provided an incorrect port number of " + port, new ArgumentOutOfRangeException());
             }
 
             this.port = port;
 
         }
+
+        public override string ToString() 
+        {
+            return "Node " + nodeid + ": Address: " + this.address + ":" + this.port + ", is self? " + this.isSelf;
+        }
+
+        public static bool DeserializeNodeConfig(string filename, out List<Node> nodes)
+        {
+            nodes = JsonConvert.DeserializeObject<List<Node>>(File.ReadAllText(filename));
+
+            // sanity check
+            // check if multiple selves
+            int selfNodeCount = 0;
+            // check if duplicate nodes
+            HashSet<string> addrportSet = new HashSet<string>();
+            
+            foreach (var n in nodes)
+            {
+                if (n.isSelf)
+                    selfNodeCount++;
+
+                if (selfNodeCount > 1)
+                {
+                    ERROR("Config: Too many self node!");
+                    return false;
+                }
+
+                string addrport = n.address + n.port.ToString();
+                if (addrportSet.Contains(addrport))
+                {
+                    ERROR("Duplicate nodes!");
+                }
+                else
+                    addrportSet.Add(addrport);
+
+
+            }
+
+            if (selfNodeCount == 0)
+            {
+                ERROR("Config: No self node");
+                return false;
+            }
+
+            StringBuilder listingNodes = new StringBuilder("The following nodes are initalized:\n");
+            foreach (var n in nodes)
+            {
+                listingNodes.AppendLine(n.ToString());
+            }
+
+            LOG(listingNodes.ToString());
+
+            return true;
+
+        }
+
+
     }
 
 

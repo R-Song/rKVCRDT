@@ -6,8 +6,8 @@ namespace RAC
 {
     static class Config
     {
-        public static uint replicaId;
-        public static uint numReplicas;
+        public static int replicaId;
+        public static int numReplicas;
 
     }
 
@@ -22,11 +22,21 @@ namespace RAC
 
         public static Node selfNode;
 
-        public static List<Node> cluster = new List<Node>();
+        public static List<Node> cluster;
 
-        public static void init()
+        public static void init(string nodeconfigfile)
         {
-            // TODO:
+            Node.DeserializeNodeConfig(nodeconfigfile, out cluster);
+            foreach (var n in cluster)
+            {
+                if (n.isSelf)
+                    selfNode = n;
+            }
+
+            Config.numReplicas = cluster.Count;
+            Config.replicaId = selfNode.nodeid;
+
+            API.initAPIs();
         }
 
         

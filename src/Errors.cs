@@ -50,12 +50,12 @@ namespace RAC.Errors
         [Conditional("DEBUG")]
         public static void DEBUG(string str)
         {
-            Console.WriteLine("-DEBUG- {0}:\n {1} \n===========\n", Curtime(), str);
+            Console.WriteLine("-DEBUG- {0}:\n{1} \n===========\n", Curtime(), str);
         }
 
         public static void LOG(string str)
         {
-            string s = String.Format("-LOG- {0}:\n {1} \n===========\n", Curtime(), str);
+            string s = String.Format("-LOG- {0}:\n{1} \n===========\n", Curtime(), str);
 
             if (logToLogFile)
                 file.Write(s);
@@ -66,7 +66,7 @@ namespace RAC.Errors
 
         public static void WARNING(string str)
         {
-            string s = String.Format("-!WARNING!- {0}:\n {1} \n===========\n", Curtime(), str);
+            string s = String.Format("-!WARNING!- {0}:\n{1} \n===========\n", Curtime(), str);
 
             if (logToLogFile)
                 file.Write(s);
@@ -74,9 +74,19 @@ namespace RAC.Errors
                 Console.Write(s);
         }
 
+        public static void ERROR(string str)
+        {
+            string s = String.Format("!!ERROR!! {0}:\n{1} \n===========\n", Curtime(), str);
+
+            if (logToLogFile)
+                file.Write(s);
+            else
+                errorWriter.Write(s);
+        }
+
         public static void ERROR(string str, Exception e, bool throwException = true)
         {
-            string s = String.Format("!!ERROR!! {0}:\n {1} \n===========\n", Curtime(), str);
+            string s = String.Format("!!ERROR!! {0}:\n{1} \n===========\n", Curtime(), str);
 
             if (logToLogFile)
                 file.Write(s);
