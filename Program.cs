@@ -34,7 +34,6 @@ namespace RAC
 
             int self = Int32.Parse(args[0]);
 
-
             Node n1 = new Node(0, "127.0.0.1", 5000);
             Node n2 = new Node(0, "127.0.0.1", 5001);
 

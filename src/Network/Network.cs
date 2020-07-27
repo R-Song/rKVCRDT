@@ -8,6 +8,8 @@ using System.Threading.Tasks.Dataflow;
 using System.Collections.Generic;
 using System.Threading;
 
+using static RAC.Errors.Log;
+
 namespace RAC.Network
 {
 
@@ -25,13 +27,28 @@ namespace RAC.Network
         public Node(int id, string address, int port)
         {
             this.nodeid = id;
-            // TODO: sanity check
+
+
+            try 
+            {
+                IPAddress.Parse(address);
+            }
+            catch(FormatException e)
+            {
+                ERROR("Node " + id + " provided an incorrect ip address", e);
+                throw e;
+            }
+            
             this.address = address;
+
+            if (port <= 0 || port > 65535)
+            {
+                ERROR("Node " + id + " provided an incorrect port number of " + port, new ArgumentOutOfRangeException());
+            }
+
             this.port = port;
 
         }
-
-
     }
 
 
@@ -44,13 +61,16 @@ namespace RAC.Network
         // no need for thread safety cuz one only write and the other only read
         public Dictionary<string, TcpClient> activeClients = new Dictionary<string, TcpClient>();
 
-        private IPAddress address;
+        private string address;
         private int port;
+        
+        // threshold for stop reading if still no starter detected
+        private const int readThreshold = 100;
 
-        public Server(IPAddress address, int port)
+        public Server(Node node)
         {
-            this.address = address;
-            this.port = port;
+            this.address = node.address;
+            this.port = node.port;
         }
 
         public Server()
@@ -126,6 +146,7 @@ namespace RAC.Network
                 TcpClient dest;
                 
                 // reply to client
+                // TODO: client.connected
                 if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
                 {
                     Console.WriteLine("Replying " + toSent.to);
@@ -178,12 +199,12 @@ namespace RAC.Network
                 // Enter the listening loop.
                 while (true)
                 {
-                    Console.Write("Waiting for a connection... ");
+                    DEBUG("Waiting for a connection... ");
 
                     // Perform a blocking call to accept requests.
                     // You could also use server.AcceptSocket() here.
                     TcpClient client = server.AcceptTcpClient();
-                    Console.WriteLine("Connected!");
+                    DEBUG("Connected!");
 
                     // Get a stream object for reading and writing
                     NetworkStream stream = client.GetStream();
@@ -194,27 +215,37 @@ namespace RAC.Network
                     string data = null;
                     int starterIndex = -1;
                     int enderIndex = -1;
+                    int byteread = 0;
 
                     // TODO: read async?
                     while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
                     {
+                        byteread += i;
 
                         data += Encoding.Unicode.GetString(bytes);  
                         starterIndex = data.IndexOf("-RAC-");
                         enderIndex = data.IndexOf("-EOF-");
 
+                        DEBUG("Received string data: \n" + data);        
+
                         if ( -1 < starterIndex && starterIndex < enderIndex)  
                         {  
                             data = data.Substring(starterIndex, enderIndex - starterIndex + "-EOF-".Length);
-                            // TODO: handle when client starting to send gibberish, goto next connection
                             break;  
                         }  
+
+                        if (enderIndex > -1 && starterIndex == -1)
+                            goto NextConnection;
+
+                        if (starterIndex == -1 && byteread > readThreshold)
+                            goto NextConnection;
                     }
 
-                    Console.WriteLine("Received: \n" + data);
+                    
 
                     if (starterIndex <= -1 || enderIndex <= -1 || starterIndex > enderIndex)
                     {
+                        WARNING("Received incorrect data, disconnecting...");
                         goto NextConnection;
                     }
                     
@@ -228,20 +259,24 @@ namespace RAC.Network
                     continue;
                     
                 NextConnection:
+                    WARNING("connection from " + ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString() +
+                            ":" + ((IPEndPoint)client.Client.RemoteEndPoint).Port.ToString() + 
+                            " is disconnected due to incorrect data received");
                     stream.Close();
                     client.Close();
                 }
             }
             catch (SocketException e)
             {
-                Console.WriteLine("SocketException: {0}", e);
+                ERROR("SocketException: {0}", e);
             }
             finally
             {
                 // Stop listening for new clients.
-                Console.WriteLine("Stopped listening");
+                LOG("Stopped listening");
                 server.Stop();
                 this.reqQueue.Complete();
+                this.respQueue.Complete();
             }
         }
     }

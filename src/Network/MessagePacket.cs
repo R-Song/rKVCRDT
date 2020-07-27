@@ -4,7 +4,7 @@ using System.Text;
 
 namespace RAC.Network
 {
-        public enum MsgSrc
+    public enum MsgSrc
     {
         server,
         client
@@ -112,13 +112,17 @@ namespace RAC.Network
         {
             string msgSrcstr;
             if (this.msgSrc == MsgSrc.server)
-                msgSrcstr = "s\n";
+                msgSrcstr = "server";
             else
-                msgSrcstr = "c\n";
+                msgSrcstr = "client";
                 
+            return "Packet Content:\n" +
+            "Source: " + this.from + "\n" +
+            "Dest: " + this.to + "\n" +
+            "Sender Type: " + msgSrcstr + "\n" +
+            "Length: " + this.length + "\n" +
+            "Content:\n" + this.content;
             
-            // TODO: make this better
-            return "msg content: \n" + this.starter + this.from + this.to + msgSrcstr + this.length + this.content + this.ender;
         }
 
     }

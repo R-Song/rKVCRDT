@@ -62,7 +62,7 @@ namespace RAC.Errors
                 Console.Write(s);
         }
 
-        public static void ERROR(string str)
+        public static void ERROR(string str, Exception e, bool throwException = true)
         {
             string s = String.Format("!!ERROR!! {0}:\n {1} \n", Curtime(), str);
 
@@ -70,6 +70,9 @@ namespace RAC.Errors
                 file.Write(s);
             else
                 errorWriter.Write(s);
+
+            if (throwException)
+                throw e;
             
         }
         

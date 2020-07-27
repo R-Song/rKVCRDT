@@ -22,7 +22,7 @@ namespace RAC
                 AddNewAPI("GCounter", "GetValue", "g", "");
                 AddNewAPI("GCounter", "SetValue", "s", "int");
                 AddNewAPI("GCounter", "Increment", "i", "int");
-                //AddNewAPI("GCounter", "Synchronization", "y", "listi");
+                AddNewAPI("GCounter", "Synchronization", "y", "listi");
 
                 // ADD CRDT API below
             }

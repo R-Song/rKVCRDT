@@ -93,7 +93,7 @@ class GCounter:
 
         req = msg_construct(self.server, req)
 
-
+        
         self.server.connect()
         res = self.server.send(req)
         return res
@@ -105,7 +105,7 @@ class GCounter:
               str(value)
 
         req = msg_construct(self.server, req)
-
+        
         self.server.connect()
         res = self.server.send(req)
         return res
@@ -138,8 +138,8 @@ if __name__ == "__main__":
           
     gc = GCounter(s)
 
-    #print(gc.set(9, 20))
-    print(gc.get(9))
+    print(gc.set(9, 20))
+    #print(gc.get(9))
     
     
     #print(gc.inc(9, 14))
