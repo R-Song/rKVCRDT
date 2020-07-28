@@ -116,14 +116,14 @@ namespace RAC.Network
     public class Server
     {
 
-        public BufferBlock<MessagePacket> reqQueue = new BufferBlock<MessagePacket>();
-        public BufferBlock<MessagePacket> respQueue = new BufferBlock<MessagePacket>();
+        private BufferBlock<MessagePacket> reqQueue = new BufferBlock<MessagePacket>();
+        private BufferBlock<MessagePacket> respQueue = new BufferBlock<MessagePacket>();
 
         // no need for thread safety cuz one only write and the other only read
-        public Dictionary<string, TcpClient> activeClients = new Dictionary<string, TcpClient>();
+        private Dictionary<string, TcpClient> activeClients = new Dictionary<string, TcpClient>();
 
-        private string address;
-        private int port;
+        public string address { get; }
+        public int port { get; }
         
         // threshold for stop reading if still no starter detected
         private const int readThreshold = 100;

@@ -9,7 +9,7 @@ namespace RAC
     {
         private List<object> paramsList;
         
-        public int size;
+        public int size { set; get; }
 
         public Parameters(int size)
         {

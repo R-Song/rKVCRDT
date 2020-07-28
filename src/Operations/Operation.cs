@@ -8,10 +8,10 @@ namespace RAC.Operations
 {
     public abstract class Operation<PayloadType> where PayloadType: Payload
     {
-        public string uid;
-        public Parameters parameters;
+        public string uid { get; }
+        public Parameters parameters { protected set; get; }
         
-        public PayloadType payload;
+        public PayloadType payload { protected set; get; }
 
         protected bool payloadNotChanged = false;
 

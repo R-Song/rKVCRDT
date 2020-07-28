@@ -8,7 +8,7 @@ namespace RAC
     public class MemoryManager
     {
         // TODO: a better storage system
-        public Dictionary<string, Payload> storage;
+        private Dictionary<string, Payload> storage;
 
         public MemoryManager()
         {

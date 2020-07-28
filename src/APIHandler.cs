@@ -12,11 +12,11 @@ namespace RAC
 
     public class CRDTypeInfo
     {
-        public Type type;
-        public Dictionary<string, MethodInfo> methodsList;
-        public Dictionary<string, List<string>> paramsList;
+        public Type type { get; }
+        public Dictionary<string, MethodInfo> methodsList { get; set; }
+        public Dictionary<string, List<string>> paramsList { get; set; }
 
-        // if 4 basic API exists
+        // used to check if 4 basic API exists
         private List<string> checklist = new List<string>();
 
         public CRDTypeInfo(Type type)

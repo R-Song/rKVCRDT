@@ -15,13 +15,13 @@ namespace RAC.Network
     // represent a packet of request
     public class MessagePacket
     {
-        public readonly string starter = "-RAC-\n";
-        public readonly string ender = "\n-EOF-";
-        public string from;
-        public string to;
-        public MsgSrc msgSrc;
-        public string length;
-        public string content;
+        private const string starter = "-RAC-\n";
+        private const string ender = "\n-EOF-";
+        public string from { get; }
+        public string to { get; }
+        public MsgSrc msgSrc { get; }
+        public string length { get; }
+        public string content {get; }
         
 
         public MessagePacket(string str)
@@ -98,7 +98,7 @@ namespace RAC.Network
             else
                 msgSrcstr = "c\n";
 
-            return Encoding.Unicode.GetBytes(this.starter + this.from + this.to + msgSrcstr + this.length + this.content + this.ender);
+            return Encoding.Unicode.GetBytes(starter + this.from + this.to + msgSrcstr + this.length + this.content + ender);
         }
 
         public override string ToString()

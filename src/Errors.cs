@@ -1,3 +1,6 @@
+#define DEBUG
+//#undef DEBUG
+
 using System;
 using System.Diagnostics;
 using System.IO;

@@ -9,7 +9,7 @@ namespace RAC
         {
             if (args.Length != 1)
             {
-                Console.WriteLine("need 1 arg");
+                Console.WriteLine("Please input json config file");
                 return 1;
             }
 

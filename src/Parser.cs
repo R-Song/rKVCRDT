@@ -8,8 +8,6 @@ namespace RAC
 {   
     public static partial class Parser
     {   
-
-
         private static Parameters ParamBuilder(string typeCode, string apiCode, List<string> input)
         {
             List<string> pmTypesConverters = API.typeList[API.typeCodeList[typeCode]].paramsList[apiCode];

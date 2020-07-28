@@ -21,7 +21,7 @@ namespace RAC
     public class Responses
     {
 
-        public Status status;
+        public Status status { set; get; }
 
         public List<string> contents { get; private set; }
 
