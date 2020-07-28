@@ -1,5 +1,5 @@
-#define DEBUG
-//#undef DEBUG
+//#define DEBUG
+#undef DEBUG
 
 using System;
 using System.Diagnostics;
@@ -53,7 +53,9 @@ namespace RAC.Errors
         [Conditional("DEBUG")]
         public static void DEBUG(string str)
         {
+#if DEBUG
             Console.WriteLine("-DEBUG- {0}:\n{1} \n===========\n", Curtime(), str);
+#endif
         }
 
         public static void LOG(string str)

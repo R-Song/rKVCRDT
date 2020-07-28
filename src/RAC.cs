@@ -26,6 +26,8 @@ namespace RAC
 
         public static void init(string nodeconfigfile)
         {
+            API.InitAPIs();
+
             Node.DeserializeNodeConfig(nodeconfigfile, out cluster);
             foreach (var n in cluster)
             {
@@ -35,8 +37,6 @@ namespace RAC
 
             Config.numReplicas = cluster.Count;
             Config.replicaId = selfNode.nodeid;
-
-            API.InitAPIs();
         }
 
         
