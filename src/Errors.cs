@@ -1,5 +1,5 @@
-//#define DEBUG
-#undef DEBUG
+#define DEBUG
+//#undef DEBUG
 
 using System;
 using System.Diagnostics;
