@@ -9,7 +9,7 @@ namespace RAC
         {
             if (args.Length != 1)
             {
-                Console.WriteLine("Please input json config file");
+                Console.WriteLine("Please provide correct json cluster config file");
                 return 1;
             }
 

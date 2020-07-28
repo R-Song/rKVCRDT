@@ -1,6 +1,6 @@
 [
     {
-        "nodeid": 0,
+        "nodeid": 0, 
         "address": "127.0.0.1",
         "port": 5000,
         "isSelf": true
