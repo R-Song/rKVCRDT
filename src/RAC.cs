@@ -36,7 +36,7 @@ namespace RAC
             Config.numReplicas = cluster.Count;
             Config.replicaId = selfNode.nodeid;
 
-            API.initAPIs();
+            API.InitAPIs();
         }
 
         

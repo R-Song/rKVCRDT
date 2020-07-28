@@ -9,6 +9,7 @@ namespace RAC
     {
             private static void APIs()
             {
+                // Add data types that will be used below:
                 // int
                 AddConverter("int", Converters.StringToInt, Converters.IntToString);
                 // string
@@ -16,7 +17,9 @@ namespace RAC
                 // list of integers
                 AddConverter("listi", Converters.StringToListi, Converters.ListiToString);
 
+                //=========================================================================================//
 
+                // ADD CRDTs and their APIs below:
                 // GCounter
                 AddNewType("GCounter", "gc");
                 AddNewAPI("GCounter", "GetValue", "g", "");
@@ -24,7 +27,7 @@ namespace RAC
                 AddNewAPI("GCounter", "Increment", "i", "int");
                 AddNewAPI("GCounter", "Synchronization", "y", "listi");
 
-                // ADD CRDT API below
+                
             }
 
 

@@ -81,7 +81,6 @@ namespace RAC.Network
 
         public MessagePacket(string from, string to, string content)
         {
-            //this.from = String.Format("{0}:{1}\n", Global.selfNode.address.ToString(), Global.selfNode.port);
             this.from = string.Format("{0}\n", from.Trim('\n',' '));
             this.to = String.Format("{0}\n", to.Trim('\n',' '));
             this.msgSrc = MsgSrc.server; // has to be server;

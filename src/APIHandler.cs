@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Newtonsoft.Json;
 
 using RAC.Operations;
@@ -37,7 +38,18 @@ namespace RAC
             }
 
             this.methodsList.Add(apiCode, m);
-            // TODO: check params type
+            
+            foreach (string mp in methodParams)
+            {
+                if ((!API.converterList.ContainsKey(mp) && (!mp.Equals(""))))
+                {
+                    WARNING("Unable to load method: " + methodName +
+                            " Param " + mp +
+                            " does not exist in parameter/converter list");
+                    return; 
+                }
+            }
+
             this.paramsList.Add(apiCode, new List<string>(methodParams));
             
             checklist.Add(methodName);
@@ -155,7 +167,7 @@ namespace RAC
             return res;
         }
 
-        public static void initAPIs()
+        public static void InitAPIs()
         {
             APIs();
 
@@ -169,6 +181,31 @@ namespace RAC
                     typeList.Remove(entry.Key);
                 }
             }
+
+            LOG("The following CRDTs were added:\n" + PrintAllAPIs());
+        }
+
+        public static string PrintAllAPIs()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var item in typeList)
+            {
+                Type t = item.Key;
+                CRDTypeInfo info = item.Value;
+
+                sb.AppendLine("Type-" + t.ToString() + ":");
+
+                foreach (var titem in info.methodsList)
+                {
+                    string pmstring = string.Join(",", info.paramsList[titem.Key]);
+                    sb.AppendLine("API-" + titem.Value.ToString() + "<-" + pmstring);
+
+                }
+                sb.AppendLine();
+            }
+
+            return sb.ToString();
         }
     }
 
