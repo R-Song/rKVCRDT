@@ -37,8 +37,6 @@ namespace RAC
                 return;
             }
 
-            this.methodsList.Add(apiCode, m);
-            
             foreach (string mp in methodParams)
             {
                 if ((!API.converterList.ContainsKey(mp) && (!mp.Equals(""))))
@@ -50,6 +48,7 @@ namespace RAC
                 }
             }
 
+            this.methodsList.Add(apiCode, m);
             this.paramsList.Add(apiCode, new List<string>(methodParams));
             
             checklist.Add(methodName);
