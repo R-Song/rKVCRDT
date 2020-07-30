@@ -16,14 +16,16 @@ namespace RAC.Network
     public class MessagePacket
     {
         private const string starter = "-RAC-\n";
-        private const string ender = "\n-EOF-";
+        private const string ender = "-EOF-";
         public string from { get; }
         public string to { get; }
         public MsgSrc msgSrc { get; }
-        public string length { get; }
+        public int length { get; }
         public string content {get; }
         
-
+        // Create a message packet from a string 
+        // starts with "-RAC-" and ends with "-EOF".
+        // This class do not verify that.
         public MessagePacket(string str)
         {
             string s = str;
@@ -56,8 +58,8 @@ namespace RAC.Network
                                 this.msgSrc = MsgSrc.client;
                             break;
                         case 4:
-                            this.length = line;
-                            cl = int.Parse(length);
+                            this.length = int.Parse(line);
+                            cl = length;
                             break;
                         case 5:
                             string rest = line + "\n" + reader.ReadToEnd();
@@ -85,7 +87,7 @@ namespace RAC.Network
             this.to = String.Format("{0}\n", to.Trim('\n',' '));
             this.msgSrc = MsgSrc.server; // has to be server;
             this.content = content;
-            this.length = String.Format("{0}\n", content.Length.ToString());
+            this.length = content.Length;
         }
         
 
@@ -97,7 +99,10 @@ namespace RAC.Network
             else
                 msgSrcstr = "c\n";
 
-            return Encoding.Unicode.GetBytes(starter + this.from + this.to + msgSrcstr + this.length + this.content + ender);
+            return Encoding.Unicode.GetBytes(starter + this.from + "\n" +
+                                             this.to + "\n" + msgSrcstr + 
+                                             this.length + "\n" +
+                                             this.content + ender);
         }
 
         public override string ToString()
