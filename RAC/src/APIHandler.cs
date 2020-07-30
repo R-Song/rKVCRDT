@@ -86,14 +86,14 @@ namespace RAC
     static public partial class API
     {
 
-        public static Dictionary<Type, CRDTypeInfo> typeList = new Dictionary<Type, CRDTypeInfo>();
-        public static Dictionary<string, Type> typeCodeList = new Dictionary<string, Type>();
+        public static Dictionary<Type, CRDTypeInfo> typeList;
+        public static Dictionary<string, Type> typeCodeList;
 
         public delegate object StringToType(string s);
         public delegate string TypeToString(object o);
 
         // First to type, then to string
-        public static Dictionary<string, (StringToType, TypeToString)> converterList = new Dictionary<string, (StringToType, TypeToString)>();
+        public static Dictionary<string, (StringToType, TypeToString)> converterList;
 
 
         // TODO: MAYBE, use delegate here
@@ -169,6 +169,10 @@ namespace RAC
 
         public static void InitAPIs()
         {
+            typeList = new Dictionary<Type, CRDTypeInfo>();
+            typeCodeList = new Dictionary<string, Type>();
+            converterList = new Dictionary<string, (StringToType, TypeToString)>();
+
             APIs();
 
             // check if all types has get, set, sync, delete after finish loading API

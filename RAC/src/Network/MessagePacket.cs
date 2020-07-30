@@ -41,7 +41,7 @@ namespace RAC.Network
                     switch (lineNumeber)
                     {
                         case 0:
-                            // header identifier
+                            // must be header
                             break;
                         case 1:
                             this.from = line;
