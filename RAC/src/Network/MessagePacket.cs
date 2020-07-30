@@ -16,8 +16,14 @@ namespace RAC.Network
     // TODO: catach other problems (int parser)
     public class MessagePacket
     {
-        private const string starter = "-RAC-\n";
+        private const string starter = "-RAC-";
         private const string ender = "-EOF-";
+        private const string fromPrefix = "FROM:";
+        private const string toPrefix = "TO:";
+        private const string classPrefix = "CLS:";
+        private const string lengthPrefix = "LEN:";
+        private const string contentPrefix = "CNT:";
+
         public string from { get; }
         public string to { get; }
         public MsgSrc msgSrc { get; }
@@ -30,64 +36,94 @@ namespace RAC.Network
         public MessagePacket(string str)
         {
             string s = str;
+            int numfields = 0;
 
             using (StringReader reader = new StringReader(s))
             {
                 string line;
-                int lineNumeber = 0;
-                int cl = 0;
 
                 while ((line = reader.ReadLine()) != null)
                 {
-                    line = line.Trim('\n',' ');
-
-                    switch (lineNumeber)
+                    // first line
+                    if (line.StartsWith(starter, StringComparison.Ordinal))
+                        continue;
+                        
+                    if (line.StartsWith(fromPrefix, StringComparison.Ordinal))
                     {
-                        case 0:
-                            // must be header
-                            break;
-                        case 1:
-                            this.from = line;
-                            break;
-                        case 2:
-                            this.to = line;
-                            break;
-                        case 3:
-                            if (line.Equals("s"))
-                                this.msgSrc = MsgSrc.server;
-                            else if (line.Equals("c"))
-                                this.msgSrc = MsgSrc.client;
-                            break;
-                        case 4:
-                            this.length = int.Parse(line);
-                            cl = length;
-                            break;
-                        case 5:
-                            string rest = line + "\n" + reader.ReadToEnd();
+                        this.from = line.Remove(0, fromPrefix.Length).Trim('\n',' ');
+                        numfields++;
+                    }
 
-                            if (rest.Length == cl)
-                                this.content = rest;
-                            else if (rest.Length < cl)
-                                throw new MessageLengthDoesNotMatchException("Actual content length " + rest.Length + 
-                                " is shorter then expected length " + cl);
-                            else
-                                this.content = rest.Substring(0, cl);
+                    if (line.StartsWith(toPrefix, StringComparison.Ordinal))
+                    {
+                        this.to = line.Remove(0, toPrefix.Length).Trim('\n',' ');
+                        numfields++;
+                    }
 
-                            break;
+                        
+                    if (line.StartsWith(classPrefix, StringComparison.Ordinal))
+                    {
+                        line = line.Remove(0, classPrefix.Length).Trim('\n',' ');
 
+                        if (line.Equals("s"))
+                            this.msgSrc = MsgSrc.server;
+                        else if (line.Equals("c"))
+                            this.msgSrc = MsgSrc.client;
+                        else
+                            throw new InvalidMessageFormatException("Wrong message sender class: " + line);
+                        
+                        numfields++;
+                    }
+
+                    if (line.StartsWith(lengthPrefix, StringComparison.Ordinal))
+                    {
+                        try
+                        {
+                            this.length = Int32.Parse(line.Remove(0, lengthPrefix.Length).Trim('\n',' '));
+                        }
+                        catch (ArgumentException e)
+                        {
+                            throw new InvalidMessageFormatException(e.Message);
+                        }
+                        catch (FormatException e)
+                        {
+                            throw new InvalidMessageFormatException(e.Message);
+                        }
+
+                        numfields++;
 
                     }
-                    lineNumeber++;
+
+                    if (line.StartsWith(contentPrefix, StringComparison.Ordinal))
+                    {
+                         string rest = line + "\n" + reader.ReadToEnd();
+                         rest = rest.Remove(0, contentPrefix.Length).Trim('\n',' ');
+
+                        if (rest.Length == this.length)
+                            this.content = rest;
+                        else if (rest.Length < this.length)
+                            throw new InvalidMessageFormatException("Actual content length " + rest.Length + 
+                            " is shorter then expected length " + this.length);
+                        else
+                            this.content = rest.Substring(0, this.length);
+
+                        numfields++;
+                    }
                 }
+            }
+
+            if (numfields != 5)
+            {
+                throw new InvalidMessageFormatException("Number of fields in the given message is incorrect: " + numfields);
             }
         }
 
         public MessagePacket(string from, string to, string content)
         {
-            this.from = string.Format("{0}\n", from.Trim('\n',' '));
-            this.to = String.Format("{0}\n", to.Trim('\n',' '));
+            this.from = from.Trim('\n',' ');
+            this.to = to.Trim('\n',' ');
             this.msgSrc = MsgSrc.server; // has to be server;
-            this.content = string.Format("{0}\n", content.Trim('\n',' '));;
+            this.content = content.Trim('\n',' ');
             this.length = content.Length;
         }
         
@@ -100,10 +136,13 @@ namespace RAC.Network
             else
                 msgSrcstr = "c\n";
 
-            return Encoding.Unicode.GetBytes(starter + this.from +
-                                             this.to + msgSrcstr + 
-                                             this.length + "\n" +
-                                             this.content + ender);
+            return Encoding.Unicode.GetBytes(starter + "\n" +
+                                             fromPrefix + this.from + "\n" +
+                                             toPrefix + this.to + "\n" +
+                                             classPrefix + msgSrcstr + 
+                                             lengthPrefix + this.length + "\n" +
+                                             contentPrefix + "\n" + this.content + "\n" +
+                                             ender);
         }
 
         public override string ToString()
@@ -117,7 +156,7 @@ namespace RAC.Network
             return "Packet Content:\n" +
             "Source: " + this.from +
             "Dest: " + this.to +
-            "Sender Type: " + msgSrcstr + "\n" +
+            "Sender Class: " + msgSrcstr + "\n" +
             "Length: " + this.length + "\n" +
             "Content:\n" + this.content;
             
