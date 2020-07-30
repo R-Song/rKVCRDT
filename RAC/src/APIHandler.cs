@@ -83,7 +83,7 @@ namespace RAC
         }
     }
 
-    static partial class API
+    static public partial class API
     {
 
         public static Dictionary<Type, CRDTypeInfo> typeList = new Dictionary<Type, CRDTypeInfo>();

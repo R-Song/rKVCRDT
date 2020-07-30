@@ -5,7 +5,7 @@ using System.Linq;
 namespace RAC
 {
 
-    static partial class API
+    static public partial class API
     {
             private static void APIs()
             {

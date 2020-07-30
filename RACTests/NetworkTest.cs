@@ -1,8 +1,10 @@
 ﻿using System;
+using Xunit;
 
 namespace RACTests
-{
-    public class Class1
+{   public class NetworkTest
     {
+
+    
     }
 }
