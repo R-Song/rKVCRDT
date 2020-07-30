@@ -86,14 +86,14 @@ namespace RAC
     static public partial class API
     {
 
-        public static Dictionary<Type, CRDTypeInfo> typeList;
-        public static Dictionary<string, Type> typeCodeList;
+        public static Dictionary<Type, CRDTypeInfo> typeList { set; get; }
+        public static Dictionary<string, Type> typeCodeList { set; get; }
 
         public delegate object StringToType(string s);
         public delegate string TypeToString(object o);
 
         // First to type, then to string
-        public static Dictionary<string, (StringToType, TypeToString)> converterList;
+        public static Dictionary<string, (StringToType, TypeToString)> converterList { set; get; }
 
 
         // TODO: MAYBE, use delegate here
