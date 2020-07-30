@@ -13,6 +13,7 @@ namespace RAC.Network
     }
 
     // represent a packet of request
+    // TODO: catach other problems (int parser)
     public class MessagePacket
     {
         private const string starter = "-RAC-\n";
@@ -86,7 +87,7 @@ namespace RAC.Network
             this.from = string.Format("{0}\n", from.Trim('\n',' '));
             this.to = String.Format("{0}\n", to.Trim('\n',' '));
             this.msgSrc = MsgSrc.server; // has to be server;
-            this.content = content;
+            this.content = string.Format("{0}\n", content.Trim('\n',' '));;
             this.length = content.Length;
         }
         
@@ -99,8 +100,8 @@ namespace RAC.Network
             else
                 msgSrcstr = "c\n";
 
-            return Encoding.Unicode.GetBytes(starter + this.from + "\n" +
-                                             this.to + "\n" + msgSrcstr + 
+            return Encoding.Unicode.GetBytes(starter + this.from +
+                                             this.to + msgSrcstr + 
                                              this.length + "\n" +
                                              this.content + ender);
         }
@@ -114,8 +115,8 @@ namespace RAC.Network
                 msgSrcstr = "client";
                 
             return "Packet Content:\n" +
-            "Source: " + this.from + "\n" +
-            "Dest: " + this.to + "\n" +
+            "Source: " + this.from +
+            "Dest: " + this.to +
             "Sender Type: " + msgSrcstr + "\n" +
             "Length: " + this.length + "\n" +
             "Content:\n" + this.content;
