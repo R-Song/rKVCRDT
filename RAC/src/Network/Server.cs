@@ -218,7 +218,7 @@ namespace RAC.Network
                     {
                         msg = new MessagePacket(data);
                     }
-                    catch (MessageLengthDoesNotMatchException e)
+                    catch (InvalidMessageFormatException e)
                     {
                         WARNING("Parsing of incoming packet fails: " + e.Message);
                         goto NextConnection;

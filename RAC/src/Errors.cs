@@ -8,13 +8,13 @@ using System.IO;
 namespace RAC.Errors
 {
 
-    public class MessageLengthDoesNotMatchException : Exception
+    public class InvalidMessageFormatException : Exception
     {
-        public MessageLengthDoesNotMatchException()
+        public InvalidMessageFormatException()
         {
         }
 
-        public MessageLengthDoesNotMatchException(string message) : base(message)
+        public InvalidMessageFormatException(string message) : base(message)
         {
         }
     }
