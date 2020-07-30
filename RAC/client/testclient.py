@@ -126,26 +126,32 @@ class GCounter:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 4:
         raise ValueError('wrong arg')
     
     address = sys.argv[1]
     host = address.split(":")[0]
     port = int(address.split(":")[1])
 
-    
+    typecode = sys.argv[2]
+    uid = sys.argv[3]
+    opcode = sys.argv[4]
+
     s = Server(host, port)   
-          
-    gc = GCounter(s)
 
-    print(gc.set(9, 20))
-    #print(gc.get(9))
+    if (typecode == "gc"):
+        gc = GCounter(s)
+        if (opcode == "g"):
+            print(gc.get(uid))
+        if (opcode == "s"):
+            value = sys.argv[5]
+            print(gc.set(uid, value))
+        if (opcode == "i"):
+            value = sys.argv[5]
+            print(gc.inc(uid, value))
+
+
     
-    
-    #print(gc.inc(9, 14))
-    #print(gc.get(9))
-
-
         
 
 
