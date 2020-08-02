@@ -73,11 +73,12 @@ rac_ender = "\n-EOF-"
 client_addr = "Client"
 
 def msg_construct(server, msg):
-    s = rac_starter + client_addr + "\n" + \
-        str(server.ip) + ":" + str(server.port) + "\n" + \
-        "c\n" + \
-        str(len(msg)) + "\n" + \
-        msg + str(rac_ender)
+    s = rac_starter + \
+        "FROM:" + client_addr + "\n" + \
+        "TO:" + str(server.ip) + ":" + str(server.port) + "\n" + \
+        "CLS:" + "c\n" + \
+        "LEN:" + str(len(msg)) + "\n" + \
+        "CNT:\n" + msg + str(rac_ender)
 
     return s
 
