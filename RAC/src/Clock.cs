@@ -1,4 +1,5 @@
 using System;
+using RAC.Errors;
 
 namespace RAC
 {
@@ -43,16 +44,16 @@ namespace RAC
         
         public void Merge(Clock other)
 		{
+
+            if (this.vector.Length != other.vector.Length)
+                Log.ERROR("Invalid clock merge", new InvalidMessageFormatException());
+
 			for(int i = 0; i < this.vector.Length; i++)
 			{
 				if (this.replicaid == i)
-				{
                     Increment();
-				}
 				else
-				{
 					this.vector[i] = Math.Max(other.vector[i], this.vector[i]);
-				}
 			}
 		}
 
@@ -70,16 +71,15 @@ namespace RAC
             bool thisLarger = false;
             bool otherLarger = false;
 
+            if (this.vector.Length != other.vector.Length)
+                Log.ERROR("Invalid clock comparison", new InvalidMessageFormatException());
+
             for (int i = 0; i < this.vector.Length; i++)
             {
                 if (this.vector[i] > other.vector[i])
-                {
                     thisLarger = true;
-                }
                 else if (this.vector[i] < other.vector[i])
-                {
                     otherLarger = true;
-                }
             }
 
             if (thisLarger && !otherLarger)
@@ -110,16 +110,31 @@ namespace RAC
 
         }
 
-
-        // TODO:
         public override string ToString() 
-        {
-            return "";
+        {            
+            string vectorstr = string.Join( ",", this.vector);
+            return this.replicaid + ":" + vectorstr + ":" + this.wallClockTime;
         }
 
         public static Clock FromString(string str)
         {
-            return new Clock(0, 0);
+            string[] tokens = str.Trim().Split(":");
+
+            int rid = Int32.Parse(tokens[0]);
+            string[] vectors = tokens[1].Split(",");
+
+            long wallclock = Int64.Parse(tokens[2]);
+            
+            Clock ret = new Clock(vectors.Length, rid);
+
+            for (int i = 0; i < vectors.Length; i++)
+            {
+                ret.vector[i] = Int32.Parse(vectors[i]);
+            }
+
+            ret.wallClockTime = wallclock;
+
+            return ret;
         }
         
     }
