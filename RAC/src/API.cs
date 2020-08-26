@@ -5,11 +5,22 @@ using System.Linq;
 namespace RAC
 {
 
+    /// <summary>
+    /// Please add new CRDT types, requests API methods, type converters in this class.
+    /// </summary>
     static public partial class API
-    {
+    {       
+            /// <summary>
+            /// Add Converters, Replicated Types and APIs here.
+            /// See:
+            /// <see cref="API.AddNewType"/> 
+            /// <see cref="API.AddNewAPI(string, string, string, string)"/>
+            /// <see cref="API.AddConverter"/>  
+            ///  </summary>
             private static void APIs()
             {
                 // Add data types that will be used below:
+                // IMPORTNAT: MUST ADD CONVERTERS FIRST
                 // int
                 AddConverter("int", Converters.StringToInt, Converters.IntToString);
                 // string
@@ -24,8 +35,9 @@ namespace RAC
                 AddNewType("GCounter", "gc");
                 AddNewAPI("GCounter", "GetValue", "g", "");
                 AddNewAPI("GCounter", "SetValue", "s", "int");
-                AddNewAPI("GCounter", "Increment", "i", "int");
                 AddNewAPI("GCounter", "Synchronization", "y", "listi");
+                AddNewAPI("GCounter", "Increment", "i", "int");
+                
 
                 
             }

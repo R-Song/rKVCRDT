@@ -154,8 +154,8 @@ namespace RAC.Network
                 msgSrcstr = "client";
                 
             return "Packet Content:\n" +
-            "Source: " + this.from +
-            "Dest: " + this.to +
+            "Source: " + this.from + "\n" +
+            "Dest: " + this.to + "\n" +
             "Sender Class: " + msgSrcstr + "\n" +
             "Length: " + this.length + "\n" +
             "Content:\n" + this.content;
