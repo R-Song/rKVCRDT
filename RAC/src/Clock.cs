@@ -9,6 +9,10 @@ namespace RAC
     public class Clock
     {
         public long wallClockTime { get; private set; }
+        
+        /// During merge, if wallclock is found to be behind other clock
+        /// then set this value to the difference of other wall clock
+        // private long wallClockTimeOffset = 0;
 
         private int[] vector;
         private int replicaid;
@@ -34,6 +38,7 @@ namespace RAC
         public void Increment()
 		{
 			this.vector[replicaid]++;
+            UpdateWallClockTime();
 		}
         
         public void Merge(Clock other)
@@ -103,6 +108,18 @@ namespace RAC
             else
                 return -1;
 
+        }
+
+
+        // TODO:
+        public override string ToString() 
+        {
+            return "";
+        }
+
+        public static Clock FromString(string str)
+        {
+            return new Clock(0, 0);
         }
         
     }
