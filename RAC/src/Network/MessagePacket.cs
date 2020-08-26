@@ -28,7 +28,7 @@ namespace RAC.Network
         public string to { get; }
         public MsgSrc msgSrc { get; }
         public int length { get; }
-        public string content {get; }
+        public string content { get; }
         
         // Create a message packet from a string 
         // starts with "-RAC-" and ends with "-EOF".

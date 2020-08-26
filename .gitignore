@@ -353,3 +353,4 @@ MigrationBackup/
 
 cluster_config.json
 cluster_config.*.json
+local_test.cs

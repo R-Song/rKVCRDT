@@ -56,6 +56,7 @@ namespace RAC.Network
             int selfNodeCount = 0;
             // check if duplicate nodes
             HashSet<string> addrportSet = new HashSet<string>();
+            // TODO: check if replica id > # of replicas
             
             foreach (var n in nodes)
             {
