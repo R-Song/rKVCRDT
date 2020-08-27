@@ -33,7 +33,7 @@ namespace RAC
 
             if (m is null)
             {
-                WARNING("Unable to load method: " + methodName);
+                ERROR("Unable to load method: " + methodName);
                 return;
             }
 
@@ -41,17 +41,26 @@ namespace RAC
             {
                 if ((!API.converterList.ContainsKey(mp.Trim()) && (!mp.Equals(""))))
                 {
-                    WARNING("Unable to load method: " + methodName +
+                    ERROR("Unable to load method: " + methodName +
                             " Param " + mp +
                             " does not exist in parameter/converter list");
                     return; 
                 }
             }
 
-            this.methodsList.Add(apiCode, m);
-            this.paramsList.Add(apiCode, new List<string>(methodParams));
-            
-            checklist.Add(methodName);
+            try
+            {
+                this.methodsList.Add(apiCode, m);
+                this.paramsList.Add(apiCode, new List<string>(methodParams));
+                
+                checklist.Add(methodName);
+            }
+            catch (System.ArgumentException)
+            {
+                    ERROR("Unable to load method: " + methodName + " - Provided duplicated apicode " + apiCode);
+                    return; 
+            }
+
         }
 
         public bool CheckBasicAPI(out string missing)
