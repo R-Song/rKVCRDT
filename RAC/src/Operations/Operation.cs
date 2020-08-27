@@ -90,6 +90,8 @@ namespace RAC.Operations
         /// <summary>
         /// Synchronize the state of the object based on the the given values in 
         /// this.paramters. Normally this is a request come from other replicas.
+        /// The content request could either be states or delta-state for state-based
+        /// CRDT, or effect-update for operation-based CRDT.
         /// This method must be provided by any CRDT.
         /// </summary>
         /// <returns>A Responses instance containing any information to the client or
