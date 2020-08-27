@@ -14,6 +14,7 @@ namespace RAC.Operations
     public abstract class Operation<PayloadType> where PayloadType: Payload
     {
         public string uid { get; }
+        public abstract string typecode { get; set; }
 
         public Parameters parameters { protected set; get; }
 

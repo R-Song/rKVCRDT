@@ -10,6 +10,8 @@ namespace RAC.Operations
 {
     public class GCounter : Operation<GCPayload>
     {
+        public override string typecode { get ; set; } = "gc";
+
 
         //public GCPayload payload;
 
@@ -56,7 +58,7 @@ namespace RAC.Operations
 
 
 
-            string broadcast = Parser.BuildCommand("gc", "y", this.uid, syncPm);
+            string broadcast = Parser.BuildCommand(this.typecode, "y", this.uid, syncPm);
             res.AddReponse(Dest.broadcast, broadcast, false);
 
             
@@ -72,7 +74,7 @@ namespace RAC.Operations
             Parameters syncPm = new Parameters(1);
             syncPm.AddParam(0, this.payload.valueVector);
 
-            string broadcast = Parser.BuildCommand("gc", "y", this.uid, syncPm);
+            string broadcast = Parser.BuildCommand(this.typecode, "y", this.uid, syncPm);
             
             res.AddReponse(Dest.client); 
             res.AddReponse(Dest.broadcast, broadcast, false);
@@ -102,6 +104,26 @@ namespace RAC.Operations
 
             return res;
 
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return base.ToString();
+        }
+
+        public override Responses DeleteValue()
+        {
+            return base.DeleteValue();
         }
     }
 

@@ -5,7 +5,7 @@ namespace RAC
 {
     class Program
     {
-        static int Main1(string[] args)
+        static int Main(string[] args)
         {
             if (args.Length != 1)
             {
