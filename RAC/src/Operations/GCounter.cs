@@ -15,7 +15,7 @@ namespace RAC.Operations
 
         //public GCPayload payload;
 
-        public GCounter(string uid, Parameters parameters) : base(uid, parameters)
+        public GCounter(string uid, Parameters parameters, Clock clock) : base(uid, parameters, clock)
         {
         }
 

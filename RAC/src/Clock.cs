@@ -1,5 +1,6 @@
 using System;
 using RAC.Errors;
+using static RAC.Errors.Log;
 
 namespace RAC
 {
@@ -46,7 +47,7 @@ namespace RAC
 		{
 
             if (this.vector.Length != other.vector.Length)
-                Log.ERROR("Invalid clock merge", new InvalidMessageFormatException());
+                ERROR("Invalid clock merge", new InvalidMessageFormatException());
 
 			for(int i = 0; i < this.vector.Length; i++)
 			{
@@ -72,7 +73,7 @@ namespace RAC
             bool otherLarger = false;
 
             if (this.vector.Length != other.vector.Length)
-                Log.ERROR("Invalid clock comparison", new InvalidMessageFormatException());
+                ERROR("Invalid clock comparison", new InvalidMessageFormatException());
 
             for (int i = 0; i < this.vector.Length; i++)
             {
@@ -118,23 +119,32 @@ namespace RAC
 
         public static Clock FromString(string str)
         {
-            string[] tokens = str.Trim().Split(":");
-
-            int rid = Int32.Parse(tokens[0]);
-            string[] vectors = tokens[1].Split(",");
-
-            long wallclock = Int64.Parse(tokens[2]);
-            
-            Clock ret = new Clock(vectors.Length, rid);
-
-            for (int i = 0; i < vectors.Length; i++)
+            try
             {
-                ret.vector[i] = Int32.Parse(vectors[i]);
+                string[] tokens = str.Trim().Split(":");
+
+                int rid = Int32.Parse(tokens[0]);
+                string[] vectors = tokens[1].Split(",");
+
+                long wallclock = Int64.Parse(tokens[2]);
+                
+                Clock ret = new Clock(vectors.Length, rid);
+
+                for (int i = 0; i < vectors.Length; i++)
+                {
+                    ret.vector[i] = Int32.Parse(vectors[i]);
+                }
+
+                ret.wallClockTime = wallclock;
+
+                return ret;
+            }
+            catch (System.Exception)
+            {
+                ERROR("Wrong clock format: " + str, new InvalidMessageFormatException());
+                return null;
             }
 
-            ret.wallClockTime = wallclock;
-
-            return ret;
         }
         
     }

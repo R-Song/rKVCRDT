@@ -150,14 +150,14 @@ namespace RAC
         }
 
 
-        public static Responses Invoke(string typeCode, string uid, string apiCode, Parameters parameters)
+        public static Responses Invoke(string typeCode, string uid, string apiCode, Parameters parameters, Clock clock)
         {
             Type opType = typeCodeList[typeCode];
             CRDTypeInfo t = typeList[opType];
 
             MethodInfo method = t.methodsList[apiCode];
 
-            var opObject = Convert.ChangeType(Activator.CreateInstance(opType, new object[]{uid, parameters}), opType);
+            var opObject = Convert.ChangeType(Activator.CreateInstance(opType, new object[]{uid, parameters, clock}), opType);
             Responses res = (Responses)method.Invoke(opObject, null);
             
             MethodInfo saveMethod = opObject.GetType().GetMethod("Save");

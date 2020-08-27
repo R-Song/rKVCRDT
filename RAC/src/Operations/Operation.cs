@@ -14,6 +14,7 @@ namespace RAC.Operations
     public abstract class Operation<PayloadType> where PayloadType: Payload
     {
         public string uid { get; }
+        public Clock clock { get; }
         public abstract string typecode { get; set; }
 
         public Parameters parameters { protected set; get; }
@@ -36,9 +37,10 @@ namespace RAC.Operations
         /// </summary>
         /// <param name="uid">uid of the accessing object for this op</param>
         /// <param name="parameters">any parameters passed in for this op</param>
-        public Operation(string uid, Parameters parameters)
+        public Operation(string uid, Parameters parameters, Clock clock = null)
         {
             this.uid = uid;
+            this.clock = clock;
             this.parameters = parameters;
  
             try

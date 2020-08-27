@@ -2,6 +2,9 @@ using System;
 using System.IO; 
 using System.Collections.Generic;
 using System.Text;
+using RAC.Errors;
+using RAC.Network;
+
 using static RAC.Errors.Log;
 
 namespace RAC
@@ -27,7 +30,7 @@ namespace RAC
             return pm;
         }
 
-        public static bool ParseCommand(string cmd, out string typeCode, out string apiCode, out string uid, out Parameters pm)
+        public static bool ParseCommand(MsgSrc source, string cmd, out string typeCode, out string apiCode, out string uid, out Parameters pm, out Clock clock)
         {
 
             List<string> parameters = new List<string>();
@@ -36,6 +39,7 @@ namespace RAC
             apiCode = "";
             uid = "";
             pm = null;
+            clock = null;
 
             using (StringReader reader = new StringReader(cmd)) 
             { 
@@ -53,6 +57,25 @@ namespace RAC
                             break;
                         case 2:
                             apiCode = line;
+                            break;
+                        case 3:
+                            if (source == MsgSrc.server)
+                            {
+                                try
+                                {
+                                    clock = Clock.FromString(line);
+                                }
+                                catch (InvalidMessageFormatException)
+                                {
+                                    return false;
+                                }
+                            } 
+                            else
+                            {
+                                clock = null;
+                                parameters.Add(line);     
+                            }
+                        
                             break;
                         default:
                             parameters.Add(line);
@@ -73,32 +96,37 @@ namespace RAC
             return true;
         }
 
-        public static Responses RunCommand(string cmd)
+        public static Responses RunCommand(string cmd, MsgSrc source)
         {
-
             string typeCode;
             string uid;
             string apiCode;
             Parameters pm;
+            Clock clock;
             Responses res;
 
-            if (!ParseCommand(cmd, out typeCode, out apiCode, out uid, out pm))
+            if (!ParseCommand(source, cmd, out typeCode, out apiCode, out uid, out pm, out clock))
             {
                 res = new Responses(Status.fail);
                 res.AddReponse(Dest.client, "Incorrect command format " + cmd);
                 return res;
             }
 
-            res = API.Invoke(typeCode, uid, apiCode, pm);
+            res = API.Invoke(typeCode, uid, apiCode, pm, clock);
             return res;
         }
 
-        public static string BuildCommand(string typeCode, string apiCode, string uid, Parameters pm)
+        public static string BuildCommand(string typeCode, string apiCode, string uid, Parameters pm, Clock clock = null)
         {
             StringBuilder sb = new StringBuilder(64);
             sb.AppendLine(typeCode);
             sb.AppendLine(uid);
             sb.AppendLine(apiCode);
+            if (clock is null)
+                sb.AppendLine("0:0:0");
+            else
+                sb.AppendLine(clock.ToString());
+
 
             API.TypeToString toStr = null;
             List<string> pmTypesConverters = API.typeList[API.typeCodeList[typeCode]].paramsList[apiCode];
