@@ -36,7 +36,7 @@ namespace RAC
             this.status = status;
         }
 
-        public void AddReponse(Dest destination, string content = "", bool includeStatus = true)
+        public void AddResponse(Dest destination, string content = "", bool includeStatus = true)
         {
 
             string statusContent = content;

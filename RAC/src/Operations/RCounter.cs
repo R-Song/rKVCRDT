@@ -25,7 +25,7 @@ namespace RAC.Operations
             if (this.payload is null)
             {
                 res = new Responses(Status.fail);
-                res.AddReponse(Dest.client, "Rcounter with id {0} cannot be found");
+                res.AddResponse(Dest.client, "Rcounter with id {0} cannot be found");
             } 
             else
             {
@@ -33,7 +33,7 @@ namespace RAC.Operations
                 int neg = payload.NVector.Sum();
 
                 res = new Responses(Status.success);
-                res.AddReponse(Dest.client, (pos - neg).ToString()); 
+                res.AddResponse(Dest.client, (pos - neg).ToString()); 
             }
             payloadNotChanged = true;
             
@@ -54,7 +54,7 @@ namespace RAC.Operations
             this.payload = pl;
 
             Responses res = GenerateSyncRes();
-            res.AddReponse(Dest.client); 
+            res.AddResponse(Dest.client); 
             
             return res;
         }
@@ -64,7 +64,7 @@ namespace RAC.Operations
             this.payload.PVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
 
             Responses res = GenerateSyncRes();
-            res.AddReponse(Dest.client); 
+            res.AddResponse(Dest.client); 
 
             return res;
 
@@ -75,7 +75,7 @@ namespace RAC.Operations
             this.payload.NVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
 
             Responses res = GenerateSyncRes();
-            res.AddReponse(Dest.client); 
+            res.AddResponse(Dest.client); 
 
             return res;
 
@@ -126,7 +126,7 @@ namespace RAC.Operations
 
             string broadcast = Parser.BuildCommand(this.typecode, "y", this.uid, syncPm);
             
-            res.AddReponse(Dest.broadcast, broadcast, false);
+            res.AddResponse(Dest.broadcast, broadcast, false);
             return res;
         }
 

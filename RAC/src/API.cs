@@ -44,7 +44,7 @@ namespace RAC
                 AddNewAPI("RCounter", "SetValue", "s", "int");
                 AddNewAPI("RCounter", "Synchronization", "y", "listi, listi");
                 AddNewAPI("RCounter", "Increment", "i", "int");
-                AddNewAPI("RCounter", "Decrement", "i", "int");
+                AddNewAPI("RCounter", "Decrement", "d", "int");
                 
 
                 

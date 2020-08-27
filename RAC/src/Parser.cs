@@ -108,7 +108,7 @@ namespace RAC
             if (!ParseCommand(source, cmd, out typeCode, out apiCode, out uid, out pm, out clock))
             {
                 res = new Responses(Status.fail);
-                res.AddReponse(Dest.client, "Incorrect command format " + cmd);
+                res.AddResponse(Dest.client, "Incorrect command format " + cmd);
                 return res;
             }
 

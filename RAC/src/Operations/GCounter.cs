@@ -27,12 +27,12 @@ namespace RAC.Operations
             if (this.payload is null)
             {
                 res = new Responses(Status.fail);
-                res.AddReponse(Dest.client, "Gcounter with id {0} cannot be found");
+                res.AddResponse(Dest.client, "Gcounter with id {0} cannot be found");
             } 
             else
             {
                 res = new Responses(Status.success);
-                res.AddReponse(Dest.client, payload.valueVector.Sum().ToString()); 
+                res.AddResponse(Dest.client, payload.valueVector.Sum().ToString()); 
             }
             payloadNotChanged = true;
             
@@ -51,7 +51,7 @@ namespace RAC.Operations
 
             this.payload = pl;
 
-            res.AddReponse(Dest.client); 
+            res.AddResponse(Dest.client); 
 
             Parameters syncPm = new Parameters(1);
             syncPm.AddParam(0, this.payload.valueVector);
@@ -59,7 +59,7 @@ namespace RAC.Operations
 
 
             string broadcast = Parser.BuildCommand(this.typecode, "y", this.uid, syncPm);
-            res.AddReponse(Dest.broadcast, broadcast, false);
+            res.AddResponse(Dest.broadcast, broadcast, false);
 
             
             return res;
@@ -76,8 +76,8 @@ namespace RAC.Operations
 
             string broadcast = Parser.BuildCommand(this.typecode, "y", this.uid, syncPm);
             
-            res.AddReponse(Dest.client); 
-            res.AddReponse(Dest.broadcast, broadcast, false);
+            res.AddResponse(Dest.client); 
+            res.AddResponse(Dest.broadcast, broadcast, false);
 
             return res;
 
