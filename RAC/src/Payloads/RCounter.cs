@@ -1,16 +1,27 @@
 using System;
+using System.Collections.Generic;
 
 namespace RAC.Payloads
 {
     public class RCounterPayload : Payload
     {
-        // todo: put any necessary data here
-        public int value = 0;
+        public int replicaid;
+        public List<int> PVector {set; get;}
+        public List<int> NVector {set; get;}
 
-        public RCounterPayload(string uid)
+
+        public RCounterPayload(string uid, int numReplicas, int replicaid)
         {
-            // todo: initialize anything necessary
-        }
+            this.uid = uid;
+            this.PVector = new List<int>(numReplicas);
+            this.NVector = new List<int>(numReplicas);
+            this.replicaid = replicaid;
 
+            for (int i = 0; i < numReplicas; i++)
+            {
+                PVector.Insert(i, 0);
+                NVector.Insert(i, 0);
+            }
+        }
     }
 }

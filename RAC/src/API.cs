@@ -38,6 +38,14 @@ namespace RAC
                 AddNewAPI("GCounter", "Synchronization", "y", "listi");
                 AddNewAPI("GCounter", "Increment", "i", "int");
                 
+                // Reversible Counter
+                AddNewType("RCounter", "rc");
+                AddNewAPI("RCounter", "GetValue", "g", "");
+                AddNewAPI("RCounter", "SetValue", "s", "int");
+                AddNewAPI("RCounter", "Synchronization", "y", "listi, listi");
+                AddNewAPI("RCounter", "Increment", "i", "int");
+                AddNewAPI("RCounter", "Decrement", "i", "int");
+                
 
                 
             }
