@@ -105,26 +105,6 @@ namespace RAC.Operations
             return res;
 
         }
-
-        public override bool Equals(object obj)
-        {
-            return base.Equals(obj);
-        }
-
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return base.ToString();
-        }
-
-        public override Responses DeleteValue()
-        {
-            return base.DeleteValue();
-        }
     }
 
 

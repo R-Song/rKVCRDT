@@ -39,7 +39,7 @@ namespace RAC
 
             foreach (string mp in methodParams)
             {
-                if ((!API.converterList.ContainsKey(mp) && (!mp.Equals(""))))
+                if ((!API.converterList.ContainsKey(mp.Trim()) && (!mp.Equals(""))))
                 {
                     WARNING("Unable to load method: " + methodName +
                             " Param " + mp +
