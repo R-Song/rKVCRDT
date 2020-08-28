@@ -124,6 +124,59 @@ class GCounter:
         return res
 
 
+class RCounter:
+
+    def __init__(self, s):
+        self.server = s
+
+    def get(self, id):
+        req = "rc\n" + \
+              str(id) + "\n" + \
+              "g"
+
+        req = msg_construct(self.server, req)
+
+        
+        self.server.connect()
+        res = self.server.send(req)
+        return res
+
+    def set(self, id, value):
+        req = "rc\n" + \
+              str(id) + "\n" + \
+              "s\n" + \
+              str(value)
+
+        req = msg_construct(self.server, req)
+        
+        self.server.connect()
+        res = self.server.send(req)
+        return res
+
+    def inc(self, id, value):
+        req = "rc\n" + \
+              str(id) + "\n" + \
+              "i\n" + \
+              str(value)
+
+        req = msg_construct(self.server, req)
+
+        self.server.connect()
+        res = self.server.send(req)
+        return res
+
+
+    def dec(self, id, value):
+        req = "rc\n" + \
+              str(id) + "\n" + \
+              "d\n" + \
+              str(value)
+
+        req = msg_construct(self.server, req)
+
+        self.server.connect()
+        res = self.server.send(req)
+        return res
 
 
 if __name__ == "__main__":
@@ -150,6 +203,19 @@ if __name__ == "__main__":
         if (opcode == "i"):
             value = sys.argv[5]
             print(gc.inc(uid, value))
+    elif (typecode == "rc"):
+        rc = RCounter(s)
+        if (opcode == "g"):
+            print(rc.get(uid))
+        if (opcode == "s"):
+            value = sys.argv[5]
+            print(rc.set(uid, value))
+        if (opcode == "i"):
+            value = sys.argv[5]
+            print(rc.inc(uid, value))
+        if (opcode == "d"):
+            value = sys.argv[5]
+            print(rc.dec(uid, value))
 
 
     

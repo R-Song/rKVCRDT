@@ -135,7 +135,7 @@ namespace RAC
             {
                 object o = pm.AllParams()[i];
                 toStr = API.GetToStringConverter(pmTypesConverters[i]);
-                sb.Append(toStr(o));
+                sb.AppendLine(toStr(o));
             }
             return sb.ToString();
 

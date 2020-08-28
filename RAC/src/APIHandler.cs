@@ -39,7 +39,7 @@ namespace RAC
 
             foreach (string mp in methodParams)
             {
-                if ((!API.converterList.ContainsKey(mp.Trim()) && (!mp.Equals(""))))
+                if ((!API.converterList.ContainsKey(mp) && (!mp.Equals(""))))
                 {
                     ERROR("Unable to load method: " + methodName +
                             " Param " + mp +
@@ -139,7 +139,7 @@ namespace RAC
             }
 
             CRDTypeInfo type = typeList[t];
-            type.AddNewAPI(apiCode, methodName, methodParams.Split(','));
+            type.AddNewAPI(apiCode, methodName, methodParams.Split(',').Select(p => p.Trim()).ToArray());
 
         }
 
