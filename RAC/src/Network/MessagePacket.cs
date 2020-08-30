@@ -47,21 +47,17 @@ namespace RAC.Network
                     // first line
                     if (line.StartsWith(starter, StringComparison.Ordinal))
                         continue;
-                        
-                    if (line.StartsWith(fromPrefix, StringComparison.Ordinal))
+                    else if (line.StartsWith(fromPrefix, StringComparison.Ordinal))
                     {
                         this.from = line.Remove(0, fromPrefix.Length).Trim('\n',' ');
                         numfields++;
                     }
-
-                    if (line.StartsWith(toPrefix, StringComparison.Ordinal))
+                    else if (line.StartsWith(toPrefix, StringComparison.Ordinal))
                     {
                         this.to = line.Remove(0, toPrefix.Length).Trim('\n',' ');
                         numfields++;
                     }
-
-                        
-                    if (line.StartsWith(classPrefix, StringComparison.Ordinal))
+                    else if (line.StartsWith(classPrefix, StringComparison.Ordinal))
                     {
                         line = line.Remove(0, classPrefix.Length).Trim('\n',' ');
 
@@ -74,8 +70,7 @@ namespace RAC.Network
                         
                         numfields++;
                     }
-
-                    if (line.StartsWith(lengthPrefix, StringComparison.Ordinal))
+                    else if (line.StartsWith(lengthPrefix, StringComparison.Ordinal))
                     {
                         try
                         {
@@ -93,8 +88,7 @@ namespace RAC.Network
                         numfields++;
 
                     }
-
-                    if (line.StartsWith(contentPrefix, StringComparison.Ordinal))
+                    else if (line.StartsWith(contentPrefix, StringComparison.Ordinal))
                     {
                          string rest = line + "\n" + reader.ReadToEnd();
                          rest = rest.Remove(0, contentPrefix.Length).Trim('\n',' ');
