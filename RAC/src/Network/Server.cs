@@ -134,6 +134,7 @@ namespace RAC.Network
 
                         Byte[] data = toSent.Serialize();
                         NetworkStream stream = dest.GetStream();
+                        // TODO: important!!!!! write sync
                         stream.Write(data, 0, data.Length);
                         
                         stream.Close();
