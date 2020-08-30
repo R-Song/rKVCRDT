@@ -37,6 +37,7 @@ namespace RAC.Network
             this.port = node.port;
         }
 
+        // TODO: move the async hanlder outside
         public async Task HandleRequestAync()
         {
             MessagePacket data;

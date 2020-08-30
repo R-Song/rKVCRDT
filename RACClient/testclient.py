@@ -82,16 +82,28 @@ def msg_construct(server, msg):
 
     return s
 
+typePrefix = "TYPE:"
+uidPrefix = "UID:"
+opPrefix = "OP:"
+paramPrefix = "P:"
+
+def req_construct(tid, uid, op, params):
+    req = typePrefix + tid + "\n" + \
+          uidPrefix + uid + "\n" + \
+          opPrefix + op + "\n"
+
+    for p in params:
+        req += paramPrefix + p + "\n" 
+
+    return req
+
 class GCounter:
 
     def __init__(self, s):
         self.server = s
 
     def get(self, id):
-        req = "gc\n" + \
-              str(id) + "\n" + \
-              "g"
-
+        req = req_construct("gc", id, "g", [])
         req = msg_construct(self.server, req)
 
         
@@ -100,11 +112,7 @@ class GCounter:
         return res
 
     def set(self, id, value):
-        req = "gc\n" + \
-              str(id) + "\n" + \
-              "s\n" + \
-              str(value)
-
+        req = req_construct("gc", id, "s", [str(value)])
         req = msg_construct(self.server, req)
         
         self.server.connect()
@@ -112,11 +120,7 @@ class GCounter:
         return res
 
     def inc(self, id, value):
-        req = "gc\n" + \
-              str(id) + "\n" + \
-              "i\n" + \
-              str(value)
-
+        req = req_construct("gc", id, "i", [str(value)])
         req = msg_construct(self.server, req)
 
         self.server.connect()
@@ -130,23 +134,15 @@ class RCounter:
         self.server = s
 
     def get(self, id):
-        req = "rc\n" + \
-              str(id) + "\n" + \
-              "g"
-
+        req = req_construct("rc", id, "g", [])
         req = msg_construct(self.server, req)
 
-        
         self.server.connect()
         res = self.server.send(req)
         return res
 
     def set(self, id, value):
-        req = "rc\n" + \
-              str(id) + "\n" + \
-              "s\n" + \
-              str(value)
-
+        req = req_construct("rc", id, "s", [str(value)])
         req = msg_construct(self.server, req)
         
         self.server.connect()
@@ -154,11 +150,7 @@ class RCounter:
         return res
 
     def inc(self, id, value):
-        req = "rc\n" + \
-              str(id) + "\n" + \
-              "i\n" + \
-              str(value)
-
+        req = req_construct("rc", id, "i", [str(value)]) 
         req = msg_construct(self.server, req)
 
         self.server.connect()
@@ -167,11 +159,7 @@ class RCounter:
 
 
     def dec(self, id, value):
-        req = "rc\n" + \
-              str(id) + "\n" + \
-              "d\n" + \
-              str(value)
-
+        req = req_construct("rc", id, "d", [str(value)]) 
         req = msg_construct(self.server, req)
 
         self.server.connect()
@@ -179,11 +167,7 @@ class RCounter:
         return res
 
     def rev(self, id, value):
-        req = "rc\n" + \
-              str(id) + "\n" + \
-              "r\n" + \
-              str(value)
-
+        req = req_construct("rc", id, "r", [str(value)]) 
         req = msg_construct(self.server, req)
 
         self.server.connect()

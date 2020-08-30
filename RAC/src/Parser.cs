@@ -11,6 +11,12 @@ namespace RAC
 {   
     public static partial class Parser
     {   
+        private const string typePrefix = "TYPE:";
+        private const string uidPrefix = "UID:";
+        private const string opPrefix = "OP:";
+        private const string clockPrefix = "CLK:";
+        private const string paramPrefix = "P:";
+
         private static Parameters ParamBuilder(string typeCode, string apiCode, List<string> input)
         {
             List<string> pmTypesConverters = API.typeList[API.typeCodeList[typeCode]].paramsList[apiCode];
@@ -20,11 +26,16 @@ namespace RAC
             {
                 object data;
 
-                API.StringToType toType = API.GetToTypeConverter(pmTypesConverters[i]);
-               
-                data = toType(input[i]);
-                pm.AddParam(i, data);
-                
+                try
+                {
+                    API.StringToType toType = API.GetToTypeConverter(pmTypesConverters[i]);
+                    data = toType(input[i]);
+                    pm.AddParam(i, data);
+                } 
+                catch (Exception e)
+                {
+                    ERROR("Param building failed with: " + apiCode + " of " + typeCode, e);
+                }
             }
 
             return pm;
@@ -43,53 +54,54 @@ namespace RAC
 
             using (StringReader reader = new StringReader(cmd)) 
             { 
-                int lineNumeber = 0;
-                string line; 
+                string line;
+                bool onParam = false; 
+                string paramstr = "";
+
                 while ((line = reader.ReadLine()) != null) 
                 { 
-                    switch(lineNumeber)
+                    if (line.StartsWith(typePrefix, StringComparison.Ordinal))
+                        typeCode = line.Remove(0, typePrefix.Length).Trim('\n',' ');
+                    else if (line.StartsWith(uidPrefix, StringComparison.Ordinal))
+                        uid = line.Remove(0, uidPrefix.Length).Trim('\n',' ');
+                    else if (line.StartsWith(opPrefix, StringComparison.Ordinal))
+                        apiCode = line.Remove(0, opPrefix.Length).Trim('\n',' ');
+                    else if (line.StartsWith(clockPrefix, StringComparison.Ordinal))
                     {
-                        case 0: 
-                            typeCode = line;
-                            break;
-                        case 1:
-                            uid = line;
-                            break;
-                        case 2:
-                            apiCode = line;
-                            break;
-                        case 3:
-                            if (source == MsgSrc.server)
+                        string t = line.Remove(0, clockPrefix.Length).Trim('\n',' ');
+                        if (source == MsgSrc.server)
+                        {
+                            try
                             {
-                                try
-                                {
-                                    clock = Clock.FromString(line);
-                                }
-                                catch (InvalidMessageFormatException)
-                                {
-                                    return false;
-                                }
-                            } 
-                            else
-                            {
-                                clock = null;
-                                parameters.Add(line);     
+                                clock = Clock.FromString(t);
                             }
+                            catch (InvalidMessageFormatException)
+                            {
+                                return false;
+                            }
+                        } 
                         
-                            break;
-                        default:
-                            parameters.Add(line);
-                            break;
+                    } 
+                    else if (line.StartsWith(paramPrefix, StringComparison.Ordinal))
+                    {
+                        // if not the first P: seen
+                        if (onParam)
+                            parameters.Add(paramstr);
 
+                        // first line of param str
+                        paramstr = line.Remove(0, paramPrefix.Length);   
+                        onParam = true;
                     }
-                    lineNumeber++;
-                } 
-
-                if (lineNumeber < 2)
-                {
-                    WARNING("Incorrect command format: " + cmd);
-                    return false;
+                    else
+                    {
+                        // in paramstring block
+                        if (onParam)
+                            paramstr += line;
+                    }
                 }
+                // last param
+                if (onParam)
+                    parameters.Add(paramstr);
             } 
 
             pm = ParamBuilder(typeCode, apiCode, parameters);
@@ -119,13 +131,13 @@ namespace RAC
         public static string BuildCommand(string typeCode, string apiCode, string uid, Parameters pm, Clock clock = null)
         {
             StringBuilder sb = new StringBuilder(64);
-            sb.AppendLine(typeCode);
-            sb.AppendLine(uid);
-            sb.AppendLine(apiCode);
+            sb.AppendLine(typePrefix + typeCode);
+            sb.AppendLine(uidPrefix + uid);
+            sb.AppendLine(opPrefix + apiCode);
             if (clock is null)
-                sb.AppendLine("0:0:0");
+                sb.AppendLine(clockPrefix + "0:0:0");
             else
-                sb.AppendLine(clock.ToString());
+                sb.AppendLine(clockPrefix + clock.ToString());
 
 
             API.TypeToString toStr = null;
@@ -135,7 +147,7 @@ namespace RAC
             {
                 object o = pm.AllParams()[i];
                 toStr = API.GetToStringConverter(pmTypesConverters[i]);
-                sb.AppendLine(toStr(o));
+                sb.Append(paramPrefix + toStr(o) + "\n");
             }
             return sb.ToString();
 
