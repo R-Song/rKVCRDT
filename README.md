@@ -1,3 +1,3 @@
 # Project_RAC
 
-Replicate-Anywhere With CRDT
+Replicate Anywhere with CRDT
