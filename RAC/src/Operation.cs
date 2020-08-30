@@ -42,7 +42,12 @@ namespace RAC.Operations
             this.uid = uid;
             this.clock = clock;
             this.parameters = parameters;
- 
+
+            if (clock == null)
+            {
+                this.clock = new Clock(Config.numReplicas, Config.replicaId);
+            }
+
             try
             {
                 this.payload = (PayloadType) Global.memoryManager.GetPayload(uid);

@@ -43,7 +43,7 @@ namespace RAC.Operations
         public override Responses SetValue()
         {
 
-            RCounterPayload pl = new RCounterPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
+            RCounterPayload pl = new RCounterPayload(uid, (int)Config.numReplicas, (int)Config.replicaId, this.clock);
             RCounterPayload oldstate = pl.CloneValues();
 
             int value = this.parameters.GetParam<int>(0);
@@ -54,10 +54,10 @@ namespace RAC.Operations
 
             this.payload = pl;
 
-            AddToOpHistory(oldstate, this.payload.CloneValues());
+            string opid = AddToOpHistory(oldstate, this.payload.CloneValues());
 
             Responses res = GenerateSyncRes();
-            res.AddResponse(Dest.client); 
+            res.AddResponse(Dest.client, opid); 
             
             return res;
         }
@@ -67,10 +67,10 @@ namespace RAC.Operations
             RCounterPayload oldstate = this.payload.CloneValues();
             this.payload.PVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
 
-            AddToOpHistory(oldstate, this.payload.CloneValues());
+            string opid = AddToOpHistory(oldstate, this.payload.CloneValues());
 
             Responses res = GenerateSyncRes();
-            res.AddResponse(Dest.client);
+            res.AddResponse(Dest.client, opid);
             return res;
 
         }
@@ -80,10 +80,10 @@ namespace RAC.Operations
             RCounterPayload oldstate = this.payload.CloneValues();
             this.payload.NVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
 
-            AddToOpHistory(oldstate, this.payload.CloneValues());
+            string opid = AddToOpHistory(oldstate, this.payload.CloneValues());
 
             Responses res = GenerateSyncRes();
-            res.AddResponse(Dest.client); 
+            res.AddResponse(Dest.client, opid); 
 
             return res;
 
@@ -98,7 +98,7 @@ namespace RAC.Operations
             
             if (this.payload is null)
             {
-                RCounterPayload pl = new RCounterPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
+                RCounterPayload pl = new RCounterPayload(uid, (int)Config.numReplicas, (int)Config.replicaId, this.clock);
                 this.payload = pl;
             }
 
@@ -140,22 +140,25 @@ namespace RAC.Operations
 
             RCounterPayload pl = this.payload;
 
-            if (diff >= 0)
-                pl.PVector[pl.replicaid] += diff;
+            if (diff <= 0)
+                pl.PVector[pl.replicaid] += -diff;
             else
-                pl.NVector[pl.replicaid] -= diff;
+                pl.NVector[pl.replicaid] += diff;
 
             // effect
             res = GenerateSyncRes();
-
+            res.AddResponse(Dest.client, opid);
             return res;
         }
 
-        public void AddToOpHistory(RCounterPayload oldstate, RCounterPayload newstate)
+        public string AddToOpHistory(RCounterPayload oldstate, RCounterPayload newstate)
         {
-            string opid = this.clock.ToString();
+            this.payload.clock.Increment();
+            string opid = this.payload.clock.ToString();
 
             this.payload.OpHistory.Add(opid, (oldstate, newstate));
+
+            return opid;
 
         }
 

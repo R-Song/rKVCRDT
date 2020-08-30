@@ -178,6 +178,18 @@ class RCounter:
         res = self.server.send(req)
         return res
 
+    def rev(self, id, value):
+        req = "rc\n" + \
+              str(id) + "\n" + \
+              "r\n" + \
+              str(value)
+
+        req = msg_construct(self.server, req)
+
+        self.server.connect()
+        res = self.server.send(req)
+        return res
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
@@ -216,7 +228,9 @@ if __name__ == "__main__":
         if (opcode == "d"):
             value = sys.argv[5]
             print(rc.dec(uid, value))
-
+        if (opcode == "r"):
+            value = sys.argv[5]
+            print(rc.rev(uid, value))
 
     
         
