@@ -45,6 +45,8 @@ namespace RAC
                 AddNewAPI("RCounter", "Synchronization", "y", "listi, listi");
                 AddNewAPI("RCounter", "Increment", "i", "int");
                 AddNewAPI("RCounter", "Decrement", "d", "int");
+                // Params: op_id to be reversed - string
+                AddNewAPI("RCounter", "Reverse", "r", "string");
                 
 
                 

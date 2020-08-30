@@ -44,6 +44,7 @@ namespace RAC.Operations
         {
 
             RCounterPayload pl = new RCounterPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
+            RCounterPayload oldstate = pl.CloneValues();
 
             int value = this.parameters.GetParam<int>(0);
             if (value >= 0)
@@ -53,6 +54,8 @@ namespace RAC.Operations
 
             this.payload = pl;
 
+            AddToOpHistory(oldstate, this.payload.CloneValues());
+
             Responses res = GenerateSyncRes();
             res.AddResponse(Dest.client); 
             
@@ -61,18 +64,23 @@ namespace RAC.Operations
 
         public Responses Increment()
         {
+            RCounterPayload oldstate = this.payload.CloneValues();
             this.payload.PVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
 
-            Responses res = GenerateSyncRes();
-            res.AddResponse(Dest.client); 
+            AddToOpHistory(oldstate, this.payload.CloneValues());
 
+            Responses res = GenerateSyncRes();
+            res.AddResponse(Dest.client);
             return res;
 
         }
 
         public Responses Decrement()
         {
+            RCounterPayload oldstate = this.payload.CloneValues();
             this.payload.NVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
+
+            AddToOpHistory(oldstate, this.payload.CloneValues());
 
             Responses res = GenerateSyncRes();
             res.AddResponse(Dest.client); 
@@ -113,9 +121,45 @@ namespace RAC.Operations
             res = new Responses(Status.success);
 
             return res;
+        }
+
+
+        public Responses Reverse()
+        {
+            Responses res;
+            
+            string opid = this.parameters.GetParam<String>(0);
+            
+            // perpare
+            (RCounterPayload, RCounterPayload)op = this.payload.OpHistory[opid];
+            RCounterPayload oldstate = op.Item1;
+            RCounterPayload newstate = op.Item2;
+
+            int diff = (newstate.PVector.Sum() - newstate.NVector.Sum()) - 
+                        (oldstate.PVector.Sum() - oldstate.NVector.Sum());
+
+            RCounterPayload pl = this.payload;
+
+            if (diff >= 0)
+                pl.PVector[pl.replicaid] += diff;
+            else
+                pl.NVector[pl.replicaid] -= diff;
+
+            // effect
+            res = GenerateSyncRes();
+
+            return res;
+        }
+
+        public void AddToOpHistory(RCounterPayload oldstate, RCounterPayload newstate)
+        {
+            string opid = this.clock.ToString();
+
+            this.payload.OpHistory.Add(opid, (oldstate, newstate));
 
         }
 
+        // TODO: sync op history as well
         private Responses GenerateSyncRes()
         {
             Responses res = new Responses(Status.success);
