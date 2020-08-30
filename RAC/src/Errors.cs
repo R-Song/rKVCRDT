@@ -91,7 +91,9 @@ namespace RAC.Errors
 
         public static void ERROR(string str, Exception e, bool throwException = true)
         {
-            string s = String.Format("!!ERROR!! {0}:\n{1} \n===========\n", Curtime(), str);
+            string s = String.Format("!!ERROR!! {0}:\n{1}", Curtime(), str);
+            s += String.Format("\n Error of {0} was thrown: \n {1}", e.Message, e.StackTrace);
+            s += "\n===========\n";
 
             if (logToLogFile)
                 file.Write(s);

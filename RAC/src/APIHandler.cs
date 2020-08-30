@@ -167,12 +167,24 @@ namespace RAC
             MethodInfo method = t.methodsList[apiCode];
 
             var opObject = Convert.ChangeType(Activator.CreateInstance(opType, new object[]{uid, parameters, clock}), opType);
-            Responses res = (Responses)method.Invoke(opObject, null);
-            
-            MethodInfo saveMethod = opObject.GetType().GetMethod("Save");
-            saveMethod.Invoke(opObject, null);
+    
+            try
+            {
+                Responses res = (Responses)method.Invoke(opObject, null);
+                MethodInfo saveMethod = opObject.GetType().GetMethod("Save");
+                saveMethod.Invoke(opObject, null);
 
-            return res;
+                return res;
+            }
+            catch(Exception e)
+            {
+                ERROR("Request execution of " + typeCode + " with uid: " +
+                        uid + ", of op:" +
+                        apiCode + " failed.", e.InnerException, false);
+                throw e;
+            }
+            
+
         }
 
         public static void InitAPIs()
