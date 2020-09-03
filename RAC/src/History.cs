@@ -8,30 +8,57 @@ using RAC.Payloads;
 /// </summary>
 namespace RAC.History
 {
-    public class HistoryEntry
+    public delegate string PayloadToStrDelegate(Payload pl);
+    public delegate Payload StringToPayloadDelegate(string str);
+    
+    public class OpEntry
     {
-        public Payload before;
-        public Payload after;
-        public delegate string PayloadToStr<T>(T pl);
-        public delegate T StringToPayload<T>(T pl);
-        public Clock time;
+        public string opid;
+        public string before;
+        public string after;
+        public string time;
 
-        public HistoryEntry(Payload before, Payload after, Clock clock)
+        public OpEntry(string opid, string before, string after, string time)
         {
-
+            this.opid = opid;
+            this.before = before;
+            this.after = after;
+            this.time = time;
         }
-
     }
 
     // history of each object
     public class ObjectHistory
     {   
         public string uid;
-        public List<HistoryEntry> log;
+        public Dictionary<string, OpEntry> log;
+
+        public Clock curTime;
 
         public ObjectHistory()
         {
-            log = new List<HistoryEntry>();
+            log = new Dictionary<string, OpEntry>();
+            curTime = new Clock(Config.numReplicas, Config.replicaId);
+        }
+
+        public string AddNewEntry(Payload before, Payload after, PayloadToStrDelegate payloadToStr, Clock time = null)
+        {
+            if (time is null)   
+                time = curTime;
+
+            string opid = Config.replicaId + ":" + time.ToString();
+
+            log.Add(opid, new OpEntry(opid, payloadToStr(before), payloadToStr(after), time.ToString()));
+
+            return opid;
+        }
+
+        public void GetEntry(string opid, StringToPayloadDelegate stringToPayload, out Payload before, out Payload after, out Clock time)
+        {
+            OpEntry item = this.log[opid];
+            before = stringToPayload(item.before);
+            after = stringToPayload(item.after);
+            time = Clock.FromString(item.time);
         }
 
         public void Merge()

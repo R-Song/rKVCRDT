@@ -41,7 +41,7 @@ namespace RAC
             return pm;
         }
 
-        public static bool ParseCommand(MsgSrc source, string cmd, out string typeCode, out string apiCode, out string uid, out Parameters pm, out Clock clock)
+        public static bool ParseCommand(MsgSrc source, string cmd, out string typeCode, out string apiCode, out string uid, out Parameters pm)
         {
 
             List<string> parameters = new List<string>();
@@ -50,7 +50,7 @@ namespace RAC
             apiCode = "";
             uid = "";
             pm = null;
-            clock = null;
+            Clock clock = null;
 
             using (StringReader reader = new StringReader(cmd)) 
             { 
@@ -114,17 +114,16 @@ namespace RAC
             string uid;
             string apiCode;
             Parameters pm;
-            Clock clock;
             Responses res;
 
-            if (!ParseCommand(source, cmd, out typeCode, out apiCode, out uid, out pm, out clock))
+            if (!ParseCommand(source, cmd, out typeCode, out apiCode, out uid, out pm))
             {
                 res = new Responses(Status.fail);
                 res.AddResponse(Dest.client, "Incorrect command format " + cmd);
                 return res;
             }
 
-            res = API.Invoke(typeCode, uid, apiCode, pm, clock);
+            res = API.Invoke(typeCode, uid, apiCode, pm);
             return res;
         }
 

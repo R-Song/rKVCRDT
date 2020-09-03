@@ -12,7 +12,7 @@ namespace RAC.Operations
         // todo: set this to its typecode
         public override string typecode { get ; set; } = "rc";
 
-        public RCounter(string uid, Parameters parameters, Clock clock = null) : base(uid, parameters, clock)
+        public RCounter(string uid, Parameters parameters) : base(uid, parameters)
         {
             // todo: put any necessary data here
         }
@@ -43,7 +43,7 @@ namespace RAC.Operations
         public override Responses SetValue()
         {
 
-            RCounterPayload pl = new RCounterPayload(uid, (int)Config.numReplicas, (int)Config.replicaId, this.clock);
+            RCounterPayload pl = new RCounterPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
             RCounterPayload oldstate = pl.CloneValues();
 
             int value = this.parameters.GetParam<int>(0);
@@ -53,8 +53,7 @@ namespace RAC.Operations
                 pl.NVector[pl.replicaid] = -value;
 
             this.payload = pl;
-
-            string opid = AddToOpHistory(oldstate, this.payload.CloneValues());
+            string opid = this.history.AddNewEntry(oldstate, this.payload, RCounterPayload.PayloadToStr);
 
             Responses res = GenerateSyncRes();
             res.AddResponse(Dest.client, opid); 
@@ -67,7 +66,7 @@ namespace RAC.Operations
             RCounterPayload oldstate = this.payload.CloneValues();
             this.payload.PVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
 
-            string opid = AddToOpHistory(oldstate, this.payload.CloneValues());
+            string opid = this.history.AddNewEntry(oldstate, this.payload, RCounterPayload.PayloadToStr);
 
             Responses res = GenerateSyncRes();
             res.AddResponse(Dest.client, opid);
@@ -80,7 +79,7 @@ namespace RAC.Operations
             RCounterPayload oldstate = this.payload.CloneValues();
             this.payload.NVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
 
-            string opid = AddToOpHistory(oldstate, this.payload.CloneValues());
+            string opid = this.history.AddNewEntry(oldstate, this.payload, RCounterPayload.PayloadToStr);
 
             Responses res = GenerateSyncRes();
             res.AddResponse(Dest.client, opid); 
@@ -98,7 +97,7 @@ namespace RAC.Operations
             
             if (this.payload is null)
             {
-                RCounterPayload pl = new RCounterPayload(uid, (int)Config.numReplicas, (int)Config.replicaId, this.clock);
+                RCounterPayload pl = new RCounterPayload(uid, (int)Config.numReplicas, (int)Config.replicaId);
                 this.payload = pl;
             }
 
@@ -131,9 +130,14 @@ namespace RAC.Operations
             string opid = this.parameters.GetParam<String>(0);
             
             // perpare
-            (RCounterPayload, RCounterPayload)op = this.payload.OpHistory[opid];
-            RCounterPayload oldstate = op.Item1;
-            RCounterPayload newstate = op.Item2;
+            Payload oldtemp;
+            Payload newtemp;
+            
+            history.GetEntry(opid, RCounterPayload.StrToPayload, out oldtemp, out newtemp, out _);
+
+            RCounterPayload newstate = (RCounterPayload) newtemp;
+            RCounterPayload oldstate = (RCounterPayload) oldtemp;
+
 
             int diff = (newstate.PVector.Sum() - newstate.NVector.Sum()) - 
                         (oldstate.PVector.Sum() - oldstate.NVector.Sum());
@@ -151,18 +155,7 @@ namespace RAC.Operations
             return res;
         }
 
-        public string AddToOpHistory(RCounterPayload oldstate, RCounterPayload newstate)
-        {
-            this.payload.clock.Increment();
-            string opid = this.payload.clock.ToString();
 
-            this.payload.OpHistory.Add(opid, (oldstate, newstate));
-
-            return opid;
-
-        }
-
-        // TODO: sync op history as well
         private Responses GenerateSyncRes()
         {
             Responses res = new Responses(Status.success);

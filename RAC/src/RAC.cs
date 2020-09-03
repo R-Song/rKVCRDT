@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using RAC.Payloads;
 using RAC.Network;
 
 namespace RAC
@@ -19,9 +18,7 @@ namespace RAC
     static class Global
     {
         public static MemoryManager memoryManager = new MemoryManager();
-
         public static Node selfNode;
-
         public static List<Node> cluster;
 
         public static void init(string nodeconfigfile)

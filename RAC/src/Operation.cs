@@ -3,6 +3,7 @@ using System;
 using RAC.Payloads;
 using RAC.Errors;
 using static RAC.Errors.Log;
+using RAC.History;
 
 namespace RAC.Operations
 {   
@@ -14,10 +15,9 @@ namespace RAC.Operations
     public abstract class Operation<PayloadType> where PayloadType: Payload
     {
         public string uid { get; }
-        public Clock clock { get; }
         public abstract string typecode { get; set; }
-
         public Parameters parameters { protected set; get; }
+        public ObjectHistory history;
 
         /// <summary>
         /// Payload that actually holds the states of a CRDT.
@@ -37,16 +37,10 @@ namespace RAC.Operations
         /// </summary>
         /// <param name="uid">uid of the accessing object for this op</param>
         /// <param name="parameters">any parameters passed in for this op</param>
-        public Operation(string uid, Parameters parameters, Clock clock = null)
+        public Operation(string uid, Parameters parameters)
         {
             this.uid = uid;
-            this.clock = clock;
             this.parameters = parameters;
-
-            if (clock == null)
-            {
-                this.clock = new Clock(Config.numReplicas, Config.replicaId);
-            }
 
             try
             {
@@ -55,6 +49,18 @@ namespace RAC.Operations
             catch (PayloadNotFoundException) 
             {
                 this.payload = null;
+            }
+
+            try
+            {
+                this.history = Global.memoryManager.history[uid];
+                this.history.curTime.Increment();
+            }
+            catch (System.Collections.Generic.KeyNotFoundException)
+            {
+                Global.memoryManager.history.Add(uid, new ObjectHistory());
+                this.history = Global.memoryManager.history[uid];
+
             }
             
         }

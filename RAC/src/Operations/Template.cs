@@ -10,7 +10,7 @@ namespace RAC.Operations
         // todo: set this to its typecode
         public override string typecode { get ; set; } = "";
 
-        public Template(string uid, Parameters parameters, Clock clock = null) : base(uid, parameters, clock)
+        public Template(string uid, Parameters parameters) : base(uid, parameters)
         {
             // todo: put any necessary data here
         }

@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 
 using RAC.Payloads;
+using RAC.History;
 using RAC.Errors;
+
 
 namespace RAC
 {
@@ -9,10 +11,12 @@ namespace RAC
     {
         // TODO: a better storage system
         private Dictionary<string, Payload> storage;
+        public Dictionary<string, ObjectHistory> history;
 
         public MemoryManager()
         {
             storage = new Dictionary<string, Payload>();
+            history = new Dictionary<string, ObjectHistory>();
         }
 
         public bool StorePayload(string uid, Payload payload)
@@ -31,7 +35,6 @@ namespace RAC
             {
                 throw new PayloadNotFoundException();
             }
-            
         }
     }
 }
