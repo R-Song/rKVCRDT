@@ -37,7 +37,7 @@ namespace RAC.Network
             this.port = node.port;
         }
 
-        public void StageResponse(Responses res, string to)
+        public void StageResponse(Responses res, string to = "")
         {
             MessagePacket toSent = null;
             for (int i = 0; i < res.destinations.Count; i++)
@@ -67,7 +67,7 @@ namespace RAC.Network
         }
 
 
-        public async Task HandleRequestAync()
+        public async Task HandleRequestAsync()
         {
             MessagePacket data;
 

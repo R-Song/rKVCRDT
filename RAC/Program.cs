@@ -17,14 +17,12 @@ namespace RAC
 
             Global.init(nodeconfigfile);
 
-            Server ss = new Server(Global.selfNode);
+            var asynchanlder = Global.server.HandleRequestAsync();
+            var asynchanlder2 = Global.server.SendResponseAsync();
 
-            var asynchanlder = ss.HandleRequestAync();
-            var asynchanlder2 = ss.SendResponseAsync();
+            Global.server.Run();
 
-            ss.Run();
 
-            //handler.Wait();
 
             return 0;
 

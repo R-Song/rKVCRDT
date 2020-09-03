@@ -20,6 +20,7 @@ namespace RAC
         public static MemoryManager memoryManager = new MemoryManager();
         public static Node selfNode;
         public static List<Node> cluster;
+        public static Server server;
 
         public static void init(string nodeconfigfile)
         {
@@ -34,6 +35,8 @@ namespace RAC
 
             Config.numReplicas = cluster.Count;
             Config.replicaId = selfNode.nodeid;
+
+            server = new Server(Global.selfNode);
         }
 
         
