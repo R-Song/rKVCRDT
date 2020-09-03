@@ -37,62 +37,46 @@ namespace RAC.Network
             this.port = node.port;
         }
 
-        // TODO: move the async hanlder outside
+        public void StageResponse(Responses res, string to)
+        {
+            MessagePacket toSent = null;
+            for (int i = 0; i < res.destinations.Count; i++)
+            {
+                Dest dest = res.destinations[i];
+                string content = res.contents[i];
+                if (dest == Dest.client)
+                {
+                    toSent = new MessagePacket(Global.selfNode.address, to, content);
+                    this.respQueue.Post(toSent);
+                }
+                else if (dest == Dest.broadcast)
+                {
+                    foreach (Node n in Global.cluster)
+                    {
+                        if (!n.isSelf)
+                        {
+                            toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(), 
+                                                        n.address.ToString() + ":" + n.port.ToString(), content);
+                            this.respQueue.Post(toSent);
+                        }
+                    }
+                } 
+                else if (dest == Dest.none)
+                    continue;
+            }
+        }
+
+
         public async Task HandleRequestAync()
         {
             MessagePacket data;
-            MessagePacket toSent = null;
 
             while (await reqQueue.OutputAvailableAsync())
             {
                 data = reqQueue.Receive();  
                 Responses res = Parser.RunCommand(data.content, data.msgSrc);
-                
-                for (int i = 0; i < res.destinations.Count; i++)
-                {
-                    Dest dest = res.destinations[i];
-                    string content = res.contents[i];
-                    if (dest == Dest.client)
-                    {
-                        // Do not response server, prob not needed
-                        /**
-                        bool flag = false;
-                        foreach (Node n in Global.cluster)
-                        {
-                            if (n.address == data.from)
-                            {
-                                flag = true;
-                                break;
-                            }
-                        }
-
-                        if (flag)
-                            continue;
-                        **/
-                        toSent = new MessagePacket(Global.selfNode.address, data.from, content);
-                        this.respQueue.Post(toSent);
-                    }
-                    else if (dest == Dest.broadcast)
-                    {
-                        foreach (Node n in Global.cluster)
-                        {
-                            if (!n.isSelf)
-                            {
-                                toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(), 
-                                                            n.address.ToString() + ":" + n.port.ToString(), 
-                                                            content);
-                                this.respQueue.Post(toSent);
-                            }
-                        }
-                    } 
-                    else if (dest == Dest.none)
-                    {
-                        continue;
-                    }
-                    
-                    
-                }
-                 Console.WriteLine("perparing response");
+                StageResponse(res, data.from);
+                Console.WriteLine("perparing response");
             }   
 
         }

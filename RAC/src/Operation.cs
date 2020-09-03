@@ -73,7 +73,7 @@ namespace RAC.Operations
             if (!payloadNotChanged)
             {
                 Global.memoryManager.StorePayload(uid, payload);
-                LOG(uid + " successfully stored");
+                DEBUG(uid + " successfully stored");
             }
         }
 

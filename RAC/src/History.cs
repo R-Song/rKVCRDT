@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using RAC.Payloads;
+using Newtonsoft.Json;
+using RAC.Network;
 
 /// <summary>
 /// These classes are for reversible CRDT.
@@ -13,12 +15,13 @@ namespace RAC.History
     
     public class OpEntry
     {
+        public string uid;
         public string opid;
         public string before;
         public string after;
         public string time;
 
-        public OpEntry(string opid, string before, string after, string time)
+        public OpEntry(string uid, string opid, string before, string after, string time)
         {
             this.opid = opid;
             this.before = before;
@@ -48,7 +51,7 @@ namespace RAC.History
 
             string opid = Config.replicaId + ":" + time.ToString();
 
-            log.Add(opid, new OpEntry(opid, payloadToStr(before), payloadToStr(after), time.ToString()));
+            log.Add(opid, new OpEntry(this.uid, opid, payloadToStr(before), payloadToStr(after), time.ToString()));
 
             return opid;
         }
@@ -61,22 +64,26 @@ namespace RAC.History
             time = Clock.FromString(item.time);
         }
 
-        public void Merge()
+        public void Merge(string otherop)
         {
-
+            OpEntry newop = JsonConvert.DeserializeObject<OpEntry>(otherop);
+            Clock newtime = Clock.FromString(newop.time);
+            curTime.Merge(newtime);
+            this.log.Add(newop.opid, newop);
         }
 
-        public void Sync()
+        public void Sync(OpEntry newop)
         {
+            string json = JsonConvert.SerializeObject(newop, Formatting.Indented);
+            
+            Responses res = new Responses(Status.success);
+            Parameters syncPm = new Parameters(1);
+            string broadcast = Parser.BuildCommand("h", "y", this.uid, syncPm);
+            res.AddResponse(Dest.broadcast, broadcast, false);
+            
+            Global.selfNode.
 
-        }
+        }   
     }
 
-    public class OpHisotrys
-    {
-        // TODO: remove the class
-        Dictionary<string, ObjectHistory> OpHisotry = new Dictionary<string, ObjectHistory>();
-
-
-    }
 }
