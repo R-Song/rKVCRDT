@@ -50,7 +50,7 @@ namespace RAC
             apiCode = "";
             uid = "";
             pm = null;
-            Clock clock = null;
+            Clock clock = null; // TODO: remove this
 
             using (StringReader reader = new StringReader(cmd)) 
             { 
@@ -123,7 +123,9 @@ namespace RAC
                 return res;
             }
 
+
             res = API.Invoke(typeCode, uid, apiCode, pm);
+
             return res;
         }
 

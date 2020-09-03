@@ -29,6 +29,13 @@ namespace RAC
                 AddConverter("listi", Converters.StringToListi, Converters.ListiToString);
 
                 //=========================================================================================//
+                // Op History, DO NOT CHANGE THIS
+                AddNewType("HistoryHandler", "h");
+                // not used, just to keep parser happy
+                AddNewAPI("HistoryHandler", "GetValue", "g", "");
+                // not used, just to keep parser happy
+                AddNewAPI("HistoryHandler", "SetValue", "s", "");
+                AddNewAPI("HistoryHandler", "Synchronization", "y", "string");
 
                 // ADD CRDTs and their APIs below:
                 // GCounter

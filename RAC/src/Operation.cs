@@ -54,11 +54,10 @@ namespace RAC.Operations
             try
             {
                 this.history = Global.memoryManager.history[uid];
-                this.history.curTime.Increment();
             }
             catch (System.Collections.Generic.KeyNotFoundException)
             {
-                Global.memoryManager.history.Add(uid, new ObjectHistory());
+                Global.memoryManager.history.Add(uid, new ObjectHistory(uid));
                 this.history = Global.memoryManager.history[uid];
 
             }
