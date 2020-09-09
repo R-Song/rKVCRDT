@@ -20,6 +20,7 @@ namespace RAC
             private static void APIs()
             {
                 // Add data types that will be used below:
+                // AddConverter("typename", Converters.Stringtotyoeconverter, Converters.Typetostringconverter)
                 // IMPORTNAT: MUST ADD CONVERTERS FIRST
                 // int
                 AddConverter("int", Converters.StringToInt, Converters.IntToString);
@@ -27,6 +28,8 @@ namespace RAC
                 AddConverter("string", Converters.StringToStringO, Converters.StringOToString);
                 // list of integers
                 AddConverter("listi", Converters.StringToListi, Converters.ListiToString);
+                // list of strings
+                AddConverter("lists", Converters.StringToLists, Converters.ListsToString);
 
                 //=========================================================================================//
                 // Op History, DO NOT CHANGE THIS
@@ -49,13 +52,14 @@ namespace RAC
                 AddNewType("RCounter", "rc");
                 AddNewAPI("RCounter", "GetValue", "g", "");
                 AddNewAPI("RCounter", "SetValue", "s", "int");
-                AddNewAPI("RCounter", "Synchronization", "y", "listi, listi");
-                AddNewAPI("RCounter", "Increment", "i", "int");
-                AddNewAPI("RCounter", "Decrement", "d", "int");
-                // Params: op_id to be reversed - string
+                // Params: value - opid of related op, if "" then no relation
+                AddNewAPI("RCounter", "Increment", "i", "int, string");
+                AddNewAPI("RCounter", "Decrement", "d", "int, string");
+                // Params: -opid to be reversed - string
                 AddNewAPI("RCounter", "Reverse", "r", "string");
-                
-
+                // Params: nvector, pvector, new relation pair
+                AddNewAPI("RCounter", "Synchronization", "y", "listi, listi, string");
+                AddNewAPI("RCounter", "SynchronizeTombstone", "yr", "lists");
                 
             }
 
@@ -94,6 +98,18 @@ namespace RAC
             public static object StringToStringO(string i)
             {
                 return (object)i;
+            }
+
+            // string list
+            public static string ListsToString(object l)
+            {   
+                List<string> lst = (List<string>)l;
+                return string.Join(",", lst);
+            }
+
+            public static List<string> StringToLists(string s)
+            {   
+                return s.Split(",").Select(p => p.Trim()).ToList();
             }
 
             // add type converter API below
