@@ -149,8 +149,8 @@ class RCounter:
         res = self.server.send(req)
         return res
 
-    def inc(self, id, value):
-        req = req_construct("rc", id, "i", [str(value)]) 
+    def inc(self, id, value, rid):
+        req = req_construct("rc", id, "i", [str(value), rid]) 
         req = msg_construct(self.server, req)
 
         self.server.connect()
@@ -158,8 +158,8 @@ class RCounter:
         return res
 
 
-    def dec(self, id, value):
-        req = req_construct("rc", id, "d", [str(value)]) 
+    def dec(self, id, value, rid):
+        req = req_construct("rc", id, "d", [str(value), rid]) 
         req = msg_construct(self.server, req)
 
         self.server.connect()
@@ -208,10 +208,18 @@ if __name__ == "__main__":
             print(rc.set(uid, value))
         if (opcode == "i"):
             value = sys.argv[5]
-            print(rc.inc(uid, value))
+            try:
+                rid = sys.argv[6]
+            except:
+                rid = ""
+            print(rc.inc(uid, value, rid))
         if (opcode == "d"):
             value = sys.argv[5]
-            print(rc.dec(uid, value))
+            try:
+                rid = sys.argv[6]
+            except:
+                rid = ""
+            print(rc.dec(uid, value, rid))
         if (opcode == "r"):
             value = sys.argv[5]
             print(rc.rev(uid, value))
