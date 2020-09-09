@@ -30,7 +30,7 @@ namespace RAC.Operations
         /// Used by Save(), if this set to true, the this.payload will not
         /// be saved by the Memory Manager for this operation.
         /// </summary>
-        protected bool payloadNotChanged = false;
+        protected bool noSideEffect = false;
 
         /// <summary>
         /// Constructor:
@@ -69,7 +69,7 @@ namespace RAC.Operations
         /// </summary>
         public void Save()
         {
-            if (!payloadNotChanged)
+            if (!noSideEffect)
             {
                 Global.memoryManager.StorePayload(uid, payload);
                 DEBUG(uid + " successfully stored");

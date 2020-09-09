@@ -34,7 +34,7 @@ namespace RAC.Operations
                 res = new Responses(Status.success);
                 res.AddResponse(Dest.client, payload.valueVector.Sum().ToString()); 
             }
-            payloadNotChanged = true;
+            noSideEffect = true;
             
             return res;
         }
