@@ -5,33 +5,6 @@ import random
 import time
 import sys
 
-
-def generate_keys(num_elements):
-    res = []
-    for i in range(num_elements):
-        res.append(str(int(random.uniform(1000000, 9999999))))
-
-    return res
-
-def generate_values(num_elements):
-    res = []
-    for i in range(num_elements):
-        res.append(int(random.uniform(1,100)))
-
-    return res
-
-def generate_kv_pair(num_elements):
-    res = {}
-
-    keys = generate_keys(num_elements)
-    values = generate_values(num_elements)
-
-    for i in range(num_elements):
-        res[keys[i]] = values[i]
-
-    return res
-
-
 class Server:
 
     def __init__(self, ip, port):
@@ -43,9 +16,11 @@ class Server:
         try:
             self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
             self.s.settimeout(5)
+            self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.s.connect((self.ip, self.port))
             return 1
-        except:
+        except Exception as e:
+            print(e)
             return 0
             
 
@@ -57,6 +32,7 @@ class Server:
             self.s.close()
             return "F"
 
+        self.s.shutdown(socket.SHUT_RDWR)
         self.s.close()        
         return msg.decode('utf-16')
 

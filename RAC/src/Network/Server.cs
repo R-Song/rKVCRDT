@@ -57,6 +57,7 @@ namespace RAC.Network
                         {
                             toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(), 
                                                         n.address.ToString() + ":" + n.port.ToString(), content);
+
                             this.respQueue.Post(toSent);
                         }
                     }
@@ -76,7 +77,7 @@ namespace RAC.Network
                 data = reqQueue.Receive();  
                 Responses res = Parser.RunCommand(data.content, data.msgSrc);
                 StageResponse(res, data.from);
-                Console.WriteLine("perparing response");
+                DEBUG("Resparing response");
             }   
 
         }
@@ -90,7 +91,7 @@ namespace RAC.Network
                 toSent = this.respQueue.Receive();
 
                 TcpClient dest;
-                
+
                 // reply to client
                 if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
                 {
@@ -102,7 +103,6 @@ namespace RAC.Network
 
                         stream.Write(msg, 0, msg.Length);
                         stream.Close();
-                        dest.Close();
                     } 
                     // else do nothing
                     
@@ -116,6 +116,8 @@ namespace RAC.Network
                     try
                     {
                         dest = new TcpClient(destAddr, destPort);
+                        dest.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, true);
+                        dest.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
                         Byte[] data = toSent.Serialize();
                         NetworkStream stream = dest.GetStream();
@@ -132,7 +134,7 @@ namespace RAC.Network
                     }
                 }
                 
-                DEBUG("Closed! " + toSent.to);
+                DEBUG("Send finished " + toSent.to);
             }   
         }
 
@@ -180,6 +182,10 @@ namespace RAC.Network
                         byteread += i;
 
                         data += Encoding.Unicode.GetString(bytes);  
+
+                        if (data == "")
+                            goto NextConnection;
+
                         starterIndex = data.IndexOf("-RAC-");
                         enderIndex = data.IndexOf("-EOF-");
  
@@ -221,11 +227,11 @@ namespace RAC.Network
                     continue;
                     
                 NextConnection:
-                    WARNING("connection from " + ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString() +
+                    DEBUG("data from " + ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString() +
                             ":" + ((IPEndPoint)client.Client.RemoteEndPoint).Port.ToString() + 
-                            " is disconnected due to incorrect data received: \n" + data);       
+                            " is not handled: \n" + data);       
                     stream.Close();
-                    client.Close();
+                    //client.Close();
                 }
             }
             catch (SocketException e)
