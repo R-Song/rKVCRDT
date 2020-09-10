@@ -113,7 +113,7 @@ namespace RAC
 
         public override string ToString() 
         {            
-            string vectorstr = string.Join( ",", this.vector);
+            string vectorstr = string.Join( ".", this.vector);
             return this.replicaid + ":" + vectorstr + ":" + this.wallClockTime;
         }
 
@@ -124,7 +124,7 @@ namespace RAC
                 string[] tokens = str.Trim().Split(":");
 
                 int rid = Int32.Parse(tokens[0]);
-                string[] vectors = tokens[1].Split(",");
+                string[] vectors = tokens[1].Split(".");
 
                 long wallclock = Int64.Parse(tokens[2]);
                 

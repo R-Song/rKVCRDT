@@ -52,9 +52,11 @@ namespace RAC.Operations
 
                     RCounterPayload pl = this.payload;
 
-                    compensate += diff;
+                    compensate -= diff;
 
                 }
+
+                DEBUG("actual value: " + (pos - neg).ToString() + " compensate: " + compensate);
 
                 res = new Responses(Status.success);
                 res.AddResponse(Dest.client, (pos - neg + compensate).ToString()); 
@@ -175,14 +177,17 @@ namespace RAC.Operations
 
             if (relateTo != "")
             {
+                DEBUG(opid + " depends on " + relateTo);
                 this.payload.relations[relateTo].Add(opid);
                 
                 // add to tombstone as needed       
                 if (this.payload.tombstone.Contains(relateTo))
+                {
+                    DEBUG(relateTo + " is already in tombstoned");
                     this.payload.tombstone.Add(opid);
+                }
             }
             
-        
             res = new Responses(Status.success);
 
             return res;
@@ -195,8 +200,14 @@ namespace RAC.Operations
             List<string> tombstoned = this.parameters.GetParam<List<string>>(0);
             foreach (string opid in tombstoned)
             {
+                DEBUG(opid + " and its relations are added to tombstone");
+
                 this.payload.tombstone.Add(opid);
-                this.payload.tombstone.AddRange(this.payload.relations[opid]);
+                foreach (var item in this.payload.relations[opid])
+                {
+                    this.payload.tombstone.Add(item);
+                }
+                
             }
 
             return new Responses(Status.success);
@@ -245,14 +256,14 @@ namespace RAC.Operations
             Parameters syncPm = new Parameters(1);
             syncPm.AddParam(0, tombstoned);
             string broadcast = Parser.BuildCommand(this.typecode, "yr", this.uid, syncPm);
-
+            res.AddResponse(Dest.client, opid + " reversed");
             res.AddResponse(Dest.broadcast, broadcast, false);
             return res;
         }
 
         private void GenerateSyncRes(ref Responses res, string newop)
         {
-            Parameters syncPm = new Parameters(2);
+            Parameters syncPm = new Parameters(3);
             syncPm.AddParam(0, this.payload.PVector);
             syncPm.AddParam(1, this.payload.NVector);
             syncPm.AddParam(2, newop);

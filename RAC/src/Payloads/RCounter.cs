@@ -11,7 +11,7 @@ namespace RAC.Payloads
         public List<int> NVector {set; get;}
         public Dictionary<string, List<string>> relations;
         // TODO: change to hashset if performance bad
-        public List<string> tombstone;
+        public HashSet<string> tombstone;
 
         public RCounterPayload(string uid, int numReplicas, int replicaid)
         {
@@ -20,7 +20,7 @@ namespace RAC.Payloads
             this.NVector = new List<int>(numReplicas);
             this.replicaid = replicaid;
             this.relations = new Dictionary<string, List<string>>();
-            this.tombstone = new List<string>();
+            this.tombstone = new HashSet<string>();
 
             for (int i = 0; i < numReplicas; i++)
             {

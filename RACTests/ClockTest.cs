@@ -79,7 +79,7 @@ namespace RACTests
             string str = c1.ToString();
             long wctime = c1.wallClockTime;
 
-            Assert.Equal("0:2,1:" + wctime, str);
+            Assert.Equal("0:2.1:" + wctime, str);
             Assert.Equal(0, Clock.FromString(str).CompareVectorClock(c1));
             Assert.Equal(0, Clock.FromString(str).CompareWallClock(c1));
 
