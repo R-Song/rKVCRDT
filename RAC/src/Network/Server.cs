@@ -154,6 +154,7 @@ namespace RAC.Network
             MessagePacket msg = null;
             string data = "";
             int enderIndex = -1;
+            string clientIP = "";
 
             // try read data
             while ((i = stream.Read(buffer, 0, buffer.Length)) != 0)
@@ -179,7 +180,7 @@ namespace RAC.Network
                             msg = new MessagePacket(msgstr);
                             DEBUG("Received packet: \n " + msgstr.ToString());
                             reqQueue.Post(msg);
-                            string clientIP = msg.from;
+                            clientIP = msg.from;
 
                             // if new connection, add to the list
                             if (first && msg.msgSrc == MsgSrc.client)
@@ -199,6 +200,8 @@ namespace RAC.Network
                 }
             }
 
+            activeClients.Remove(clientIP);
+            connection.Close();
             DEBUG("Client disconnected");
             return;
         }

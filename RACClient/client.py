@@ -39,7 +39,6 @@ class Server:
         return self.response()
 
     def disconnect(self):
-        self.s.shutdown(socket.SHUT_RDWR)
         self.s.close()        
 
 rac_starter = "-RAC-\n"
@@ -135,7 +134,7 @@ class RCounter:
     def rev(self, id, value):
         req = req_construct("rc", id, "r", [str(value)]) 
         req = msg_construct(self.server, req)
-        
+
         res = self.server.send(req)
         return res
 
