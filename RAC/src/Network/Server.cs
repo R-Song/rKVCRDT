@@ -27,7 +27,7 @@ namespace RAC.Network
 
         public string address { get; }
         public int port { get; }
-        
+
         // threshold for stop reading if still no starter detected
         private const int readThreshold = 100;
 
@@ -53,15 +53,16 @@ namespace RAC.Network
                 {
                     foreach (Node n in Global.cluster)
                     {
-                        if (!n.isSelf)
-                        {
-                            toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(), 
-                                                        n.address.ToString() + ":" + n.port.ToString(), content);
+                        if (n.isSelf)
+                            continue;
+                        
+                        toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
+                                                    n.address.ToString() + ":" + n.port.ToString(), content);
 
-                            this.respQueue.Post(toSent);
-                        }
+                        this.respQueue.Post(toSent);
+                        
                     }
-                } 
+                }
                 else if (dest == Dest.none)
                     continue;
             }
@@ -74,11 +75,11 @@ namespace RAC.Network
 
             while (await reqQueue.OutputAvailableAsync())
             {
-                data = reqQueue.Receive();  
+                data = reqQueue.Receive();
                 Responses res = Parser.RunCommand(data.content, data.msgSrc);
                 StageResponse(res, data.from);
                 DEBUG("Resparing response");
-            }   
+            }
 
         }
 
@@ -102,10 +103,9 @@ namespace RAC.Network
                         NetworkStream stream = dest.GetStream();
 
                         stream.Write(msg, 0, msg.Length);
-                        stream.Close();
-                    } 
+                    }
                     // else do nothing
-                    
+
                 }
                 else
                 { // broadcast
@@ -123,7 +123,7 @@ namespace RAC.Network
                         NetworkStream stream = dest.GetStream();
                         // TODO: important!!!!! write sync
                         stream.Write(data, 0, data.Length);
-                        
+
                         stream.Close();
                         dest.Close();
                     }
@@ -133,9 +133,74 @@ namespace RAC.Network
                         destPort + " cannot be established: " + e.Message);
                     }
                 }
-                
-                DEBUG("Send finished " + toSent.to);
-            }   
+
+                DEBUG("Sent to " + toSent.to);
+            }
+        }
+
+        void Read(TcpClient connection)
+        {
+            NetworkStream stream = connection.GetStream();
+            bool first = true;
+
+            if (!connection.Connected)
+            {
+                WARNING("New connection error");
+                return;
+            }
+            
+            Byte[] buffer = new Byte[1024];
+            int i;
+            MessagePacket msg = null;
+            string data = "";
+            int enderIndex = -1;
+
+            // try read data
+            while ((i = stream.Read(buffer, 0, buffer.Length)) != 0)
+            {
+
+                data += Encoding.Unicode.GetString(buffer);
+                enderIndex = data.IndexOf("-EOF-");
+
+                // if found -EOF-
+                while (enderIndex != -1)
+                {
+                    // take everything in front of first seen -EOF-
+                    string msgstr = data.Substring(0, enderIndex + "-EOF-".Length);
+                    int starterIndex = msgstr.LastIndexOf("-RAC-");
+
+                    if (starterIndex != -1)
+                    { 
+                        // take everything between last -RAC- and -EOF-
+                        // as a msg
+                        msgstr = msgstr.Substring(starterIndex);
+                        try
+                        {
+                            msg = new MessagePacket(msgstr);
+                            DEBUG("Received packet: \n " + msgstr.ToString());
+                            reqQueue.Post(msg);
+                            string clientIP = msg.from;
+
+                            // if new connection, add to the list
+                            if (first && msg.msgSrc == MsgSrc.client)
+                            {
+                                activeClients[clientIP] = connection;
+                                first = false;
+                            }
+                        }
+                        catch (InvalidMessageFormatException e)
+                        {
+                            WARNING("Parsing of incoming packet fails: " + e.Message);
+                        }
+                    }
+
+                    data = data.Substring(enderIndex + "-EOF-".Length);
+                    enderIndex = data.IndexOf("-EOF-");
+                }
+            }
+
+            DEBUG("Client disconnected");
+            return;
         }
 
         public void Run()
@@ -163,75 +228,10 @@ namespace RAC.Network
                     // Perform a blocking call to accept requests.
                     // You could also use server.AcceptSocket() here.
                     TcpClient client = server.AcceptTcpClient();
-                    DEBUG("Connected!");
+                    DEBUG("New connection!");
 
-                    // Get a stream object for reading and writing
-                    NetworkStream stream = client.GetStream();
-
-                    int i;
-
-                    MessagePacket msg = null;
-                    string data = null;
-                    int starterIndex = -1;
-                    int enderIndex = -1;
-                    int byteread = 0;
-
-                    // TODO: read async?
-                    while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
-                    {
-                        byteread += i;
-
-                        data += Encoding.Unicode.GetString(bytes);  
-
-                        if (data == "")
-                            goto NextConnection;
-
-                        starterIndex = data.IndexOf("-RAC-");
-                        enderIndex = data.IndexOf("-EOF-");
- 
-                        if ( -1 < starterIndex && starterIndex < enderIndex)  
-                        {  
-                            data = data.Substring(starterIndex, enderIndex - starterIndex + "-EOF-".Length);
-                            break;  
-                        }  
-
-                        if (enderIndex > -1 && starterIndex == -1)
-                            goto NextConnection;
-
-                        if (starterIndex == -1 && byteread > readThreshold)
-                            goto NextConnection;
-                    }
-
-                    
-                    if (starterIndex <= -1 || enderIndex <= -1 || starterIndex > enderIndex)
-                        goto NextConnection;         
-                    
-                    try
-                    {
-                        msg = new MessagePacket(data);
-                    }
-                    catch (InvalidMessageFormatException e)
-                    {
-                        WARNING("Parsing of incoming packet fails: " + e.Message);
-                        goto NextConnection;
-                    }
-
-                    DEBUG("Received packet: \n " + msg.ToString());
-                    reqQueue.Post(msg);
-                    string clientIP = msg.from;
-
-                    // TODO: find a way to clean up this
-                    if (msg.msgSrc == MsgSrc.client)
-                        activeClients[clientIP] = client;      
-                        
-                    continue;
-                    
-                NextConnection:
-                    DEBUG("data from " + ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString() +
-                            ":" + ((IPEndPoint)client.Client.RemoteEndPoint).Port.ToString() + 
-                            " is not handled: \n" + data);       
-                    stream.Close();
-                    //client.Close();
+                    // start new thread here
+                    Task.Run(() => { Read(client); });
                 }
             }
             catch (SocketException e)
