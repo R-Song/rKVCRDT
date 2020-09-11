@@ -80,5 +80,9 @@ if __name__ == "__main__":
     
     port = 5000
     s = Server(host, port)  
+    s.connect()
+
     gcbench = GCounterBench(s, kv_pair)
     gcbench.test_set()
+
+    s.disconnect()

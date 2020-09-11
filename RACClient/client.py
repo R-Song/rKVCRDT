@@ -32,17 +32,15 @@ class Server:
             self.s.close()
             return "F"
 
-        self.s.shutdown(socket.SHUT_RDWR)
-        self.s.close()        
         return msg.decode('utf-16')
 
-    def send(self, data):
-        if self.connect() == 0:
-            print("connection failed")
-            return "F"
-            
+    def send(self, data):            
         self.s.send(data.encode('utf-16'))
         return self.response()
+
+    def disconnect(self):
+        self.s.shutdown(socket.SHUT_RDWR)
+        self.s.close()        
 
 rac_starter = "-RAC-\n"
 rac_ender = "\n-EOF-"
@@ -82,8 +80,6 @@ class GCounter:
         req = req_construct("gc", id, "g", [])
         req = msg_construct(self.server, req)
 
-        
-        self.server.connect()
         res = self.server.send(req)
         return res
 
@@ -91,7 +87,6 @@ class GCounter:
         req = req_construct("gc", id, "s", [str(value)])
         req = msg_construct(self.server, req)
         
-        self.server.connect()
         res = self.server.send(req)
         return res
 
@@ -99,7 +94,6 @@ class GCounter:
         req = req_construct("gc", id, "i", [str(value)])
         req = msg_construct(self.server, req)
 
-        self.server.connect()
         res = self.server.send(req)
         return res
 
@@ -113,7 +107,6 @@ class RCounter:
         req = req_construct("rc", id, "g", [])
         req = msg_construct(self.server, req)
 
-        self.server.connect()
         res = self.server.send(req)
         return res
 
@@ -121,7 +114,6 @@ class RCounter:
         req = req_construct("rc", id, "s", [str(value)])
         req = msg_construct(self.server, req)
         
-        self.server.connect()
         res = self.server.send(req)
         return res
 
@@ -129,7 +121,6 @@ class RCounter:
         req = req_construct("rc", id, "i", [str(value), rid]) 
         req = msg_construct(self.server, req)
 
-        self.server.connect()
         res = self.server.send(req)
         return res
 
@@ -138,70 +129,82 @@ class RCounter:
         req = req_construct("rc", id, "d", [str(value), rid]) 
         req = msg_construct(self.server, req)
 
-        self.server.connect()
         res = self.server.send(req)
         return res
 
     def rev(self, id, value):
         req = req_construct("rc", id, "r", [str(value)]) 
         req = msg_construct(self.server, req)
-
-        self.server.connect()
+        
         res = self.server.send(req)
         return res
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 2:
         raise ValueError('wrong arg')
     
     address = sys.argv[1]
     host = address.split(":")[0]
     port = int(address.split(":")[1])
 
-    typecode = sys.argv[2]
-    uid = sys.argv[3]
-    opcode = sys.argv[4]
+
 
     s = Server(host, port)   
 
-    if (typecode == "gc"):
-        gc = GCounter(s)
-        if (opcode == "g"):
-            print(gc.get(uid))
-        if (opcode == "s"):
-            value = sys.argv[5]
-            print(gc.set(uid, value))
-        if (opcode == "i"):
-            value = sys.argv[5]
-            print(gc.inc(uid, value))
-    elif (typecode == "rc"):
-        rc = RCounter(s)
-        if (opcode == "g"):
-            print(rc.get(uid))
-        if (opcode == "s"):
-            value = sys.argv[5]
-            print(rc.set(uid, value))
-        if (opcode == "i"):
-            value = sys.argv[5]
-            try:
-                rid = sys.argv[6]
-            except:
-                rid = ""
-            print(rc.inc(uid, value, rid))
-        if (opcode == "d"):
-            value = sys.argv[5]
-            try:
-                rid = sys.argv[6]
-            except:
-                rid = ""
-            print(rc.dec(uid, value, rid))
-        if (opcode == "r"):
-            value = sys.argv[5]
-            print(rc.rev(uid, value))
+    if s.connect() == 0:
+        print("connection failed")
+        exit(1)
+
+    while (True):
+        text = input("Enter:").split(" ")
+
+        typecode = text[0]
+
+        if (typecode == "x"):
+            s.disconnect()
+            exit(0)
+
+        uid = text[1]
+        opcode = text[2]
+
+        if (typecode == "gc"):
+            gc = GCounter(s)
+            if (opcode == "g"):
+                print(gc.get(uid))
+            if (opcode == "s"):
+                value = text[3]
+                print(gc.set(uid, value))
+            if (opcode == "i"):
+                value = text[3]
+                print(gc.inc(uid, value))
+        elif (typecode == "rc"):
+            rc = RCounter(s)
+            if (opcode == "g"):
+                print(rc.get(uid))
+            if (opcode == "s"):
+                value = text[3]
+                print(rc.set(uid, value))
+            if (opcode == "i"):
+                value = text[3]
+                try:
+                    rid = text[4]
+                except:
+                    rid = ""
+                print(rc.inc(uid, value, rid))
+            if (opcode == "d"):
+                value = text[5]
+                try:
+                    rid = text[4]
+                except:
+                    rid = ""
+                print(rc.dec(uid, value, rid))
+            if (opcode == "r"):
+                value = text[4]
+                print(rc.rev(uid, value))
 
     
-        
+    s.disconnect()
 
 
 
