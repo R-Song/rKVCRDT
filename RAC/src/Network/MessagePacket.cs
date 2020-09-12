@@ -25,7 +25,7 @@ namespace RAC.Network
         private const string contentPrefix = "CNT:";
 
         public string from { get; }
-        public string to { get; }
+        public string to { get; set; }
         public MsgSrc msgSrc { get; }
         public int length { get; }
         public string content { get; }

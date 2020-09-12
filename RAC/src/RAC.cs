@@ -19,29 +19,20 @@ namespace RAC
     {
         public static MemoryManager memoryManager = new MemoryManager();
         public static Node selfNode;
-        public static List<Node> cluster;
+        public static Cluster cluster;
         public static Server server;
 
         public static void init(string nodeconfigfile)
         {
             API.InitAPIs();
 
-            Node.DeserializeNodeConfig(nodeconfigfile, out cluster);
-            foreach (var n in cluster)
-            {
-                if (n.isSelf)
-                    selfNode = n;
-            }
+            cluster = new Cluster(nodeconfigfile);
 
-            Config.numReplicas = cluster.Count;
+            selfNode = cluster.selfNode;
+            Config.numReplicas = cluster.numNodes;
             Config.replicaId = selfNode.nodeid;
 
             server = new Server(Global.selfNode);
         }
-
-        
-
     }
-
-
 }

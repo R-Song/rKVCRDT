@@ -79,6 +79,7 @@ namespace RAC.History
             
         }
 
+        // TODO: make this pretty
         public void Sync(OpEntry newop)
         {
             DEBUG("Syncing new op " + newop.opid);

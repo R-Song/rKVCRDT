@@ -199,7 +199,7 @@ if __name__ == "__main__":
                     rid = ""
                 print(rc.dec(uid, value, rid))
             if (opcode == "r"):
-                value = text[4]
+                value = text[3]
                 print(rc.rev(uid, value))
 
     

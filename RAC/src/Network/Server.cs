@@ -24,6 +24,7 @@ namespace RAC.Network
 
         // no need for thread safety cuz one only write and the other only read
         private Dictionary<string, TcpClient> activeClients = new Dictionary<string, TcpClient>();
+        public Cluster cluster = Global.cluster;
 
         public string address { get; }
         public int port { get; }
@@ -44,30 +45,19 @@ namespace RAC.Network
             {
                 Dest dest = res.destinations[i];
                 string content = res.contents[i];
-                if (dest == Dest.client)
-                {
-                    toSent = new MessagePacket(Global.selfNode.address, to, content);
-                    this.respQueue.Post(toSent);
-                }
-                else if (dest == Dest.broadcast)
-                {
-                    foreach (Node n in Global.cluster)
-                    {
-                        if (n.isSelf)
-                            continue;
-                        
-                        toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
-                                                    n.address.ToString() + ":" + n.port.ToString(), content);
 
-                        this.respQueue.Post(toSent);
-                        
-                    }
-                }
-                else if (dest == Dest.none)
+                if (dest == Dest.none)
                     continue;
+                else if (dest == Dest.client)
+                    toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
+                                                to, content);
+                else if (dest == Dest.broadcast)
+                    toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
+                                                "", content);
+                this.respQueue.Post(toSent);
+
             }
         }
-
 
         public async Task HandleRequestAsync()
         {
@@ -92,9 +82,14 @@ namespace RAC.Network
                 toSent = this.respQueue.Receive();
 
                 TcpClient dest;
-
-                // reply to client
-                if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
+                
+                // broadcast
+                if (toSent.to == "")
+                { 
+                    this.cluster.BroadCast(toSent);
+                }
+                // reply to client, if connection found to be ended, do nothing
+                else if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
                 {
                     if (dest.Connected)
                     {
@@ -105,36 +100,7 @@ namespace RAC.Network
                         stream.Write(msg, 0, msg.Length);
                     }
                     // else do nothing
-
                 }
-                else
-                { // broadcast
-                    DEBUG("Broadcasting:\n " + toSent);
-                    String destAddr = toSent.to.Split(":")[0];
-                    int destPort = Int32.Parse(toSent.to.Split(":")[1]);
-
-                    try
-                    {
-                        dest = new TcpClient(destAddr, destPort);
-                        dest.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, true);
-                        dest.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-
-                        Byte[] data = toSent.Serialize();
-                        NetworkStream stream = dest.GetStream();
-                        // TODO: important!!!!! write sync
-                        stream.Write(data, 0, data.Length);
-
-                        stream.Close();
-                        dest.Close();
-                    }
-                    catch (SocketException e)
-                    {
-                        WARNING("Broadcast fails, Connection to server " + destAddr + ":" +
-                        destPort + " cannot be established: " + e.Message);
-                    }
-                }
-
-                DEBUG("Sent to " + toSent.to);
             }
         }
 
@@ -180,14 +146,15 @@ namespace RAC.Network
                             msg = new MessagePacket(msgstr);
                             DEBUG("Received packet: \n " + msgstr.ToString());
                             reqQueue.Post(msg);
-                            clientIP = msg.from;
 
                             // if new connection, add to the list
                             if (first && msg.msgSrc == MsgSrc.client)
                             {
+                                clientIP = msg.from;
                                 activeClients[clientIP] = connection;
-                                first = false;
                             }
+                            first = false;
+
                         }
                         catch (InvalidMessageFormatException e)
                         {
@@ -195,11 +162,13 @@ namespace RAC.Network
                         }
                     }
 
+
                     data = data.Substring(enderIndex + "-EOF-".Length);
                     enderIndex = data.IndexOf("-EOF-");
                 }
             }
 
+            // if connection closed
             activeClients.Remove(clientIP);
             connection.Close();
             DEBUG("Client disconnected");
@@ -245,6 +214,7 @@ namespace RAC.Network
             {
                 // Stop listening for new clients.
                 LOG("Stopped listening");
+                this.cluster.DisconnectAll();
                 server.Stop();
                 this.reqQueue.Complete();
                 this.respQueue.Complete();

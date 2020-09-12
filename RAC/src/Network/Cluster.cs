@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using Newtonsoft.Json;
 
@@ -18,6 +19,8 @@ namespace RAC.Network
         public int port;
 
         public bool isSelf = false;
+
+        public TcpClient connection;
 
         [JsonConstructor]
         public Node(int nodeid, string address, int port)
@@ -90,6 +93,35 @@ namespace RAC.Network
             return true;
 
         }
+
+        public void connect()
+        {   
+            try
+            {
+                this.connection = new TcpClient(this.address, this.port);
+            }
+            catch (SocketException e)
+            {
+                this.connection = null;
+                ERROR("Cluster node " + this.address + ":" + this.port + " connection failed", e, false);
+            }
+        }
+
+        public void send(MessagePacket msg)
+        {
+            Byte[] data = msg.Serialize();
+            NetworkStream stream = this.connection.GetStream();
+            // TODO: important!!!!! write sync
+            stream.Write(data, 0, data.Length);
+            DEBUG("Sent to " + this.address + ":" + this.port);
+        }
+
+        public void disconnect()
+        {
+            this.connection.Close();
+        }
+
+
     }
 
     public class Cluster
@@ -112,6 +144,47 @@ namespace RAC.Network
 
         }
 
+        public void ConnectAll()
+        {
+            foreach (var n in nodes)
+            {
+                if (!n.isSelf)
+                    n.connect();
+            }
+
+        }
+
+        public void DisconnectAll()
+        {
+            foreach (var n in nodes)
+            {
+                if (!n.isSelf)
+                    n.disconnect();
+            }
+        }
+
+        private const int MAX_RETRY = 5;
+        public void BroadCast(MessagePacket msg)
+        {   
+            // TODO: handle rebroadcast if failed
+            foreach (var n in nodes)
+            {
+                if (n.isSelf)
+                    continue;
+
+                int retry = 0;
+                while (n.connection is null && retry++ <= MAX_RETRY)
+                    n.connect();
+
+                if (n.connection is null)
+                    ERROR("Broadcast failed to cluster node " + n.address + ":" + n.port);
+                else
+                {
+                    msg.to = n.address.ToString() + ":" + n.port.ToString();
+                    n.send(msg);
+                }
+            }
+        }
 
     }
 
