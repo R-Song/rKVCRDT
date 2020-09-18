@@ -60,6 +60,15 @@ namespace RAC
                 // Params: nvector, pvector, new relation pair
                 AddNewAPI("RCounter", "Synchronization", "y", "listi, listi, string");
                 AddNewAPI("RCounter", "SynchronizeTombstone", "yr", "lists");
+
+                // OR-Set
+                AddNewType("ORSet", "os");
+                AddNewAPI("ORSet", "GetValue", "g", "");
+                AddNewAPI("ORSet", "SetValue", "s", "");
+                AddNewAPI("ORSet", "Add", "a", "string");
+                AddNewAPI("ORSet", "Remove", "rm", "string");
+                AddNewAPI("ORSet", "Synchronization", "y", "lists, lists");
+
                 
             }
 
