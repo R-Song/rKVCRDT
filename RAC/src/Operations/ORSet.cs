@@ -75,23 +75,26 @@ namespace RAC.Operations
         {
             string value = this.parameters.GetParam<string>(0);
 
-            bool removed = false;
+
+            HashSet<(string, string)> toRemove = new HashSet<(string value, string tag)>();
             foreach (var item in this.payload.addSet)
             {
                 if (item.value == value)
                 {
-                    this.payload.addSet.Remove(item);
+                    toRemove.Add(item);
                     this.payload.removeSet.Add(item);
-                    removed = true;
+
                 }
             }
 
             Responses res;
 
-            if (removed)
+            if (toRemove.Count > 0)
             {
                 res = new Responses(Status.success);
                 GenerateSyncRes(ref res);
+                this.payload.addSet.ExceptWith(toRemove);
+
             }
             else
                 res = new Responses(Status.fail);
@@ -104,10 +107,10 @@ namespace RAC.Operations
         public HashSet<(string, string)> ConvertToHashSet(List<string> input)
         {
             var res = new HashSet<(string, string)>();
-
+        
             foreach (var item in input)
             {
-                var values = item.Split(",");
+                var values = item.Split("||");
                 res.Add((values[0], values[1]));
             }
 
@@ -120,7 +123,7 @@ namespace RAC.Operations
             var res = new List<String>();
 
             foreach (var item in input)
-                res.Add(item.ToString());
+                res.Add(item.Item1 + "||" + item.Item2);
 
             return res;
         }

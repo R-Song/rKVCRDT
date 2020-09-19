@@ -20,7 +20,7 @@ namespace RAC
 
             public static List<int> StringToListi(string s)
             {
-                return s.Split(",").Select(int.Parse).ToList();
+                return s.Split(",", System.StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
             }
 
             // int
@@ -54,7 +54,7 @@ namespace RAC
 
             public static List<string> StringToLists(string s)
             {
-                return s.Split(",").Select(p => p.Trim()).ToList();
+                return s.Split(",", System.StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToList();
             }
 
             // add type converter API below

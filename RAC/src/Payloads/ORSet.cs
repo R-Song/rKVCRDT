@@ -15,8 +15,9 @@ namespace RAC.Payloads
         public ORSetPayload(string uid)
         {
             this.uid = uid;
-            addSet = new HashSet<(string value, string tag)>();
-            removeSet = new HashSet<(string value, string tag)>();
+            this.addSet = new HashSet<(string value, string tag)>();
+            this.removeSet = new HashSet<(string value, string tag)>();
+            this.random = new Random();
         }
 
     }

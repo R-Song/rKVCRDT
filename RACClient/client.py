@@ -36,7 +36,7 @@ class Server:
 
     def send(self, data):            
         self.s.send(data.encode('utf-16'))
-        return self.response()
+        return req_parse(self.response())
 
     def disconnect(self):
         self.s.close()        
@@ -69,6 +69,10 @@ def req_construct(tid, uid, op, params):
         req += paramPrefix + p + "\n" 
 
     return req
+
+def req_parse(str):
+    # TODO:
+    return str
 
 class GCounter:
 
@@ -139,6 +143,41 @@ class RCounter:
         return res
 
 
+class ORSet:
+
+    def __init__(self, s):
+        self.server = s
+
+    def get(self, id):
+        req = req_construct("os", id, "g", [])
+        req = msg_construct(self.server, req)
+
+        res = self.server.send(req)
+        return res
+
+    def set(self, id):
+        req = req_construct("os", id, "s", [])
+        req = msg_construct(self.server, req)
+        
+        res = self.server.send(req)
+        return res
+
+    def add(self, id, value):
+        req = req_construct("os", id, "a", [str(value)])
+        req = msg_construct(self.server, req)
+
+        res = self.server.send(req)
+        return res
+
+    def remvoe(self, id, value):
+        req = req_construct("os", id, "rm", [str(value)])
+        req = msg_construct(self.server, req)
+
+        res = self.server.send(req)
+        return res
+
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         raise ValueError('wrong arg')
@@ -177,6 +216,7 @@ if __name__ == "__main__":
             if (opcode == "i"):
                 value = text[3]
                 print(gc.inc(uid, value))
+
         elif (typecode == "rc"):
             rc = RCounter(s)
             if (opcode == "g"):
@@ -201,6 +241,19 @@ if __name__ == "__main__":
             if (opcode == "r"):
                 value = text[3]
                 print(rc.rev(uid, value))
+                
+        elif (typecode == "os"):
+            os = ORSet(s)
+            if (opcode == "g"):
+                print(os.get(uid))
+            if (opcode == "s"):
+                print(os.set(uid))
+            if (opcode == "a"):
+                value = text[3]
+                print(os.add(uid, value))
+            if (opcode == "rm"):
+                value = text[3]
+                print(os.remvoe(uid, value))
 
     
     s.disconnect()
