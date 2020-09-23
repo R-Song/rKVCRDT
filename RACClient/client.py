@@ -36,7 +36,7 @@ class Server:
 
     def send(self, data):            
         self.s.send(data.encode('utf-16'))
-        return req_parse(self.response())
+        return res_parse(self.response())
 
     def disconnect(self):
         self.s.close()        
@@ -70,9 +70,18 @@ def req_construct(tid, uid, op, params):
 
     return req
 
-def req_parse(str):
-    # TODO:
-    return str
+def res_parse(res):
+    
+    lines = res.split("CNT:")[1].strip().strip('-EOF-').splitlines()
+
+    if "Succeed" in lines[0]:
+        success = True 
+    else:
+        success = False
+
+    del lines[0]
+
+    return (success, lines)
 
 class GCounter:
 
@@ -120,7 +129,7 @@ class RCounter:
         res = self.server.send(req)
         return res
 
-    def inc(self, id, value, rid):
+    def inc(self, id, value, rid = ""):
         req = req_construct("rc", id, "i", [str(value), rid]) 
         req = msg_construct(self.server, req)
 
@@ -128,7 +137,7 @@ class RCounter:
         return res
 
 
-    def dec(self, id, value, rid):
+    def dec(self, id, value, rid = ""):
         req = req_construct("rc", id, "d", [str(value), rid]) 
         req = msg_construct(self.server, req)
 
