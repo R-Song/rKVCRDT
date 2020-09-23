@@ -75,7 +75,7 @@ namespace RAC.History
             OpEntry newop = JsonConvert.DeserializeObject<OpEntry>(otherop);
             Clock newtime = Clock.FromString(newop.time);
             curTime.Merge(newtime);
-            this.log.Add(newop.opid, newop);
+            this.log[newop.opid] = newop;
             
         }
 
