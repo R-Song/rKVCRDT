@@ -5,15 +5,15 @@ using static RAC.Errors.Log;
 namespace RAC.Operations
 {
     /// <summary>
-    /// Reversible Nested Set
+    /// Reversible Graph
     /// </summary>
-    public class RNSet : Operation<RNSetPayload>
+    public class RGraph : Operation<RGraphPayload>
     {
 
         // todo: set this to its typecode
-        public override string typecode { get ; set; } = "rns";
+        public override string typecode { get ; set; } = "rg";
 
-        public RNSet(string uid, Parameters parameters) : base(uid, parameters)
+        public RGraph(string uid, Parameters parameters) : base(uid, parameters)
         {
             // todo: put any necessary data here
         }
