@@ -21,6 +21,7 @@ namespace RAC.History
         public string before;
         public string after;
         public string time;
+        public HashSet<string> related;
 
         public OpEntry(string uid, string opid, string before, string after, string time)
         {
@@ -28,6 +29,7 @@ namespace RAC.History
             this.before = before;
             this.after = after;
             this.time = time;
+            this.related = new HashSet<string>();
         }
     }
 
@@ -94,5 +96,147 @@ namespace RAC.History
             Global.server.StageResponse(res);
 
         }   
+
+        public List<string> Search(string startop, string endop)
+        {   
+            List<string> res = new List<string>();
+            Clock startime = Clock.FromString(log[startop].time);
+            Clock endtime = Clock.FromString(log[endop].time);
+
+            // linear search
+            foreach (var item in this.log)
+            {
+                OpEntry op = item.Value;
+                Clock optime = Clock.FromString(op.time);
+                
+                // op after start time, and before/concurrent of endtime
+                if (optime.CompareVectorClock(startime) == 1 && optime.CompareVectorClock(endtime) < 1)
+                    res.Add(op.uid);
+            }
+            return res;
+        }
+
+        public List<string> Related(string opid)
+        {
+            List<string> res = new List<string>();
+            Stack<string> toSearch = new Stack<string>();
+            toSearch.Push(opid);
+            while (toSearch.Count > 0)
+            {
+                string toadd = toSearch.Pop();
+                res.Add(toadd);
+                foreach (var item in this.log[toadd].related)
+                    toSearch.Push(item);
+            }
+
+            return res;
+        }
+
+
+
     }
+
+    /*
+    public class CausalHistory
+    {   
+                
+        public string uid;
+        public Clock curTime;
+
+        // used to keep track of all vertices
+        // opid - each op is a vertex
+        public Dictionary<string, OpEntry> vertices; 
+        // opid - opid to represent a edge
+        public Dictionary<string, string> edges;
+        // tails to add to
+        OpEntry tail;
+
+        public CausalHistory(string uid)
+        {
+            this.uid = uid;
+            log = new Dictionary<string, OpEntry>();
+            curTime = new Clock(Config.numReplicas, Config.replicaId);
+            tail = null;
+        }
+
+        public void GetEntry(string opid, StringToPayloadDelegate stringToPayload, out Payload before, out Payload after, out Clock time)
+        {
+            OpEntry item = this.log[opid];
+            before = stringToPayload(item.before);
+            after = stringToPayload(item.after);
+            time = Clock.FromString(item.time);
+        }
+
+        public string AddNewEntry(Payload before, Payload after, PayloadToStrDelegate payloadToStr, Clock time = null, string relatedid = null)
+        {
+            if (time is null)   
+                time = curTime;
+
+            string opid = Config.replicaId + ":" + time.ToString();
+            time.Increment();
+            OpEntry newEntry = new OpEntry(this.uid, opid, payloadToStr(before), payloadToStr(after), time.ToString());
+            log.Add(opid, newEntry);
+
+            if (tail != null)
+            {
+                tail.adjacency.Add(newEntry.uid);
+                Sync(tail);
+            }
+
+            if (relatedid != null)
+            {
+                // TODO: maybe some checks here
+                log[relatedid].related.Add(newEntry.uid);
+                Sync(log[relatedid]);
+            }
+
+            Sync(newEntry);
+            
+            tail = newEntry;
+
+            return opid;
+
+        }
+
+        public void Sync(OpEntry newop)
+        {
+            DEBUG("Syncing new op " + newop.opid);
+            string json = JsonConvert.SerializeObject(newop, Formatting.Indented);
+            
+            Responses res = new Responses(Status.success);
+            Parameters syncPm = new Parameters(1);
+            syncPm.AddParam(0, json);
+            string broadcast = Parser.BuildCommand("h", "y", this.uid, syncPm);
+            res.AddResponse(Dest.broadcast, broadcast, false);
+            
+            Global.server.StageResponse(res);
+
+        }   
+
+        public void Merge(string otherop)
+        {
+            DEBUG("Merging op " + otherop);
+            OpEntry newop = JsonConvert.DeserializeObject<OpEntry>(otherop);
+            Clock newtime = Clock.FromString(newop.time);
+            curTime.Merge(newtime);
+            this.log[newop.opid] = newop;
+            
+            // TODO: things
+
+            
+        }
+
+        public void Search(string startop, string endop)
+        {
+
+        }
+
+        public void Related(string op)
+        {
+
+        }
+
+   
+    } */
+
 }
