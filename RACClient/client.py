@@ -327,7 +327,7 @@ if __name__ == "__main__":
             if (opcode == "ae"):
                 value1 = text[3]
                 value2 = text[4]
-                print(rg.addedge(uid, value, value2))
+                print(rg.addedge(uid, value1, value2))
             if (opcode == "re"):
                 value1 = text[3]
                 value2 = text[4]

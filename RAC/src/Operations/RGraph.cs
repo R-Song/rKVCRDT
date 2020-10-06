@@ -24,11 +24,30 @@ namespace RAC.Operations
 
         public override Responses GetValue()
         {
-            
+
             Responses res = new Responses(Status.success);
-            string vertices = string.Join("|", this.payload.vertices);
-            string edges = string.Join("|", this.payload.edges);
-            res.AddResponse(Dest.client, vertices + "\n" + edges);
+
+            StringBuilder sb = new StringBuilder();
+
+            sb.Append("Vertices:\n");
+
+            foreach (var v in this.payload.vertices)
+                sb.Append(v.value + "|");
+
+            sb.Append("\nEdges:\n");
+
+            foreach (var e in this.payload.edges)
+            {
+                string v1 = e.Item1.v1;
+                string v2 = e.Item1.v2;
+
+                if (lookup(v1) == (null, null) || lookup(v2) == (null, null))
+                    continue;
+                else
+                    sb.Append("<" + v1 + "," + v2 + ">");
+            }
+
+            res.AddResponse(Dest.client, sb.ToString());
             return res;
         }
 
@@ -62,7 +81,7 @@ namespace RAC.Operations
             string value = this.parameters.GetParam<string>(0);
 
             Responses res;
-            
+
             (string, string) toRemove;
 
             // precondition
@@ -88,8 +107,9 @@ namespace RAC.Operations
             // effect (R)
             this.payload.vertices.Remove(toRemove);
             res = new Responses(Status.success);
-            GenerateSyncRes(ref res, "rv", toRemove.ToString());
+            res.AddResponse(Dest.client);
 
+            GenerateSyncRes(ref res, "rv", toRemove.ToString());
             return res;
 
         }
@@ -97,17 +117,17 @@ namespace RAC.Operations
         public Responses AddEdge()
         {
             Responses res;
-            
+
             string v1 = this.parameters.GetParam<string>(0);
             string v2 = this.parameters.GetParam<string>(1);
-            
+
             if ((lookup(v1)) == (null, null))
             {
                 res = new Responses(Status.fail);
                 res.AddResponse(Dest.client, "Head vertex DNE");
                 return res;
             }
-            
+
             // A := A ∪ {((v′, v′′),w)}
             string tag = UniqueTag();
             var e = ((v1, v2), tag);
@@ -115,17 +135,17 @@ namespace RAC.Operations
 
             res = new Responses(Status.success);
             GenerateSyncRes(ref res, "ae", e.ToString());
-
+            res.AddResponse(Dest.client);
             return res;
         }
 
         public Responses RemoveEdge()
         {
             Responses res;
-            
+
             string v1 = this.parameters.GetParam<string>(0);
             string v2 = this.parameters.GetParam<string>(1);
-            
+
 
             ((string, string), string) toRemove;
 
@@ -140,7 +160,7 @@ namespace RAC.Operations
             this.payload.edges.Remove(toRemove);
             res = new Responses(Status.success);
             GenerateSyncRes(ref res, "re", toRemove.ToString());
-
+            res.AddResponse(Dest.client);
             return res;
 
         }
@@ -161,6 +181,10 @@ namespace RAC.Operations
         // look up edge
         private ((string, string), string) lookup(string v1, string v2)
         {
+
+            if (lookup(v1) == (null, null) || lookup(v2) == (null, null))
+                return ((null, null), null);
+
             foreach (var item in this.payload.edges)
             {
                 if (item.Item1.v1 == v1 && item.Item1.v2 == v2)
