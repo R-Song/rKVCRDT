@@ -186,6 +186,54 @@ class ORSet:
         return res
 
 
+class RGraph:
+
+    def __init__(self, s):
+        self.server = s
+
+    def get(self, id):
+        req = req_construct("rg", id, "g", [])
+        req = msg_construct(self.server, req)
+
+        res = self.server.send(req)
+        return res
+
+    def set(self, id):
+        req = req_construct("rg", id, "s", [])
+        req = msg_construct(self.server, req)
+        
+        res = self.server.send(req)
+        return res
+
+    def addvertex(self, id, value):
+        req = req_construct("rg", id, "av", [str(value)])
+        req = msg_construct(self.server, req)
+
+        res = self.server.send(req)
+        return res
+
+    def remvoevertex(self, id, value):
+        req = req_construct("rg", id, "rv", [str(value)])
+        req = msg_construct(self.server, req)
+
+        res = self.server.send(req)
+        return res
+
+    def addedge(self, id, value1, value2):
+        req = req_construct("rg", id, "ae", [str(value1), str(value2)])
+        req = msg_construct(self.server, req)
+
+        res = self.server.send(req)
+        return res
+
+    def removeedge(self, id, value1, value2):
+        req = req_construct("rg", id, "re", [str(value1), str(value2)])
+        req = msg_construct(self.server, req)
+
+        res = self.server.send(req)
+        return res
+
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -263,6 +311,27 @@ if __name__ == "__main__":
             if (opcode == "rm"):
                 value = text[3]
                 print(os.remvoe(uid, value))
+
+        elif (typecode == "rg"):
+            rg = RGraph(s)
+            if (opcode == "g"):
+                print(rg.get(uid))
+            if (opcode == "s"):
+                print(rg.set(uid))
+            if (opcode == "av"):
+                value = text[3]
+                print(rg.addvertex(uid, value))
+            if (opcode == "rv"):
+                value = text[3]
+                print(rg.remvoevertex(uid, value))
+            if (opcode == "ae"):
+                value1 = text[3]
+                value2 = text[4]
+                print(rg.addedge(uid, value, value2))
+            if (opcode == "re"):
+                value1 = text[3]
+                value2 = text[4]
+                print(rg.removeedge(uid, value1, value2))
 
     
     s.disconnect()

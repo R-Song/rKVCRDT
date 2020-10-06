@@ -64,6 +64,17 @@ namespace RAC
             AddNewAPI("ORSet", "Add", "a", "string");
             AddNewAPI("ORSet", "Remove", "rm", "string");
             AddNewAPI("ORSet", "Synchronization", "y", "lists, lists");
+
+            
+            // Reversible Graph
+            AddNewType("RGraph", "rg");
+            AddNewAPI("RGraph", "GetValue", "g", "");
+            AddNewAPI("RGraph", "SetValue", "s", "");
+            AddNewAPI("RGraph", "AddVertex", "av", "string");
+            AddNewAPI("RGraph", "RemoveVertex", "rv", "string");
+            AddNewAPI("RGraph", "AddEdge", "ae", "string, string");
+            AddNewAPI("RGraph", "RemoveEdge", "re", "string, string");
+            AddNewAPI("RGraph", "Synchronization", "y", "string, string");
         }
     }
 }
