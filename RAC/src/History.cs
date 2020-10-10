@@ -38,6 +38,8 @@ namespace RAC.History
     {   
         public string uid;
         public Dictionary<string, OpEntry> log;
+        // can be used tombstone reverse
+        public List<OpEntry> tombstone;
 
         public Clock curTime;
 
@@ -81,7 +83,25 @@ namespace RAC.History
             
         }
 
+        public void addTombstone(string opid)
+        {
+            tombstone.Add(log[opid]);
+        }
+
+        public void addTombstone(string[] opids)
+        {
+            foreach (var opid in opids)
+            {
+                tombstone.Add(log[opid]);       
+            }
+        }
+
         // TODO: make this pretty
+        /// <summary>
+        /// Called on every update of CRDT OP to 
+        /// synchronize the history
+        /// </summary>
+        /// <param name="newop"></param>
         public void Sync(OpEntry newop)
         {
             DEBUG("Syncing new op " + newop.opid);
@@ -97,11 +117,16 @@ namespace RAC.History
 
         }   
 
-        public List<string> Search(string startop, string endop)
+        /// <summary>
+        /// Search through ops happens between startop and endop time
+        // can be used by CRDT OPs
+        /// </summary>
+        /// <param name="startime"></param>
+        /// <param name="endtime"></param>
+        /// <returns>opids of found ops</returns>
+        public List<string> Search(Clock startime, Clock endtime)
         {   
             List<string> res = new List<string>();
-            Clock startime = Clock.FromString(log[startop].time);
-            Clock endtime = Clock.FromString(log[endop].time);
 
             // linear search
             foreach (var item in this.log)
@@ -116,6 +141,11 @@ namespace RAC.History
             return res;
         }
 
+        /// <summary>
+        /// Search related ops to given opid
+        /// </summary>
+        /// <param name="opid"></param>
+        /// <returns>opids of found ops</returns>
         public List<string> Related(string opid)
         {
             List<string> res = new List<string>();
