@@ -50,6 +50,14 @@ namespace RAC.History
             curTime = new Clock(Config.numReplicas, Config.replicaId);
         }
 
+        /// <summary>
+        /// Add an entry.
+        /// </summary>
+        /// <param name="before"></param>
+        /// <param name="after"></param>
+        /// <param name="payloadToStr"></param>
+        /// <param name="time"></param>
+        /// <returns></returns>
         public string AddNewEntry(Payload before, Payload after, PayloadToStrDelegate payloadToStr, Clock time = null)
         {
             if (time is null)   
@@ -64,12 +72,57 @@ namespace RAC.History
 
             return opid;
         }
+        
+        /// <summary>
+        /// Add an entry, but states already in strings.
+        /// </summary>
+        /// <param name="before"></param>
+        /// <param name="after"></param>
+        /// <param name="time"></param>
+        /// <returns></returns>
+        public string AddNewEntry(string before, string after, Clock time = null)
+        {
+            if (time is null)   
+                time = curTime;
 
+            string opid = Config.replicaId + ":" + time.ToString();
+            time.Increment();
+            OpEntry newEntry = new OpEntry(this.uid, opid, before, after, time.ToString());
+            log.Add(opid, newEntry);
+            
+            Sync(newEntry);
+
+            return opid;
+        }
+
+        /// <summary>
+        /// Get an entry and cast to a Payload object.
+        /// </summary>
+        /// <param name="opid"></param>
+        /// <param name="stringToPayload"></param>
+        /// <param name="before"></param>
+        /// <param name="after"></param>
+        /// <param name="time"></param>
         public void GetEntry(string opid, StringToPayloadDelegate stringToPayload, out Payload before, out Payload after, out Clock time)
         {
             OpEntry item = this.log[opid];
             before = stringToPayload(item.before);
             after = stringToPayload(item.after);
+            time = Clock.FromString(item.time);
+        }
+        
+        /// <summary>
+        /// Get an entry in string form.
+        /// </summary>
+        /// <param name="opid"></param>
+        /// <param name="before"></param>
+        /// <param name="after"></param>
+        /// <param name="time"></param>
+        public void GetEntry(string opid, out string before, out string after, out Clock time)
+        {
+            OpEntry item = this.log[opid];
+            before = item.before;
+            after = item.after;
             time = Clock.FromString(item.time);
         }
 
@@ -139,6 +192,17 @@ namespace RAC.History
                     res.Add(op.uid);
             }
             return res;
+        }
+
+        /// <summary>
+        /// Add a related op's opid to given opid
+        /// </summary>
+        /// <param name="opid"></param>
+        /// <param name="related"></param>
+        public void addRelated(string opid, string related)
+        {
+            this.log[opid].related.Add(related);
+
         }
 
         /// <summary>
