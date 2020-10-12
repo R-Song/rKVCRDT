@@ -149,17 +149,17 @@ namespace RAC.History
         public void addTombstone(string opid)
         {
             tombstone.Add(log[opid]);
+            Sync(log[opid], 1);
         }
 
         public void addTombstone(string[] opids)
         {
             foreach (var opid in opids)
             {
-                tombstone.Add(log[opid]);       
+                addTombstone(opid);       
             }
         }
 
-        // TODO: tombstone sync
         /// <summary>
         /// Called on every update of CRDT OP to 
         /// synchronize the history
