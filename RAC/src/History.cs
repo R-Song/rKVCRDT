@@ -39,7 +39,7 @@ namespace RAC.History
         public string uid;
         public Dictionary<string, OpEntry> log;
         // can be used tombstone reverse
-        public List<OpEntry> tombstone;
+        public List<string> tombstone;
 
         public Clock curTime;
 
@@ -141,7 +141,7 @@ namespace RAC.History
             else if (status == 1)
             {
                 DEBUG("Merging tombstone op " + otherop);
-                this.tombstone.Add(op);
+                this.tombstone.Add(otherop);
             }
             else if (status == 2)
             {
@@ -158,8 +158,8 @@ namespace RAC.History
 
         public void addTombstone(string opid)
         {
-            tombstone.Add(log[opid]);
-            Sync(log[opid], 1);
+            tombstone.Add(opid);
+            Sync(opid, 1);
         }
 
         public void addTombstone(string[] opids)
@@ -184,6 +184,21 @@ namespace RAC.History
             Responses res = new Responses(Status.success);
             Parameters syncPm = new Parameters(2);
             syncPm.AddParam(0, json);
+            syncPm.AddParam(1, status);
+            string broadcast = Parser.BuildCommand("h", "y", this.uid, syncPm);
+
+            res.AddResponse(Dest.broadcast, broadcast, false);
+            Global.server.StageResponse(res);
+
+        }   
+
+        public void Sync(string newop, int status = 0)
+        {
+            DEBUG("Syncing new op " + newop);
+            
+            Responses res = new Responses(Status.success);
+            Parameters syncPm = new Parameters(2);
+            syncPm.AddParam(0, newop);
             syncPm.AddParam(1, status);
             string broadcast = Parser.BuildCommand("h", "y", this.uid, syncPm);
 
