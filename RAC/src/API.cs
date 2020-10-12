@@ -34,7 +34,7 @@ namespace RAC
             AddNewAPI("HistoryHandler", "GetValue", "g", "");
             // not used, just to keep parser happy
             AddNewAPI("HistoryHandler", "SetValue", "s", "");
-            AddNewAPI("HistoryHandler", "Synchronization", "y", "string");
+            AddNewAPI("HistoryHandler", "Synchronization", "y", "string, int");
 
             // ADD CRDTs and their APIs below:
             // GCounter

@@ -126,13 +126,23 @@ namespace RAC.History
             time = Clock.FromString(item.time);
         }
 
-        public void Merge(string otherop)
+        public void Merge(string otherop, int status)
         {
-            DEBUG("Merging new op " + otherop);
-            OpEntry newop = JsonConvert.DeserializeObject<OpEntry>(otherop);
-            Clock newtime = Clock.FromString(newop.time);
-            curTime.Merge(newtime);
-            this.log[newop.opid] = newop;
+            
+            OpEntry op = JsonConvert.DeserializeObject<OpEntry>(otherop);
+
+            if (status == 0)
+            {
+                DEBUG("Merging new op " + otherop);
+                Clock newtime = Clock.FromString(op.time);
+                curTime.Merge(newtime);
+                this.log[op.opid] = op;
+            }
+            else if (status == 1)
+            {
+                DEBUG("Merging tombstone op " + otherop);
+                this.tombstone.Add(op);
+            }
             
         }
 
@@ -149,23 +159,25 @@ namespace RAC.History
             }
         }
 
-        // TODO: make this pretty
+        // TODO: tombstone sync
         /// <summary>
         /// Called on every update of CRDT OP to 
         /// synchronize the history
         /// </summary>
         /// <param name="newop"></param>
-        public void Sync(OpEntry newop)
+        /// <param name="status">0 = op, 1 = tombstone</param>
+        public void Sync(OpEntry newop, int status = 0)
         {
             DEBUG("Syncing new op " + newop.opid);
             string json = JsonConvert.SerializeObject(newop, Formatting.Indented);
             
             Responses res = new Responses(Status.success);
-            Parameters syncPm = new Parameters(1);
+            Parameters syncPm = new Parameters(2);
             syncPm.AddParam(0, json);
+            syncPm.AddParam(1, status);
             string broadcast = Parser.BuildCommand("h", "y", this.uid, syncPm);
+
             res.AddResponse(Dest.broadcast, broadcast, false);
-            
             Global.server.StageResponse(res);
 
         }   
