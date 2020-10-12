@@ -143,7 +143,17 @@ namespace RAC.History
                 DEBUG("Merging tombstone op " + otherop);
                 this.tombstone.Add(op);
             }
-            
+            else if (status == 2)
+            {
+                DEBUG("Merging new related op " + otherop);
+
+                foreach (var r in op.related)
+                {
+                    // hashset automatically remove duplicate
+                    this.log[op.opid].related.Add(r);   
+                }
+
+            }
         }
 
         public void addTombstone(string opid)
@@ -165,7 +175,7 @@ namespace RAC.History
         /// synchronize the history
         /// </summary>
         /// <param name="newop"></param>
-        /// <param name="status">0 = op, 1 = tombstone</param>
+        /// <param name="status">0 = op, 1 = tombstone, 2 = related</param>
         public void Sync(OpEntry newop, int status = 0)
         {
             DEBUG("Syncing new op " + newop.opid);
@@ -214,7 +224,7 @@ namespace RAC.History
         public void addRelated(string opid, string related)
         {
             this.log[opid].related.Add(related);
-
+            Sync(this.log[opid], 2);
         }
 
         /// <summary>
