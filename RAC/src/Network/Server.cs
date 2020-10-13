@@ -72,6 +72,11 @@ namespace RAC.Network
                     StageResponse(res, data.from);
                     DEBUG("Resparing response");
                 }
+                catch (OperationCanceledException)
+                {
+                    // promted
+                    continue;
+                }
                 catch (Exception e)
                 {
                     ERROR("Error thrown when handling the request" , e, false);

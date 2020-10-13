@@ -181,7 +181,7 @@ namespace RAC
                 ERROR("Request execution of " + typeCode + " with uid: " +
                         uid + ", of op:" +
                         apiCode + " failed.", e.InnerException, false);
-                throw e;
+                throw new OperationCanceledException();
             }
             
 
