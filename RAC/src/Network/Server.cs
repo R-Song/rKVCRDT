@@ -65,10 +65,18 @@ namespace RAC.Network
 
             while (await reqQueue.OutputAvailableAsync())
             {
-                data = reqQueue.Receive();
-                Responses res = Parser.RunCommand(data.content, data.msgSrc);
-                StageResponse(res, data.from);
-                DEBUG("Resparing response");
+                try
+                {
+                    data = reqQueue.Receive();
+                    Responses res = Parser.RunCommand(data.content, data.msgSrc);
+                    StageResponse(res, data.from);
+                    DEBUG("Resparing response");
+                }
+                catch (Exception e)
+                {
+                    ERROR("Error thrown when handling the request" , e, false);
+                }
+
             }
 
         }
@@ -82,10 +90,10 @@ namespace RAC.Network
                 toSent = this.respQueue.Receive();
 
                 TcpClient dest;
-                
+
                 // broadcast
                 if (toSent.to == "")
-                { 
+                {
                     this.cluster.BroadCast(toSent);
                 }
                 // reply to client, if connection found to be ended, do nothing
@@ -114,7 +122,7 @@ namespace RAC.Network
                 WARNING("New connection error");
                 return;
             }
-            
+
             Byte[] buffer = new Byte[1024];
             int i;
             MessagePacket msg = null;
@@ -137,7 +145,7 @@ namespace RAC.Network
                     int starterIndex = msgstr.LastIndexOf("-RAC-");
 
                     if (starterIndex != -1)
-                    { 
+                    {
                         // take everything between last -RAC- and -EOF-
                         // as a msg
                         msgstr = msgstr.Substring(starterIndex);
