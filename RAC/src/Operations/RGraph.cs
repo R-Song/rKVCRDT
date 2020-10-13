@@ -2,13 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using RAC.History;
 using RAC.Payloads;
 using static RAC.Errors.Log;
 
 namespace RAC.Operations
 {
     /// <summary>
-    /// Reversible Graph
+    /// Reversible Graph wit selective reversibility:
+    /// All add edge relates to the operation of adding the head vertex
+    /// Thus:
+    /// Reverse add vertex: remove all edges with it's as head
+    /// Reverse remove vertex: add back the vertex
+    /// Reverse add edge: remove the edge
+    /// Reverse remove edge: add the edge
     /// </summary>
     public class RGraph : Operation<RGraphPayload>
     {
@@ -27,12 +34,43 @@ namespace RAC.Operations
 
             Responses res = new Responses(Status.success);
 
+            var addedVertices = new HashSet<(string value, string tag)>();
+            var removedVertices = new HashSet<(string value, string tag)>();
+            var addedEdges = new HashSet<((string v1, string v2), string tag)>();
+            var removedEdges = new HashSet<((string v1, string v2), string tag)>();
+
+            foreach (var opid in this.history.tombstone)
+            {
+                // first handle the op
+                var op = this.history.log[opid];
+
+                HandleSavedState(op, addedVertices, removedVertices, addedEdges, removedEdges);
+                // then handle the related
+                foreach (var relate_opid in op.related)
+                {
+                    op = this.history.log[opid];
+                    HandleSavedState(op, addedVertices, removedVertices, addedEdges, removedEdges);
+                }
+            }
+
             StringBuilder sb = new StringBuilder();
 
-            sb.Append("Vertices:\n");
 
+
+            // vertices
+            sb.Append("Vertices:\n");
             foreach (var v in this.payload.vertices)
+            {
+                // remove
+                if (!removedVertices.Contains(v))
+                    sb.Append(v.value + "|");
+            }
+
+            // add back
+            foreach (var v in addedVertices)
+            {
                 sb.Append(v.value + "|");
+            }
 
             sb.Append("\nEdges:\n");
 
@@ -41,14 +79,59 @@ namespace RAC.Operations
                 string v1 = e.Item1.v1;
                 string v2 = e.Item1.v2;
 
-                if (lookup(v1) == (null, null) || lookup(v2) == (null, null))
+                // remove
+                if (lookup(v1) == (null, null) ||
+                    lookup(v2) == (null, null) ||
+                    removedEdges.Contains(e))
                     continue;
                 else
                     sb.Append("<" + v1 + "," + v2 + ">");
             }
 
+            // add back
+            foreach (var e in addedEdges)
+            {
+                sb.Append("<" + e.Item1.v1 + "," + e.Item1.v2 + ">");
+            }
+
             res.AddResponse(Dest.client, sb.ToString());
             return res;
+        }
+
+        private void HandleSavedState(in OpEntry op,
+                                    in HashSet<(string, string)> addedVertices,
+                                    in HashSet<(string, string)> removedVertices,
+                                    in HashSet<((string, string), string)> addedEdges,
+                                    in HashSet<((string, string), string)> removedEdges)
+        {
+            var beforeTemp = op.before.Split(",").Select(x => x.Trim(')', '(', ' ')).ToArray();
+            var afterTemp = op.after.Split(",").Select(x => x.Trim(')', '(', ' ')).ToArray();
+
+            // remove all after
+            // add all before
+            // if have 2 strings, then is vertex value-tag
+            // if exists before but not after, add back 
+            // if exists after but not before, remove
+            // adding back dont care related, because original CRDT semantically frobit removing head vertices
+            if (beforeTemp.Length == 2)
+            {
+                addedVertices.Add((beforeTemp[0], beforeTemp[1]));
+            }
+            else if (afterTemp.Length == 2)
+            {
+                removedVertices.Add((afterTemp[0], afterTemp[1]));
+            }
+
+            // if have 2 strings, then is edge (v1-v2)-tag
+            if (beforeTemp.Length == 3)
+            {
+                addedEdges.Add(((beforeTemp[0], beforeTemp[1]), beforeTemp[2]));
+            }
+            else if (afterTemp.Length == 3)
+            {
+                removedEdges.Add(((afterTemp[0], afterTemp[1]), afterTemp[2]));
+            }
+
         }
 
         public override Responses SetValue()
@@ -56,7 +139,6 @@ namespace RAC.Operations
             this.payload = new RGraphPayload(uid);
 
             Responses res = new Responses(Status.success);
-
             res.AddResponse(Dest.client);
             GenerateSyncRes(ref res, "n", "");
             return res;
@@ -68,11 +150,12 @@ namespace RAC.Operations
             var v = (this.parameters.GetParam<string>(0), tag);
             this.payload.vertices.Add(v);
 
+            // history
+            string opid = this.history.AddNewEntry("", v.ToString());
+            
             Responses res = new Responses(Status.success);
-            res.AddResponse(Dest.client);
-
+            res.AddResponse(Dest.client, opid);
             GenerateSyncRes(ref res, "av", v.ToString());
-
             return res;
         }
 
@@ -106,9 +189,12 @@ namespace RAC.Operations
 
             // effect (R)
             this.payload.vertices.Remove(toRemove);
-            res = new Responses(Status.success);
-            res.AddResponse(Dest.client);
 
+            // history
+            string opid = this.history.AddNewEntry(toRemove.ToString(), "");
+
+            res = new Responses(Status.success);
+            res.AddResponse(Dest.client, opid);
             GenerateSyncRes(ref res, "rv", toRemove.ToString());
             return res;
 
@@ -133,9 +219,13 @@ namespace RAC.Operations
             var e = ((v1, v2), tag);
             this.payload.edges.Add(e);
 
+            // hisotry
+            string opid = this.history.AddNewEntry("", e.ToString());
+            this.history.addRelated(this.payload.vaddops[v1], opid);
+
             res = new Responses(Status.success);
+            res.AddResponse(Dest.client, opid);
             GenerateSyncRes(ref res, "ae", e.ToString());
-            res.AddResponse(Dest.client);
             return res;
         }
 
@@ -158,9 +248,14 @@ namespace RAC.Operations
 
             // A := A \ R
             this.payload.edges.Remove(toRemove);
+
+            // hisotry
+            string opid = this.history.AddNewEntry(toRemove.ToString(), "");
+            this.history.addRelated(this.payload.vaddops[v1], opid);
+
             res = new Responses(Status.success);
+            res.AddResponse(Dest.client, opid);
             GenerateSyncRes(ref res, "re", toRemove.ToString());
-            res.AddResponse(Dest.client);
             return res;
 
         }
@@ -243,6 +338,15 @@ namespace RAC.Operations
 
             string broadcast = Parser.BuildCommand(this.typecode, "y", this.uid, syncPm);
             res.AddResponse(Dest.broadcast, broadcast, false);
+        }
+
+
+        public Responses Reverse()
+        {
+            string opid = this.parameters.GetParam<string>(0);
+            this.history.addTombstone(opid);
+
+            return new Responses(Status.success);
         }
 
         // TODO: move this to utli class
