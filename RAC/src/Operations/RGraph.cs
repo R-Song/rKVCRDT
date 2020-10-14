@@ -48,7 +48,8 @@ namespace RAC.Operations
                 // then handle the related
                 foreach (var relate_opid in op.related)
                 {
-                    op = this.history.log[opid];
+                    op = this.history.log[relate_opid];
+                    DEBUG("removed_related");
                     HandleSavedState(op, addedVertices, removedVertices, addedEdges, removedEdges);
                 }
             }
@@ -152,6 +153,7 @@ namespace RAC.Operations
 
             // history
             string opid = this.history.AddNewEntry("", v.ToString());
+            this.payload.vaddops[v.Item1] = opid;
             
             Responses res = new Responses(Status.success);
             res.AddResponse(Dest.client, opid);
@@ -346,7 +348,9 @@ namespace RAC.Operations
             string opid = this.parameters.GetParam<string>(0);
             this.history.addTombstone(opid);
 
-            return new Responses(Status.success);
+            var res = new Responses(Status.success);
+            res.AddResponse(Dest.client);
+            return res;
         }
 
         // TODO: move this to utli class

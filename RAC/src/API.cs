@@ -75,7 +75,7 @@ namespace RAC
             AddNewAPI("RGraph", "AddEdge", "ae", "string, string");
             AddNewAPI("RGraph", "RemoveEdge", "re", "string, string");
             AddNewAPI("RGraph", "Synchronization", "y", "string, string");
-            AddNewAPI("RGraph", "Reverse", "av", "string");
+            AddNewAPI("RGraph", "Reverse", "r", "string");
         }
     }
 }

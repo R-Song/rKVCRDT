@@ -72,6 +72,7 @@ def req_construct(tid, uid, op, params):
 
 def res_parse(res):
     
+    # TODO: add try for timeout
     lines = res.split("CNT:")[1].strip().strip('-EOF-').splitlines()
 
     if "Succeed" in lines[0]:
@@ -233,6 +234,13 @@ class RGraph:
         res = self.server.send(req)
         return res
 
+    def reverse(self, id, value):
+        req = req_construct("rg", id, "r", [str(value)])
+        req = msg_construct(self.server, req)
+
+        res = self.server.send(req)
+        return res
+
 
 
 if __name__ == "__main__":
@@ -332,6 +340,9 @@ if __name__ == "__main__":
                 value1 = text[3]
                 value2 = text[4]
                 print(rg.removeedge(uid, value1, value2))
+            if (opcode == "r"):
+                value = text[3]
+                print(rg.reverse(uid, value))
 
     
     s.disconnect()

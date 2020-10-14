@@ -47,6 +47,7 @@ namespace RAC.History
         {
             this.uid = uid;
             log = new Dictionary<string, OpEntry>();
+            tombstone = new List<string>();
             curTime = new Clock(Config.numReplicas, Config.replicaId);
         }
 
@@ -128,11 +129,9 @@ namespace RAC.History
 
         public void Merge(string otherop, int status)
         {
-            
-            OpEntry op = JsonConvert.DeserializeObject<OpEntry>(otherop);
-
             if (status == 0)
             {
+                OpEntry op = JsonConvert.DeserializeObject<OpEntry>(otherop);
                 DEBUG("Merging new op " + otherop);
                 Clock newtime = Clock.FromString(op.time);
                 curTime.Merge(newtime);
@@ -145,6 +144,7 @@ namespace RAC.History
             }
             else if (status == 2)
             {
+                OpEntry op = JsonConvert.DeserializeObject<OpEntry>(otherop);
                 DEBUG("Merging new related op " + otherop);
 
                 foreach (var r in op.related)
