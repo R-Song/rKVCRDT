@@ -9,9 +9,6 @@ namespace RAC.Payloads
         public int replicaid;
         public List<int> PVector {set; get;}
         public List<int> NVector {set; get;}
-        public Dictionary<string, List<string>> relations;
-        // TODO: change to hashset if performance bad
-        public HashSet<string> tombstone;
 
         public RCounterPayload(string uid, int numReplicas, int replicaid)
         {
@@ -19,8 +16,6 @@ namespace RAC.Payloads
             this.PVector = new List<int>(numReplicas);
             this.NVector = new List<int>(numReplicas);
             this.replicaid = replicaid;
-            this.relations = new Dictionary<string, List<string>>();
-            this.tombstone = new HashSet<string>();
 
             for (int i = 0; i < numReplicas; i++)
             {
@@ -49,7 +44,7 @@ namespace RAC.Payloads
 
         }
 
-        public static Payload StrToPayload(string str)
+        public static RCounterPayload StrToPayload(string str)
         {
             RCounterPayload pl = new RCounterPayload("", (int)Config.numReplicas, (int)Config.replicaId);
             string pvecstr = str.Split("||")[0];

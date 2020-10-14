@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using RAC.History;
 using RAC.Payloads;
 using static RAC.Errors.Log;
 
 namespace RAC.Operations
 {
     /// <summary>
-    /// Pure state-based reversible counter
+    /// Reversible counter
+    /// Reverse functions:
+    ///  Causal reverse
     /// </summary>
     public class RCounter : Operation<RCounterPayload>
     {
@@ -36,24 +39,29 @@ namespace RAC.Operations
                 int compensate = 0;
 
                 // calculated ones been reversed
-                foreach (var tombed in this.payload.tombstone)
+                foreach (var tombed in this.history.tombstone)
                 {
-                    Payload oldtemp;
-                    Payload newtemp;
+                    string startime;
+                    string endTime;
                     
-                    history.GetEntry(tombed, RCounterPayload.StrToPayload, out oldtemp, out newtemp, out _);
+                    history.GetEntry(tombed, out startime, out endTime, out _);
 
-                    RCounterPayload newstate = (RCounterPayload) newtemp;
-                    RCounterPayload oldstate = (RCounterPayload) oldtemp;
+                    var toReversed = history.Search(Clock.FromString(startime), Clock.FromString(endTime));
 
+                    foreach (var ops in toReversed)
+                    {   
+                        RCounterPayload newstate;
+                        RCounterPayload oldstate;
 
-                    int diff = (newstate.PVector.Sum() - newstate.NVector.Sum()) - 
-                                (oldstate.PVector.Sum() - oldstate.NVector.Sum());
+                        history.GetEntry(ops, RCounterPayload.StrToPayload, out oldstate, out newstate, out _);
 
-                    RCounterPayload pl = this.payload;
+                        int diff = (newstate.PVector.Sum() - newstate.NVector.Sum()) - 
+                                    (oldstate.PVector.Sum() - oldstate.NVector.Sum());
 
-                    compensate -= diff;
+                        RCounterPayload pl = this.payload;
 
+                        compensate -= diff;
+                    }
                 }
 
                 DEBUG("actual value: " + (pos - neg).ToString() + " compensate: " + compensate);
@@ -81,9 +89,7 @@ namespace RAC.Operations
             this.payload = pl;
             string opid = this.history.AddNewEntry(oldstate, this.payload, RCounterPayload.PayloadToStr);
 
-            RelateTo(opid);
-
-            GenerateSyncRes(ref res, opid + "||");
+            GenerateSyncRes(ref res, opid);
             res.AddResponse(Dest.client, opid); 
             
             return res;
@@ -91,50 +97,29 @@ namespace RAC.Operations
 
         public Responses Increment()
         {   
-            Responses res = new Responses(Status.success);
-            string related = this.parameters.GetParam<string>(1);
-            
-            if (!checkValid(related))
-            {
-                res = new Responses(Status.fail);
-                res.AddResponse(Dest.client);
-                return res;
-            }
-
             RCounterPayload oldstate = this.payload.CloneValues();
             this.payload.PVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
 
             string opid = this.history.AddNewEntry(oldstate, this.payload, RCounterPayload.PayloadToStr);
 
-            RelateTo(opid, related);
-
-            GenerateSyncRes(ref res, opid + "||" + related);
+            Responses res = new Responses(Status.success);
             res.AddResponse(Dest.client, opid);
+            GenerateSyncRes(ref res, opid);
             return res;
 
         }
 
         public Responses Decrement()
         {
-            Responses res = new Responses(Status.success);
-            string related = this.parameters.GetParam<string>(1);
-            
-            if (!checkValid(related))
-            {
-                res = new Responses(Status.fail);
-                res.AddResponse(Dest.client);
-                return res;
-            }
-
             RCounterPayload oldstate = this.payload.CloneValues();
             this.payload.NVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
 
             string opid = this.history.AddNewEntry(oldstate, this.payload, RCounterPayload.PayloadToStr);
-            
-            RelateTo(opid, related);
 
-            GenerateSyncRes(ref res, opid + "||" + related);
+            Responses res = new Responses(Status.success);
             res.AddResponse(Dest.client, opid); 
+            GenerateSyncRes(ref res, opid);
+
             return res;
 
         }
@@ -168,135 +153,38 @@ namespace RAC.Operations
             DEBUG("Sync successful, new value for " + this.uid + " is " +  
                     (this.payload.PVector.Sum() - this.payload.NVector.Sum()));
             
-            // add to relation
-            string[] pm2 = this.parameters.GetParam<string>(2).Split("||");
-            string opid = pm2[0].Trim();
-            string relateTo = pm2[1].Trim();
 
-            this.payload.relations[opid] = new List<string>();
-
-            if (relateTo != "")
-            {
-                DEBUG(opid + " depends on " + relateTo);
-                this.payload.relations[relateTo].Add(opid);
-                
-                // add to tombstone as needed       
-                if (this.payload.tombstone.Contains(relateTo))
-                {
-                    DEBUG(relateTo + " is already in tombstoned");
-                    this.payload.tombstone.Add(opid);
-                }
-            }
-            
             res = new Responses(Status.success);
 
             return res;
         }
 
-        public Responses SynchronizeTombstone()
-        {
-            // 1. add new tombstone
-            // 2. check relations and put any necessary ops in relations 
-            List<string> tombstoned = this.parameters.GetParam<List<string>>(0);
-            foreach (string opid in tombstoned)
-            {
-                DEBUG(opid + " and its relations are added to tombstone");
 
-                this.payload.tombstone.Add(opid);
-                foreach (var item in this.payload.relations[opid])
-                {
-                    this.payload.tombstone.Add(item);
-                }
-                
-            }
-
-            return new Responses(Status.success);
-        }
-
-
-        // if reverse ops without relation, just reverse that one
-        // if reverse op with relation, do the selective reverse thing
         public Responses Reverse()
         {
             Responses res = new Responses(Status.success);
             string opid = this.parameters.GetParam<String>(0);
+            string startime = this.history.log[opid].time;
+            string curTime = this.history.curTime.ToString(); 
+            string reverseop = this.history.AddNewEntry(startime, curTime);
             
-            // you cannot reverse a op that is already reversed
-            if (!checkValid(opid))
-            {
-                res = new Responses(Status.fail);
-                res.AddResponse(Dest.client);
-                return res;
-            }
-
-            // perpare
-
-            // find related:
-            List<string> related = this.payload.relations[opid];
-            List<string> tombstoned = new List<string>();
-
-            // check related
-            foreach (string rid in related)
-            {
-                // do not reverse the ones has already been reversed
-                if (!this.payload.tombstone.Contains(rid))
-                {
-                    // update relation map/tombstone info
-                    this.payload.tombstone.Add(rid);
-                    tombstoned.Add(rid);
-                }
-
-            }
-
-            // reverse self
-            this.payload.tombstone.Add(opid);
-            tombstoned.Add(opid);
-
-            // sync tombstone, since grow-only, 
-            Parameters syncPm = new Parameters(1);
-            syncPm.AddParam(0, tombstoned);
-            string broadcast = Parser.BuildCommand(this.typecode, "yr", this.uid, syncPm);
-            res.AddResponse(Dest.client, opid + " reversed");
-            res.AddResponse(Dest.broadcast, broadcast, false);
+            this.history.addTombstone(reverseop);
+            
+            res.AddResponse(Dest.client);
             return res;
         }
 
         private void GenerateSyncRes(ref Responses res, string newop)
         {
-            Parameters syncPm = new Parameters(3);
+            Parameters syncPm = new Parameters(2);
             syncPm.AddParam(0, this.payload.PVector);
             syncPm.AddParam(1, this.payload.NVector);
-            syncPm.AddParam(2, newop);
 
             string broadcast = Parser.BuildCommand(this.typecode, "y", this.uid, syncPm);
             
             res.AddResponse(Dest.broadcast, broadcast, false);
         }
 
-
-        // check if the related op has been revered
-        private bool checkValid(string related)
-        {
-            if (related == "")
-                return true;
-
-            return !this.payload.tombstone.Contains(related);
-
-        }
-
-        private void RelateTo(string opid, string related = "")
-        {
-            this.payload.relations[opid] = new List<string>();
-            
-            if (related == "")
-                return;
-            
-            this.payload.relations[related].Add(opid);
-        }
-
     }
-
-
-
 }
 

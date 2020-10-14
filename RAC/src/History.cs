@@ -12,7 +12,7 @@ using static RAC.Errors.Log;
 namespace RAC.History
 {
     public delegate string PayloadToStrDelegate(Payload pl);
-    public delegate Payload StringToPayloadDelegate(string str);
+    public delegate T StringToPayloadDelegate<T>(string str);
     
     public class OpEntry
     {
@@ -104,7 +104,8 @@ namespace RAC.History
         /// <param name="before"></param>
         /// <param name="after"></param>
         /// <param name="time"></param>
-        public void GetEntry(string opid, StringToPayloadDelegate stringToPayload, out Payload before, out Payload after, out Clock time)
+        /// <typeparam name="T"></typeparam>
+        public void GetEntry<T>(string opid, StringToPayloadDelegate<T> stringToPayload, out T before, out T after, out Clock time)
         {
             OpEntry item = this.log[opid];
             before = stringToPayload(item.before);
@@ -224,9 +225,12 @@ namespace RAC.History
                 OpEntry op = item.Value;
                 Clock optime = Clock.FromString(op.time);
                 
-                // op after start time, and before/concurrent of endtime
-                if (optime.CompareVectorClock(startime) == 1 && optime.CompareVectorClock(endtime) < 1)
-                    res.Add(op.uid);
+                // op exactly the same as start date,
+                // after start time,
+                // and before/concurrent of endtime
+                if ((optime.CompareVectorClock(startime) == 1 && optime.CompareVectorClock(endtime) < 1) ||
+                    (optime.ToString().Equals(startime.ToString())))
+                    res.Add(op.opid);
             }
             return res;
         }
