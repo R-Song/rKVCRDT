@@ -36,6 +36,15 @@ namespace RAC
             AddNewAPI("HistoryHandler", "SetValue", "s", "");
             AddNewAPI("HistoryHandler", "Synchronization", "y", "string, int");
 
+            // Performance monitor, DO NOT CHANGE THIS
+            AddNewType("PerformanceMonitor", "pref");
+            AddNewAPI("PerformanceMonitor", "GetValue", "g", "");
+            // not used, just to keep parser happy
+            AddNewAPI("PerformanceMonitor", "SetValue", "s", "");
+            // not used, just to keep parser happy
+            AddNewAPI("PerformanceMonitor", "Synchronization", "y", "string, int");
+            //=======================================================================================//
+
             // ADD CRDTs and their APIs below:
             // GCounter
             AddNewType("GCounter", "gc");

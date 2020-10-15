@@ -188,7 +188,6 @@ class ORSet:
 
 
 class RGraph:
-
     def __init__(self, s):
         self.server = s
 
@@ -236,6 +235,17 @@ class RGraph:
 
     def reverse(self, id, value):
         req = req_construct("rg", id, "r", [str(value)])
+        req = msg_construct(self.server, req)
+
+        res = self.server.send(req)
+        return res
+
+class Performance:
+    def __init__(self, s):
+        self.server = s
+
+    def get(self):
+        req = req_construct("pref", "pf", "g", [])
         req = msg_construct(self.server, req)
 
         res = self.server.send(req)
@@ -343,6 +353,11 @@ if __name__ == "__main__":
             if (opcode == "r"):
                 value = text[3]
                 print(rg.reverse(uid, value))
+
+        elif (typecode == "pref"):
+            pf = Performance(s)
+            if (opcode == "g"):
+                print(pf.get())
 
     
     s.disconnect()

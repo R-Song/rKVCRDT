@@ -21,6 +21,7 @@ namespace RAC
         public static Node selfNode;
         public static Cluster cluster;
         public static Server server;
+        public static Profiler profiler;
 
         public static void init(string nodeconfigfile)
         {
@@ -33,6 +34,7 @@ namespace RAC
             Config.replicaId = selfNode.nodeid;
 
             server = new Server(Global.selfNode);
+            profiler = new Profiler();
         }
     }
 }
