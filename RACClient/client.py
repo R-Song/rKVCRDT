@@ -73,7 +73,12 @@ def req_construct(tid, uid, op, params):
 def res_parse(res):
     
     # TODO: add try for timeout
-    lines = res.split("CNT:")[1].strip().strip('-EOF-').splitlines()
+    try:
+        lines = res.split("CNT:")[1].strip().strip('-EOF-').splitlines()
+    except IndexError:
+        print("Parsing failure")
+        print(res)
+        return (False, "")
 
     if "Succeed" in lines[0]:
         success = True 
