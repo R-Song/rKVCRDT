@@ -20,6 +20,7 @@ namespace RAC.Operations
         public PerformanceMonitor(string uid, Parameters parameters) : base(uid, parameters)
         {
             // todo: put any necessary data here
+            this.noSideEffect = true;
         }
 
 
@@ -30,11 +31,7 @@ namespace RAC.Operations
             var res = new Responses(Status.success);
             
             var report = string.Format(
-@"
-===Performance Report===
-Current Memory Usage: {0}
-
-"
+"===Performance Report===\nCurrent Memory Usage: {0}\n"
             , mem / 1000000);
 
             res.AddResponse(Dest.client, report);
