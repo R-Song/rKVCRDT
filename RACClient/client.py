@@ -26,7 +26,7 @@ class Server:
 
     def response(self):
         try:
-            msg = self.s.recv(256)   
+            msg = self.s.recv(1024)   
         except socket.timeout:
             print("timeout on receive")
             self.s.close()

@@ -95,7 +95,8 @@ namespace RAC.Operations
                 sb.Append("<" + e.Item1.v1 + "," + e.Item1.v2 + ">");
             }
 
-            res.AddResponse(Dest.client, sb.ToString());
+            // TODO: wait for client to recognize long strings
+            res.AddResponse(Dest.client, "");//sb.ToString());
             return res;
         }
 

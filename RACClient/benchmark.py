@@ -391,8 +391,74 @@ class GCounterTest(Test):
             sample_point = self._throughout(start, i, num_ops, sample_point)
             i = i + 1
 
-class GraphTest(test):
+class RGraphTest(Test):
+    def __init__(self, addresses, num_element, sample_rate=0.1) -> None:
+        super().__init__(addresses, num_element, RGraph, sample_rate)
+
+    def _set(self, k, v):
+        return self.crdts[0].set(k)
+
+    def _read(self, k, v):
+        return self.crdts[0].get(k)
+
+    def set_reverse(self, num_reversed):
+        print("setting up reversible")
+        sample_point = 0
+        start = time.time()
+        i = 0
+
+        vertices = []
+        edges = []
+
+        for r in range(num_reversed):
+            vertices.append("v{0}".format(r))
+            edges.append(("v{0}".format(r), "v{0}".format(r + 1)))
+        
+        edges.pop()
+
+        num_run = len(self.data.items()) * num_reversed * 3
+        for k, v in self.data.items():
+            opids = []
+            # add
+            for vt in vertices:
+                res = self.crdts[0].addvertex(k, vt)
+                opids.append(res[1][0])
+                sample_point = self._throughout(start, i, num_run, sample_point)
+                i = i + 1
+
+            for ed in edges:
+                self.crdts[0].addedge(k, ed[0], ed[1])
+                sample_point = self._throughout(start, i, num_run, sample_point)
+                i = i + 1
+
+            # reverse
+            for opid in reversed(opids):
+                self.crdts[0].reverse(k, opid)
+                
+                sample_point = self._throughout(start, i, num_run, sample_point)
+                i = i + 1
+
+                
+
     
+    def test_mixed_update_read(self, read_ratio, num_ops):
+        print("testing mixed update")
+        sample_point = 0
+        start = time.time()
+        i = 0
+
+        while(i < num_ops):
+            k = random.choice(list(self.data.keys()))
+            v = random.uniform(0, 1)
+            
+            # update
+            if (v > read_ratio):
+                res = self.crdts[0].addvertex(k, v)
+            else:
+                res = self.crdts[0].get(k)
+
+            sample_point = self._throughout(start, i, num_ops, sample_point)
+            i = i + 1
 
 
 
@@ -413,8 +479,15 @@ if __name__ == "__main__":
     # gcbench.test_mixed_update_reverse_read(1000000)
 
     # s.disconnect()
-    gctest = GCounterTest({"127.0.0.1": 5000}, 10000)
-    gctest.init_data()
-    gctest.test_data()
-    gctest.test_mixed_update_read(0.5, 100000)
-    gctest.end()
+    # gctest = GCounterTest({"127.0.0.1": 5000}, 10000)
+    # gctest.init_data()
+    # gctest.test_data()
+    # gctest.test_mixed_update_read(0.5, 100000)
+    # gctest.end()
+
+    rgtest = RGraphTest({"127.0.0.1": 5000}, 1000)
+    rgtest.init_data()
+    rgtest.test_data()
+    rgtest.set_reverse(800)
+    rgtest.test_mixed_update_read(0.5, 100000)
+    rgtest.end()
