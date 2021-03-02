@@ -50,7 +50,7 @@ def draw(name, x_label, y_label, x_values, y_values):
         plt.plot(x_values, y_values[i], markers[i])
 
 
-    plt.show()
+    plt.savefig(name + ".png")
 
 if __name__ == "__main__":
     write_to_csv("x.csv", ["x", "a", "b"], [{"x": 1, "a":100, "b":200}, {"x": 2, "a": 150, "b": 250 }])
