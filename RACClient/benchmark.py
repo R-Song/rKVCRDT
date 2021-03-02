@@ -1,7 +1,9 @@
 import string 
 import random 
 import time
+import subprocess
 from client import *
+from draw import *
 
 KEY_LEN = 5
 
@@ -327,12 +329,13 @@ class Test:
     def _read(self, k, v):
         raise NotImplementedError
 
-    def _throughout(self, start_time, num_ops, total_ops, sample_point):
+    def _throughout(self, start_time, num_ops, total_ops, sample_point, tpo=[0]):
         if (num_ops == int(sample_point * total_ops)):
                 cur_t = time.time()
                 tp = num_ops / (cur_t + 0.00001 - start_time)
                 print("Throughput at {0} % is {1} ops/s".format(int(sample_point * 100), int(tp)))
                 self._pref()
+                tpo[0] = tp
                 return sample_point + self.sample_rate
         
         return sample_point
@@ -377,7 +380,8 @@ class GCounterTest(Test):
         sample_point = 0
         start = time.time()
         i = 0
-
+        
+        all = []
         while(i < num_ops):
             k = random.choice(list(self.data.keys()))
             v = random.uniform(0, 1)
@@ -388,8 +392,13 @@ class GCounterTest(Test):
             else:
                 res = self.crdts[0].get(k)
 
-            sample_point = self._throughout(start, i, num_ops, sample_point)
+            temp = [0]
+            sample_point = self._throughout(start, i, num_ops, sample_point, temp)
+            if (temp[0] != 0):
+                all.append(temp[0])
             i = i + 1
+
+        return all
 
 class RGraphTest(Test):
     def __init__(self, addresses, num_element, sample_rate=0.1) -> None:
@@ -485,9 +494,47 @@ if __name__ == "__main__":
     # gctest.test_mixed_update_read(0.5, 100000)
     # gctest.end()
 
-    rgtest = RGraphTest({"127.0.0.1": 5000}, 1000)
-    rgtest.init_data()
-    rgtest.test_data()
-    rgtest.set_reverse(800)
-    rgtest.test_mixed_update_read(0.5, 100000)
-    rgtest.end()
+    # rgtest = RGraphTest({"127.0.0.1": 5000}, 1000)
+    # rgtest.init_data()
+    # rgtest.test_data()
+    # rgtest.set_reverse(800)
+    # rgtest.test_mixed_update_read(0.5, 100000)
+    # rgtest.end()
+    proc = subprocess.Popen(["dotnet", "run", "-p", "D:\md\Project_RAC\RAC", "D:\md\Project_RAC\RAC\cluster_config.json"], stdout=subprocess.DEVNULL)
+    time.sleep(3)
+    proc2 = subprocess.Popen(["dotnet", "run", "-p", "D:\md\Project_RAC\RAC", "D:\md\Project_RAC\RAC\cluster_config.1.json"], stdout=subprocess.DEVNULL)
+    time.sleep(3)
+
+    try:
+
+        kv_pair = generate_kv_pair(1250)
+        host1 = "127.0.0.1"
+        port1 = 5000
+        s = Server(host1, port1)  
+        s.connect()
+
+        gctest = GCounterTest({"127.0.0.1": 5000}, 10000)
+        gctest.init_data()
+        #gctest.test_data()
+        res = gctest.test_mixed_update_read(0.5, 100000)
+        gctest.end()
+
+        todraw = []
+        for i in range(len(res)):
+            todraw.append({"x": i, 1:res[i]})
+
+        print([todraw])
+
+        write_to_csv("x.csv", ["x", 1], todraw)
+        headers, x, y = read_from_csv("x.csv")
+        print(x)
+        print(y)
+        draw("test", "# of Ops", "Throughput", x, y)
+
+        s.disconnect()
+
+    finally:
+
+        proc.terminate()
+        proc2.terminate()
+        print("end")
