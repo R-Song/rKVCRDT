@@ -64,7 +64,7 @@ namespace RAC
             AddNewAPI("RCounter", "Reverse", "r", "string");
             // Params: nvector, pvector, new relation pair
             AddNewAPI("RCounter", "Synchronization", "y", "listi, listi, string");
-            AddNewAPI("RCounter", "SynchronizeTombstone", "yr", "lists");
+            // AddNewAPI("RCounter", "SynchronizeTombstone", "yr", "lists");
 
             // OR-Set
             AddNewType("ORSet", "os");
