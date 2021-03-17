@@ -261,9 +261,7 @@ def isHelp(args):
     return len(sys.argv) == 2 and (args[1] == '--help' or args[1] == '-h')
 
 def helpMessage():
-    string = ("\n  [TEMPORARY] \n\n" +
-        "  Open another terminal and run: \n\n" +
-        "  python -m http.server <port number> --bind 127.0.0.1 \n\n" +
+    string = ("  Go to ../RAC and follow the instruction to boot up replication server  \n\n" +
         "  [For Example] python -m http.server 8080 --bind 127.0.0.1 \n\n" +
         "  and in this folder, run: \n\n" +
         "  python client.py 127.0.0.1:<port number> \n\n" + 
@@ -281,9 +279,6 @@ if __name__ == "__main__":
         address = sys.argv[1]
         host = address.split(":")[0]
         port = int(address.split(":")[1])
-
-        print(host)
-        print(port)
 
         s = Server(host, port)   
 
