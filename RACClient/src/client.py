@@ -11,6 +11,20 @@ from type.RGraph import RGraph
 from type.Performance import Performance
 from type.helper import res_parse
 
+class Action:
+    SET = "s"
+    GET = "g"
+    INCREMENT = "i"
+    DECREMENT = "d"
+    REMOVE = "rm"
+    ADD = "a"
+    REVERSE = "r"
+    ADDVERTEX = "av"
+    REMOVEVERTEX = "rv"
+    ADDEDGE = "ae"
+    REMOVEEDGE = "re"
+
+
 class Server:
 
     def __init__(self, ip, port):
@@ -68,6 +82,7 @@ if __name__ == "__main__":
         if len(sys.argv) < 2:
             raise ValueError('wrong arg')
     
+        # gc <key> <action> [value]
         address = sys.argv[1]
         host = address.split(":")[0]
         port = int(address.split(":")[1])
@@ -92,80 +107,80 @@ if __name__ == "__main__":
 
             if (typecode == "gc"):
                 gc = GCounter(s)
-                if (opcode == "g"):
+                if (opcode == Action.GET):
                     print(gc.get(uid))
-                if (opcode == "s"):
+                if (opcode == Action.SET):
                     value = text[3]
                     print(gc.set(uid, value))
-                if (opcode == "i"):
+                if (opcode == Action.INCREMENT):
                     value = text[3]
                     print(gc.inc(uid, value))
 
             elif (typecode == "rc"):
                 rc = RCounter(s)
-                if (opcode == "g"):
+                if (opcode == Action.GET):
                     print(rc.get(uid))
-                if (opcode == "s"):
+                if (opcode == Action.SET):
                     value = text[3]
                     print(rc.set(uid, value))
-                if (opcode == "i"):
+                if (opcode == Action.INCREMENT):
                     value = text[3]
                     try:
                         rid = text[4]
                     except:
                         rid = ""
                     print(rc.inc(uid, value, rid))
-                if (opcode == "d"):
+                if (opcode == Action.DECREMENT):
                     value = text[5]
                     try:
                         rid = text[4]
                     except:
                         rid = ""
                     print(rc.dec(uid, value, rid))
-                if (opcode == "r"):
+                if (opcode == Action.REVERSE):
                     value = text[3]
                     print(rc.rev(uid, value))
                     
             elif (typecode == "os"):
                 os = ORSet(s)
-                if (opcode == "g"):
+                if (opcode == Action.GET):
                     print(os.get(uid))
-                if (opcode == "s"):
+                if (opcode == Action.SET):
                     print(os.set(uid))
-                if (opcode == "a"):
+                if (opcode == Action.ADD):
                     value = text[3]
                     print(os.add(uid, value))
-                if (opcode == "rm"):
+                if (opcode == Action.REMOVE):
                     value = text[3]
                     print(os.remvoe(uid, value))
 
             elif (typecode == "rg"):
                 rg = RGraph(s)
-                if (opcode == "g"):
+                if (opcode == Action.GET):
                     print(rg.get(uid))
-                if (opcode == "s"):
+                if (opcode == Action.SET):
                     print(rg.set(uid))
-                if (opcode == "av"):
+                if (opcode == Action.ADDVERTEX):
                     value = text[3]
                     print(rg.addvertex(uid, value))
-                if (opcode == "rv"):
+                if (opcode == Action.REMOVEVERTEX):
                     value = text[3]
                     print(rg.remvoevertex(uid, value))
-                if (opcode == "ae"):
+                if (opcode == Action.ADDEDGE):
                     value1 = text[3]
                     value2 = text[4]
                     print(rg.addedge(uid, value1, value2))
-                if (opcode == "re"):
+                if (opcode == Action.REMOVEEDGE):
                     value1 = text[3]
                     value2 = text[4]
                     print(rg.removeedge(uid, value1, value2))
-                if (opcode == "r"):
+                if (opcode == Action.REVERSE):
                     value = text[3]
                     print(rg.reverse(uid, value))
 
             elif (typecode == "pref"):
                 pf = Performance(s)
-                if (opcode == "g"):
+                if (opcode == Action.GET):
                     print(pf.get())
 
     
