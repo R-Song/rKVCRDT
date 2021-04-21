@@ -41,12 +41,12 @@ namespace RAC.Operations
                 // calculated ones been reversed
                 foreach (var tombed in this.history.tombstone)
                 {
-                    string startime;
-                    string endTime;
+                    string starttime;
+                    string endtime;
                     
-                    history.GetEntry(tombed, out startime, out endTime, out _);
+                    history.GetEntry(tombed, out starttime, out endtime, out _);
 
-                    var toReversed = history.CasualSearch(Clock.FromString(startime), Clock.FromString(endTime));
+                    var toReversed = history.CasualSearch(starttime, endtime);
 
                     foreach (var ops in toReversed)
                     {   
