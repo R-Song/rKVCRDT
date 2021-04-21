@@ -354,3 +354,7 @@ MigrationBackup/
 cluster_config.json
 cluster_config.*.json
 local_test.cs
+*.DS_Store
+
+*cluster_config1.json
+*cluster_config2.json
