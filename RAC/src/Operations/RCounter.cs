@@ -46,7 +46,7 @@ namespace RAC.Operations
                     
                     history.GetEntry(tombed, out startime, out endTime, out _);
 
-                    var toReversed = history.Search(Clock.FromString(startime), Clock.FromString(endTime));
+                    var toReversed = history.CasualSearch(Clock.FromString(startime), Clock.FromString(endTime));
 
                     foreach (var ops in toReversed)
                     {   

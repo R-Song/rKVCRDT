@@ -14,41 +14,53 @@ namespace RAC.History
     public delegate string PayloadToStrDelegate(Payload pl);
     public delegate T StringToPayloadDelegate<T>(string str);
     
-    public class OpEntry
+    public class StateHisotryEntry
     {
-        public string uid;
+        public string nodeid;
         public string opid;
         public string before;
         public string after;
         public string time;
         public HashSet<string> related;
 
-        public OpEntry(string uid, string opid, string before, string after, string time)
-        {
+        // graph pointers
+        public List<String> prev;
+        public List<String> aft;
+
+        public StateHisotryEntry(string uid, string opid, string before, string after, string time)
+        {   
             this.opid = opid;
             this.before = before;
             this.after = after;
             this.time = time;
             this.related = new HashSet<string>();
+
+            this.prev = new List<string>();
+            this.aft = new List<string>(); 
         }
     }
+    
 
     // history of each object
-    public class ObjectHistory
+    public class StateHistory
     {   
         public string uid;
-        public Dictionary<string, OpEntry> log;
+        public Dictionary<string, StateHisotryEntry> log;
+
+        // heads of the graph
+        public List<string> heads;
         // can be used tombstone reverse
         public List<string> tombstone;
 
         public Clock curTime;
 
-        public ObjectHistory(string uid)
+        public StateHistory(string uid)
         {
             this.uid = uid;
-            log = new Dictionary<string, OpEntry>();
-            tombstone = new List<string>();
-            curTime = new Clock(Config.numReplicas, Config.replicaId);
+            this.log = new Dictionary<string, StateHisotryEntry>();
+            this.heads = new List<string>();
+            this.tombstone = new List<string>();
+            this.curTime = new Clock(Config.numReplicas, Config.replicaId);
         }
 
         /// <summary>
@@ -61,17 +73,10 @@ namespace RAC.History
         /// <returns></returns>
         public string AddNewEntry(Payload before, Payload after, PayloadToStrDelegate payloadToStr, Clock time = null)
         {
-            if (time is null)   
-                time = curTime;
+            string beforestr = payloadToStr(before);
+            string afterstr = payloadToStr(after);
 
-            string opid = Config.replicaId + ":" + time.ToString();
-            time.Increment();
-            OpEntry newEntry = new OpEntry(this.uid, opid, payloadToStr(before), payloadToStr(after), time.ToString());
-            log.Add(opid, newEntry);
-            
-            Sync(newEntry);
-
-            return opid;
+            return InsertEntry(beforestr, afterstr, time);
         }
         
         /// <summary>
@@ -83,13 +88,29 @@ namespace RAC.History
         /// <returns></returns>
         public string AddNewEntry(string before, string after, Clock time = null)
         {
+            return InsertEntry(before, after);
+        }
+
+        private string InsertEntry(string before, string after, Clock time = null)
+        {
             if (time is null)   
                 time = curTime;
 
             string opid = Config.replicaId + ":" + time.ToString();
             time.Increment();
-            OpEntry newEntry = new OpEntry(this.uid, opid, before, after, time.ToString());
+            StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, opid, before, after, time.ToString());
             log.Add(opid, newEntry);
+
+            foreach (var id in this.heads)
+            {
+                // link the new one and old ones, converging the states
+                newEntry.prev.Add(id);
+                this.log[id].aft.Add(opid);
+            }
+
+            // reset head
+            this.heads.Clear();
+            this.heads.Add(opid);
             
             Sync(newEntry);
 
@@ -107,7 +128,7 @@ namespace RAC.History
         /// <typeparam name="T"></typeparam>
         public void GetEntry<T>(string opid, StringToPayloadDelegate<T> stringToPayload, out T before, out T after, out Clock time)
         {
-            OpEntry item = this.log[opid];
+            StateHisotryEntry item = this.log[opid];
             before = stringToPayload(item.before);
             after = stringToPayload(item.after);
             time = Clock.FromString(item.time);
@@ -122,17 +143,22 @@ namespace RAC.History
         /// <param name="time"></param>
         public void GetEntry(string opid, out string before, out string after, out Clock time)
         {
-            OpEntry item = this.log[opid];
+            StateHisotryEntry item = this.log[opid];
             before = item.before;
             after = item.after;
             time = Clock.FromString(item.time);
         }
 
+        /// <summary>
+        /// Handles received op
+        /// </summary>
+        /// <param name="otherop"></param>
+        /// <param name="status"></param>
         public void Merge(string otherop, int status)
         {
             if (status == 0)
             {
-                OpEntry op = JsonConvert.DeserializeObject<OpEntry>(otherop);
+                StateHisotryEntry op = JsonConvert.DeserializeObject<StateHisotryEntry>(otherop);
                 DEBUG("Merging new op " + otherop);
                 Clock newtime = Clock.FromString(op.time);
                 curTime.Merge(newtime);
@@ -145,7 +171,7 @@ namespace RAC.History
             }
             else if (status == 2)
             {
-                OpEntry op = JsonConvert.DeserializeObject<OpEntry>(otherop);
+                StateHisotryEntry op = JsonConvert.DeserializeObject<StateHisotryEntry>(otherop);
                 DEBUG("Merging new related op " + otherop);
 
                 foreach (var r in op.related)
@@ -177,7 +203,7 @@ namespace RAC.History
         /// </summary>
         /// <param name="newop"></param>
         /// <param name="status">0 = op, 1 = tombstone, 2 = related</param>
-        public void Sync(OpEntry newop, int status = 0)
+        public void Sync(StateHisotryEntry newop, int status = 0)
         {
             DEBUG("Syncing new op " + newop.opid);
             string json = JsonConvert.SerializeObject(newop, Formatting.Indented);
@@ -215,14 +241,14 @@ namespace RAC.History
         /// <param name="startime"></param>
         /// <param name="endtime"></param>
         /// <returns>opids of found ops</returns>
-        public List<string> Search(Clock startime, Clock endtime)
+        public List<string> CasualSearch(Clock startime, Clock endtime)
         {   
             List<string> res = new List<string>();
 
             // linear search
             foreach (var item in this.log)
             {
-                OpEntry op = item.Value;
+                StateHisotryEntry op = item.Value;
                 Clock optime = Clock.FromString(op.time);
                 
                 // op exactly the same as start date,
@@ -271,107 +297,5 @@ namespace RAC.History
 
     }
 
-    /*
-    public class CausalHistory
-    {   
-                
-        public string uid;
-        public Clock curTime;
-
-        // used to keep track of all vertices
-        // opid - each op is a vertex
-        public Dictionary<string, OpEntry> vertices; 
-        // opid - opid to represent a edge
-        public Dictionary<string, string> edges;
-        // tails to add to
-        OpEntry tail;
-
-        public CausalHistory(string uid)
-        {
-            this.uid = uid;
-            log = new Dictionary<string, OpEntry>();
-            curTime = new Clock(Config.numReplicas, Config.replicaId);
-            tail = null;
-        }
-
-        public void GetEntry(string opid, StringToPayloadDelegate stringToPayload, out Payload before, out Payload after, out Clock time)
-        {
-            OpEntry item = this.log[opid];
-            before = stringToPayload(item.before);
-            after = stringToPayload(item.after);
-            time = Clock.FromString(item.time);
-        }
-
-        public string AddNewEntry(Payload before, Payload after, PayloadToStrDelegate payloadToStr, Clock time = null, string relatedid = null)
-        {
-            if (time is null)   
-                time = curTime;
-
-            string opid = Config.replicaId + ":" + time.ToString();
-            time.Increment();
-            OpEntry newEntry = new OpEntry(this.uid, opid, payloadToStr(before), payloadToStr(after), time.ToString());
-            log.Add(opid, newEntry);
-
-            if (tail != null)
-            {
-                tail.adjacency.Add(newEntry.uid);
-                Sync(tail);
-            }
-
-            if (relatedid != null)
-            {
-                // TODO: maybe some checks here
-                log[relatedid].related.Add(newEntry.uid);
-                Sync(log[relatedid]);
-            }
-
-            Sync(newEntry);
-            
-            tail = newEntry;
-
-            return opid;
-
-        }
-
-        public void Sync(OpEntry newop)
-        {
-            DEBUG("Syncing new op " + newop.opid);
-            string json = JsonConvert.SerializeObject(newop, Formatting.Indented);
-            
-            Responses res = new Responses(Status.success);
-            Parameters syncPm = new Parameters(1);
-            syncPm.AddParam(0, json);
-            string broadcast = Parser.BuildCommand("h", "y", this.uid, syncPm);
-            res.AddResponse(Dest.broadcast, broadcast, false);
-            
-            Global.server.StageResponse(res);
-
-        }   
-
-        public void Merge(string otherop)
-        {
-            DEBUG("Merging op " + otherop);
-            OpEntry newop = JsonConvert.DeserializeObject<OpEntry>(otherop);
-            Clock newtime = Clock.FromString(newop.time);
-            curTime.Merge(newtime);
-            this.log[newop.opid] = newop;
-            
-            // TODO: things
-
-            
-        }
-
-        public void Search(string startop, string endop)
-        {
-
-        }
-
-        public void Related(string op)
-        {
-
-        }
-
-   
-    } */
 
 }

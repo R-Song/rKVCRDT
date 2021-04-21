@@ -100,7 +100,7 @@ namespace RAC.Operations
             return res;
         }
 
-        private void HandleSavedState(in OpEntry op,
+        private void HandleSavedState(in StateHisotryEntry op,
                                     in HashSet<(string, string)> addedVertices,
                                     in HashSet<(string, string)> removedVertices,
                                     in HashSet<((string, string), string)> addedEdges,
