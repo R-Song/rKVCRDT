@@ -24,8 +24,8 @@ namespace RAC.History
         public HashSet<string> related;
 
         // graph pointers
+        // since DAG, only need one dereliction (reversed)
         public List<String> prev;
-        public List<String> aft;
 
         public StateHisotryEntry(string uid, string opid, string before, string after, string time)
         {   
@@ -36,7 +36,6 @@ namespace RAC.History
             this.related = new HashSet<string>();
 
             this.prev = new List<string>();
-            this.aft = new List<string>(); 
         }
     }
     
@@ -104,8 +103,8 @@ namespace RAC.History
             foreach (var id in this.heads)
             {
                 // link the new one and old ones, converging the states
+                // since DAG, does not matter another direction
                 newEntry.prev.Add(id);
-                this.log[id].aft.Add(opid);
             }
 
             // reset head
@@ -241,11 +240,11 @@ namespace RAC.History
         /// <param name="startime"></param>
         /// <param name="endtime"></param>
         /// <returns>opids of found ops</returns>
-        public List<string> CasualSearch(Clock startime, Clock endtime)
+        public List<string> CasualSearch(Clock starttime, Clock endtime)
         {   
             List<string> res = new List<string>();
 
-            // linear search
+            //linear search
             foreach (var item in this.log)
             {
                 StateHisotryEntry op = item.Value;
@@ -254,12 +253,49 @@ namespace RAC.History
                 // op exactly the same as start date,
                 // after start time,
                 // and before/concurrent of endtime
-                if ((optime.CompareVectorClock(startime) == 1 && optime.CompareVectorClock(endtime) < 1) ||
-                    (optime.ToString().Equals(startime.ToString())))
+                if ((optime.CompareVectorClock(starttime) == 1 && optime.CompareVectorClock(endtime) < 1) ||
+                    (optime.ToString().Equals(starttime.ToString())))
                     res.Add(op.opid);
             }
             return res;
+
+
         }
+
+        public List<string> CasualSearch(string starttime, string endtime)
+        {
+            
+            List<string> res = new List<string>();
+            Clock st = Clock.FromString(starttime);
+            Clock et = Clock.FromString(endtime);
+
+            // BFS
+
+            Queue<string> Q = new Queue<string>();
+            Q.Enqueue(starttime);
+
+            while (Q.Count > 0)
+            {
+                string v = Q.Dequeue();
+                StateHisotryEntry op = this.log[v];
+                Clock optime = Clock.FromString(op.time);
+                if ((optime.CompareVectorClock(st) == 1 && optime.CompareVectorClock(et) < 1) ||
+                    (optime.ToString().Equals(starttime.ToString())))
+                {
+                    res.Add(op.opid);
+                    foreach (var i in op.prev)
+                    {
+                        if (!Q.Contains(i))
+                            Q.Enqueue(i);
+                    }
+
+                    // TODO: check the concurrent ones
+                }
+            }
+
+            return res;
+        }
+
 
         /// <summary>
         /// Add a related op's opid to given opid
@@ -292,10 +328,5 @@ namespace RAC.History
 
             return res;
         }
-
-
-
     }
-
-
 }
