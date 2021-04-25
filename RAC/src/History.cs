@@ -317,7 +317,24 @@ namespace RAC.History
                     (optime.ToString().Equals(starttime)))
                 {
 
-                    res.Add(opid);
+                    // a new level (BFS)
+                    if (concurrents.Count == 0)
+                        concurrents.Add(opid);
+                    else
+                    {
+                        // if concurrent with other op in concurrents
+                        if (optime.CompareVectorClock(Clock.FromString(this.log[concurrents[0]].time)) == 0)
+                        {
+                            concurrents.Add(opid);
+                        }
+                        else // next level
+                        {
+                            res.AddRange(ResolveConcurrent(concurrents));
+                            concurrents.Clear();
+                            concurrents.Add(opid);
+                        }
+
+                    }
 
                     foreach (var i in op.aft)
                     {
@@ -326,15 +343,19 @@ namespace RAC.History
                     }
                 }
             }
+            
+            res.AddRange(ResolveConcurrent(concurrents));
 
             return res;
         }
         
-        private List<string> ResolveConcurrent(List<string> currids)
+        private List<string> ResolveConcurrent(List<string> concurrents)
         {
             // TODO: check the concurrent ones
+            if (concurrents.Count == 0)
+                return concurrents;
 
-            return currids;
+            return concurrents;
         }
 
 
