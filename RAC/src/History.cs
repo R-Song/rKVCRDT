@@ -4,6 +4,7 @@ using RAC.Payloads;
 using RAC.Operations;
 using Newtonsoft.Json;
 using static RAC.Errors.Log;
+using System.Linq;
 
 /// <summary>
 /// These classes are for reversible CRDT.
@@ -24,7 +25,8 @@ namespace RAC.History
         public HashSet<string> related;
 
         // graph pointers
-        // since DAG, only need one dereliction (reversed)
+        public List<String> aft;
+        // prev used for sync'd ops to link
         public List<String> prev;
 
         public StateHisotryEntry(string uid, string opid, string before, string after, string time)
@@ -34,7 +36,7 @@ namespace RAC.History
             this.after = after;
             this.time = time;
             this.related = new HashSet<string>();
-
+            this.aft = new List<string>();
             this.prev = new List<string>();
         }
     }
@@ -93,24 +95,25 @@ namespace RAC.History
         private string InsertEntry(string before, string after, Clock time = null)
         {
             if (time is null)   
-                time = curTime;
+                time = this.curTime;
 
-            string opid = Config.replicaId + ":" + time.ToString();
+            string opid = time.ToString();
             time.Increment();
             StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, opid, before, after, time.ToString());
-            log.Add(opid, newEntry);
+            this.log.Add(opid, newEntry);
 
-            foreach (var id in this.heads)
+            foreach (var i in this.heads)
             {
-                // link the new one and old ones, converging the states
-                // since DAG, does not matter another direction
-                newEntry.prev.Add(id);
+                // link the new one and old ones, may converging the states
+                newEntry.prev.Add(i);
+                this.log[i].aft.Add(opid);
             }
 
             // reset head
             this.heads.Clear();
             this.heads.Add(opid);
             
+            this.curTime = time;
             Sync(newEntry);
 
             return opid;
@@ -161,7 +164,28 @@ namespace RAC.History
                 DEBUG("Merging new op " + otherop);
                 Clock newtime = Clock.FromString(op.time);
                 curTime.Merge(newtime);
+
+                // if an empty place holder already created to hold
+                // the pointers, update that
+                string opid = op.opid;
+                if (this.log.ContainsKey(opid))
+                    op.prev.AddRange(this.log[opid].prev);
+
                 this.log[op.opid] = op;
+
+                // update the pointers
+                foreach (var i in op.prev)
+                {   
+                    // in case prev op is not sync'd yet, create a placeholder, see above also
+                    if (!this.log.ContainsKey(i))
+                    {
+                        StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, i, "", "", "");
+                        this.log[i] = newEntry;
+                    }
+                        
+                    this.log[i].aft.Add(opid);
+                }
+
             }
             else if (status == 1)
             {
@@ -262,6 +286,13 @@ namespace RAC.History
 
         }
 
+        /// <summary>
+        /// Search through ops happens between startop and endop time
+        //  can be used by CRDT OPs
+        /// </summary>
+        /// <param name="starttime"></param>
+        /// <param name="endtime"></param>
+        /// <returns>opids of found ops</returns>
         public List<string> CasualSearch(string starttime, string endtime)
         {
             
@@ -269,31 +300,41 @@ namespace RAC.History
             Clock st = Clock.FromString(starttime);
             Clock et = Clock.FromString(endtime);
 
-            // BFS
-
+            // BFS from start
             Queue<string> Q = new Queue<string>();
             Q.Enqueue(starttime);
 
+            List<string> concurrents = new List<string>();
+
             while (Q.Count > 0)
             {
-                string v = Q.Dequeue();
-                StateHisotryEntry op = this.log[v];
-                Clock optime = Clock.FromString(op.time);
+                string opid = Q.Dequeue();
+                Console.WriteLine(string.Join(" ", this.log.Select(kvp => kvp.Key)));
+                StateHisotryEntry op = this.log[opid];
+                Clock optime = Clock.FromString(op.time);                
+
                 if ((optime.CompareVectorClock(st) == 1 && optime.CompareVectorClock(et) < 1) ||
-                    (optime.ToString().Equals(starttime.ToString())))
+                    (optime.ToString().Equals(starttime)))
                 {
-                    res.Add(op.opid);
-                    foreach (var i in op.prev)
+
+                    res.Add(opid);
+
+                    foreach (var i in op.aft)
                     {
                         if (!Q.Contains(i))
                             Q.Enqueue(i);
                     }
-
-                    // TODO: check the concurrent ones
                 }
             }
 
             return res;
+        }
+        
+        private List<string> ResolveConcurrent(List<string> currids)
+        {
+            // TODO: check the concurrent ones
+
+            return currids;
         }
 
 
