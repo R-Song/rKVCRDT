@@ -10,6 +10,7 @@ from type.ORSet import ORSet
 from type.RGraph import RGraph
 from type.Performance import Performance
 from type.helper import res_parse
+from type.Type import Type
 
 class Action:
     SET = "s"
@@ -98,14 +99,14 @@ if __name__ == "__main__":
 
             typecode = text[0]
 
-            if (typecode == "x"):
+            if (typecode == Type.DISCONNECT):
                 s.disconnect()
                 exit(0)
 
             uid = text[1]
             opcode = text[2]
 
-            if (typecode == "gc"):
+            if (typecode == Type.GCOUNTER):
                 gc = GCounter(s)
                 if (opcode == Action.GET):
                     print(gc.get(uid))
@@ -116,7 +117,7 @@ if __name__ == "__main__":
                     value = text[3]
                     print(gc.inc(uid, value))
 
-            elif (typecode == "rc"):
+            elif (typecode == Type.RCOUNTER):
                 rc = RCounter(s)
                 if (opcode == Action.GET):
                     print(rc.get(uid))
@@ -141,7 +142,7 @@ if __name__ == "__main__":
                     value = text[3]
                     print(rc.rev(uid, value))
                     
-            elif (typecode == "os"):
+            elif (typecode == Type.ORSET):
                 os = ORSet(s)
                 if (opcode == Action.GET):
                     print(os.get(uid))
@@ -154,7 +155,7 @@ if __name__ == "__main__":
                     value = text[3]
                     print(os.remvoe(uid, value))
 
-            elif (typecode == "rg"):
+            elif (typecode == Type.RGRAPH):
                 rg = RGraph(s)
                 if (opcode == Action.GET):
                     print(rg.get(uid))
@@ -178,7 +179,7 @@ if __name__ == "__main__":
                     value = text[3]
                     print(rg.reverse(uid, value))
 
-            elif (typecode == "pref"):
+            elif (typecode == Type.PERFORMANCE):
                 pf = Performance(s)
                 if (opcode == Action.GET):
                     print(pf.get())
