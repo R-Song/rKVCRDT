@@ -92,27 +92,28 @@ if __name__ == "__main__":
 
             uid = text[1]
             opcode = text[2]
+            typeClass = None
 
             if (typecode == Type.GCOUNTER):
-                gc = GCounter(s)
-                gc.operate(text)
+                typeClass = GCounter(s)
 
             elif (typecode == Type.RCOUNTER):
-                rc = RCounter(s)
-                rc.operate(text)
+                typeClass = RCounter(s)
                     
             elif (typecode == Type.ORSET):
-                os = ORSet(s)
-                os.operate(text)
+                typeClass = ORSet(s)
 
             elif (typecode == Type.RGRAPH):
-                rg = RGraph(s)
-                rg.operate(text)
+                typeClass = RGraph(s)
 
             elif (typecode == Type.PERFORMANCE):
-                pf = Performance(s)
-                pf.operate(text)
+                typeClass = Performance(s)
 
+            else:
+                print("Type \'{}\' is not valid".format(typecode))
+                continue
+
+            typeClass.operate(text)
     
         s.disconnect()
 
