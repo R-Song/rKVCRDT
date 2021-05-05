@@ -103,40 +103,11 @@ if __name__ == "__main__":
                     
             elif (typecode == Type.ORSET):
                 os = ORSet(s)
-                if (opcode == Action.GET):
-                    print(os.get(uid))
-                if (opcode == Action.SET):
-                    print(os.set(uid))
-                if (opcode == Action.ADD):
-                    value = text[3]
-                    print(os.add(uid, value))
-                if (opcode == Action.REMOVE):
-                    value = text[3]
-                    print(os.remvoe(uid, value))
+                os.operate(text)
 
             elif (typecode == Type.RGRAPH):
                 rg = RGraph(s)
-                if (opcode == Action.GET):
-                    print(rg.get(uid))
-                if (opcode == Action.SET):
-                    print(rg.set(uid))
-                if (opcode == Action.ADDVERTEX):
-                    value = text[3]
-                    print(rg.addvertex(uid, value))
-                if (opcode == Action.REMOVEVERTEX):
-                    value = text[3]
-                    print(rg.remvoevertex(uid, value))
-                if (opcode == Action.ADDEDGE):
-                    value1 = text[3]
-                    value2 = text[4]
-                    print(rg.addedge(uid, value1, value2))
-                if (opcode == Action.REMOVEEDGE):
-                    value1 = text[3]
-                    value2 = text[4]
-                    print(rg.removeedge(uid, value1, value2))
-                if (opcode == Action.REVERSE):
-                    value = text[3]
-                    print(rg.reverse(uid, value))
+                rg.operate(text)
 
             elif (typecode == Type.PERFORMANCE):
                 pf = Performance(s)
