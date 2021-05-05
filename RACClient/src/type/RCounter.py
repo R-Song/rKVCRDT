@@ -42,3 +42,4 @@ class RCounter:
 
         res = self.server.send(req)
         return res
+

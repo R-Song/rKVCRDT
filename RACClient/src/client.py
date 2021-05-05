@@ -11,20 +11,7 @@ from type.RGraph import RGraph
 from type.Performance import Performance
 from type.helper import res_parse
 from type.Type import Type
-
-class Action:
-    SET = "s"
-    GET = "g"
-    INCREMENT = "i"
-    DECREMENT = "d"
-    REMOVE = "rm"
-    ADD = "a"
-    REVERSE = "r"
-    ADDVERTEX = "av"
-    REMOVEVERTEX = "rv"
-    ADDEDGE = "ae"
-    REMOVEEDGE = "re"
-
+from type.Action import Action
 
 class Server:
 
@@ -108,14 +95,7 @@ if __name__ == "__main__":
 
             if (typecode == Type.GCOUNTER):
                 gc = GCounter(s)
-                if (opcode == Action.GET):
-                    print(gc.get(uid))
-                if (opcode == Action.SET):
-                    value = text[3]
-                    print(gc.set(uid, value))
-                if (opcode == Action.INCREMENT):
-                    value = text[3]
-                    print(gc.inc(uid, value))
+                gc.operate(text)
 
             elif (typecode == Type.RCOUNTER):
                 rc = RCounter(s)
