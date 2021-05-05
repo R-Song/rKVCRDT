@@ -1,5 +1,6 @@
 from .helper import msg_construct
 from .helper import req_construct
+from type.Action import Action
 
 class GCounter:
 
@@ -26,3 +27,22 @@ class GCounter:
 
         res = self.server.send(req)
         return res
+
+    def operate(self, text):
+
+        uid = text[1]
+        opcode = text[2]
+
+        if (opcode == Action.GET):
+            print(self.get(uid))
+        elif (opcode == Action.SET):
+            value = text[3]
+            print(self.set(uid, value))
+        elif (opcode == Action.INCREMENT):
+            value = text[3]
+            print(self.inc(uid, value))
+        else:
+            print("Operation \'{}\' is not valid".format(opcode))
+        
+        return
+

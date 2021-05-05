@@ -10,20 +10,8 @@ from type.ORSet import ORSet
 from type.RGraph import RGraph
 from type.Performance import Performance
 from type.helper import res_parse
-
-class Action:
-    SET = "s"
-    GET = "g"
-    INCREMENT = "i"
-    DECREMENT = "d"
-    REMOVE = "rm"
-    ADD = "a"
-    REVERSE = "r"
-    ADDVERTEX = "av"
-    REMOVEVERTEX = "rv"
-    ADDEDGE = "ae"
-    REMOVEEDGE = "re"
-
+from type.Type import Type
+from type.Action import Action
 
 class Server:
 
@@ -98,91 +86,34 @@ if __name__ == "__main__":
 
             typecode = text[0]
 
-            if (typecode == "x"):
+            if (typecode == Type.DISCONNECT):
                 s.disconnect()
                 exit(0)
 
             uid = text[1]
             opcode = text[2]
+            typeClass = None
 
-            if (typecode == "gc"):
-                gc = GCounter(s)
-                if (opcode == Action.GET):
-                    print(gc.get(uid))
-                if (opcode == Action.SET):
-                    value = text[3]
-                    print(gc.set(uid, value))
-                if (opcode == Action.INCREMENT):
-                    value = text[3]
-                    print(gc.inc(uid, value))
+            if (typecode == Type.GCOUNTER):
+                typeClass = GCounter(s)
 
-            elif (typecode == "rc"):
-                rc = RCounter(s)
-                if (opcode == Action.GET):
-                    print(rc.get(uid))
-                if (opcode == Action.SET):
-                    value = text[3]
-                    print(rc.set(uid, value))
-                if (opcode == Action.INCREMENT):
-                    value = text[3]
-                    try:
-                        rid = text[4]
-                    except:
-                        rid = ""
-                    print(rc.inc(uid, value, rid))
-                if (opcode == Action.DECREMENT):
-                    value = text[5]
-                    try:
-                        rid = text[4]
-                    except:
-                        rid = ""
-                    print(rc.dec(uid, value, rid))
-                if (opcode == Action.REVERSE):
-                    value = text[3]
-                    print(rc.rev(uid, value))
+            elif (typecode == Type.RCOUNTER):
+                typeClass = RCounter(s)
                     
-            elif (typecode == "os"):
-                os = ORSet(s)
-                if (opcode == Action.GET):
-                    print(os.get(uid))
-                if (opcode == Action.SET):
-                    print(os.set(uid))
-                if (opcode == Action.ADD):
-                    value = text[3]
-                    print(os.add(uid, value))
-                if (opcode == Action.REMOVE):
-                    value = text[3]
-                    print(os.remvoe(uid, value))
+            elif (typecode == Type.ORSET):
+                typeClass = ORSet(s)
 
-            elif (typecode == "rg"):
-                rg = RGraph(s)
-                if (opcode == Action.GET):
-                    print(rg.get(uid))
-                if (opcode == Action.SET):
-                    print(rg.set(uid))
-                if (opcode == Action.ADDVERTEX):
-                    value = text[3]
-                    print(rg.addvertex(uid, value))
-                if (opcode == Action.REMOVEVERTEX):
-                    value = text[3]
-                    print(rg.remvoevertex(uid, value))
-                if (opcode == Action.ADDEDGE):
-                    value1 = text[3]
-                    value2 = text[4]
-                    print(rg.addedge(uid, value1, value2))
-                if (opcode == Action.REMOVEEDGE):
-                    value1 = text[3]
-                    value2 = text[4]
-                    print(rg.removeedge(uid, value1, value2))
-                if (opcode == Action.REVERSE):
-                    value = text[3]
-                    print(rg.reverse(uid, value))
+            elif (typecode == Type.RGRAPH):
+                typeClass = RGraph(s)
 
-            elif (typecode == "pref"):
-                pf = Performance(s)
-                if (opcode == Action.GET):
-                    print(pf.get())
+            elif (typecode == Type.PERFORMANCE):
+                typeClass = Performance(s)
 
+            else:
+                print("Type \'{}\' is not valid".format(typecode))
+                continue
+
+            typeClass.operate(text)
     
         s.disconnect()
 

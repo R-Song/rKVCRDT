@@ -53,3 +53,34 @@ class RGraph:
 
         res = self.server.send(req)
         return res
+
+    def operate(self, text):
+
+        uid = text[1]
+        opcode = text[2]
+
+        if (opcode == Action.GET):
+            print(self.get(uid))
+        elif (opcode == Action.SET):
+            print(self.set(uid))
+        elif (opcode == Action.ADDVERTEX):
+            value = text[3]
+            print(self.addvertex(uid, value))
+        elif (opcode == Action.REMOVEVERTEX):
+            value = text[3]
+            print(self.remvoevertex(uid, value))
+        elif (opcode == Action.ADDEDGE):
+            value1 = text[3]
+            value2 = text[4]
+            print(self.addedge(uid, value1, value2))
+        elif (opcode == Action.REMOVEEDGE):
+            value1 = text[3]
+            value2 = text[4]
+            print(self.removeedge(uid, value1, value2))
+        elif (opcode == Action.REVERSE):
+            value = text[3]
+            print(self.reverse(uid, value))
+        else:
+            print("Operation \'{}\' is not valid".format(opcode))
+        
+        return

@@ -1,6 +1,10 @@
 from .helper import msg_construct
 from .helper import req_construct
+from type.Action import Action
 
+'''
+Reversible Counter
+'''
 
 class RCounter:
 
@@ -42,3 +46,36 @@ class RCounter:
 
         res = self.server.send(req)
         return res
+
+    def operate(self, text):
+
+        uid = text[1]
+        opcode = text[2]
+
+        if (opcode == Action.GET):
+            print(self.get(uid))
+        elif (opcode == Action.SET):
+            value = text[3]
+            print(self.set(uid, value))
+        elif (opcode == Action.INCREMENT):
+            value = text[3]
+            try:
+                rid = text[4]
+            except:
+                rid = ""
+            print(self.inc(uid, value, rid))
+        elif (opcode == Action.DECREMENT):
+            value = text[5]
+            try:
+                rid = text[4]
+            except:
+                rid = ""
+            print(self.dec(uid, value, rid))
+        elif (opcode == Action.REVERSE):
+            value = text[3]
+            print(self.rev(uid, value))
+        else:
+            print("Operation \'{}\' is not valid".format(opcode))
+        
+        return
+

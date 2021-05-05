@@ -11,3 +11,15 @@ class Performance:
 
         res = self.server.send(req)
         return res
+
+    def operate(self, text):
+
+        uid = text[1]
+        opcode = text[2]
+
+        if (opcode == Action.GET):
+            print(pf.get())
+        else:
+            print("Operation \'{}\' is not valid".format(opcode))
+        
+        return
