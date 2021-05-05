@@ -99,28 +99,7 @@ if __name__ == "__main__":
 
             elif (typecode == Type.RCOUNTER):
                 rc = RCounter(s)
-                if (opcode == Action.GET):
-                    print(rc.get(uid))
-                if (opcode == Action.SET):
-                    value = text[3]
-                    print(rc.set(uid, value))
-                if (opcode == Action.INCREMENT):
-                    value = text[3]
-                    try:
-                        rid = text[4]
-                    except:
-                        rid = ""
-                    print(rc.inc(uid, value, rid))
-                if (opcode == Action.DECREMENT):
-                    value = text[5]
-                    try:
-                        rid = text[4]
-                    except:
-                        rid = ""
-                    print(rc.dec(uid, value, rid))
-                if (opcode == Action.REVERSE):
-                    value = text[3]
-                    print(rc.rev(uid, value))
+                rc.operate(text)
                     
             elif (typecode == Type.ORSET):
                 os = ORSet(s)
