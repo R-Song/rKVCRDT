@@ -111,8 +111,7 @@ if __name__ == "__main__":
 
             elif (typecode == Type.PERFORMANCE):
                 pf = Performance(s)
-                if (opcode == Action.GET):
-                    print(pf.get())
+                pf.operate(text)
 
     
         s.disconnect()
