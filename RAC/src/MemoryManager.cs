@@ -11,12 +11,12 @@ namespace RAC
     {
         // TODO: a better storage system
         private Dictionary<string, Payload> storage;
-        public Dictionary<string, StateHistory> history;
+        public Dictionary<string, OpHistory> history;
 
         public MemoryManager()
         {
             storage = new Dictionary<string, Payload>();
-            history = new Dictionary<string, StateHistory>();
+            history = new Dictionary<string, OpHistory>();
         }
 
         public bool StorePayload(string uid, Payload payload)

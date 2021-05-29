@@ -43,19 +43,19 @@ namespace RAC.History
     
 
     // history of each object
-    public class StateHistory
+    public class OpHistory
     {   
         public string uid;
         public Dictionary<string, StateHisotryEntry> log;
 
         // heads of the graph
         public List<string> heads;
-        // can be used tombstone reverse
+        // this is reverse_list
         public List<string> tombstone;
 
         public Clock curTime;
 
-        public StateHistory(string uid)
+        public OpHistory(string uid)
         {
             this.uid = uid;
             this.log = new Dictionary<string, StateHisotryEntry>();
@@ -92,6 +92,7 @@ namespace RAC.History
             return InsertEntry(before, after);
         }
 
+        // Prepare-update
         private string InsertEntry(string before, string after, Clock time = null)
         {
             if (time is null)   
@@ -152,7 +153,7 @@ namespace RAC.History
         }
 
         /// <summary>
-        /// Handles received op
+        /// Effect-update, Handles received op
         /// </summary>
         /// <param name="otherop"></param>
         /// <param name="status"></param>
