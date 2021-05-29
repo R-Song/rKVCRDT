@@ -17,7 +17,7 @@ namespace RAC.Operations
         public string uid { get; }
         public abstract string typecode { get; set; }
         public Parameters parameters { protected set; get; }
-        public StateHistory history;
+        public OpHisotry history;
 
         /// <summary>
         /// Payload that actually holds the states of a CRDT.
@@ -57,7 +57,7 @@ namespace RAC.Operations
             }
             catch (System.Collections.Generic.KeyNotFoundException)
             {
-                Global.memoryManager.history.Add(uid, new StateHistory(uid));
+                Global.memoryManager.history.Add(uid, new OpHisotry(uid));
                 this.history = Global.memoryManager.history[uid];
 
             }
