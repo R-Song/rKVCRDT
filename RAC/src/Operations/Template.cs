@@ -19,22 +19,45 @@ namespace RAC.Operations
     public class Template : Operation<TemplatePayload>
     {
 
-        // todo: set this to its typecode
+        // set this to its typecode
         public override string typecode { get ; set; } = "";
 
         public Template(string uid, Parameters parameters) : base(uid, parameters)
         {
-            // todo: put any necessary data here
+            // put any necessary metadata here
         }
 
 
         public override Responses GetValue()
         {
+            // to set up responses
+            Responses res;
+            res = new Responses(Status.success);
+            
+            // to add client response
+            res.AddResponse(Dest.client, "response string here"); 
+
+            // to make a broadcast for synchronization
+            res.AddResponse(Dest.broadcast, "broad cast string here", false);
+            
             throw new NotImplementedException();
+
+            // return response at the end
+            return res;
+
         }
 
         public override Responses SetValue()
         {
+            // init payload here
+            TemplatePayload pl = new TemplatePayload(uid);
+
+            // to get a request parameter
+            // this.parameters.GetParam<type>(index);
+            
+            // save payload
+            this.payload = pl;
+
             throw new NotImplementedException();
         }
 
