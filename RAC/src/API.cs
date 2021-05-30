@@ -59,7 +59,7 @@ namespace RAC
             AddNewAPI("PNCounter", "SetValue", "s", "int");
             AddNewAPI("PNCounter", "Synchronization", "y", "listi, listi");
             AddNewAPI("PNCounter", "Increment", "i", "int");
-            AddNewAPI("RCounter", "Decrement", "d", "int");
+            AddNewAPI("PNCounter", "Decrement", "d", "int");
 
             // Reversible Counter
             AddNewType("RCounter", "rc");
