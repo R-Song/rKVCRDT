@@ -43,7 +43,7 @@ namespace RAC.History
     
 
     // history of each object
-    public class OpHisotry
+    public class OpHistory
     {   
         public string uid;
         public Dictionary<string, StateHisotryEntry> log;
@@ -55,7 +55,7 @@ namespace RAC.History
 
         public Clock curTime;
 
-        public OpHisotry(string uid)
+        public OpHistory(string uid)
         {
             this.uid = uid;
             this.log = new Dictionary<string, StateHisotryEntry>();
