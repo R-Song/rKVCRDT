@@ -24,18 +24,32 @@ namespace RAC.Operations
         }
 
 
+        // human readable version
         public override Responses GetValue()
         {
             
             long mem = Global.profiler.GetCurrentMemUsage();
+            long peakmem = Profiler.peakMemUsage;
+            int totalops = Profiler.clientOpsTotal;
+            int successdOps = Profiler.clientOpsSuccess;
+
             var res = new Responses(Status.success);
             
             var report = string.Format(
-"===Performance Report===\nCurrent Memory Usage: {0}\n"
+@"===Performance Report===
+Current Memory Usage: {0}
+Total Operation Executed: {}
+Total Operation Succeeded: {}"
             , mem / 1000000);
 
             res.AddResponse(Dest.client, report);
             return res;
+        }
+
+        // Shortend version
+        public Responses GetValueShort()
+        {
+            throw new NotImplementedException();
         }
 
         public override Responses SetValue()

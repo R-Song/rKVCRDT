@@ -125,6 +125,14 @@ namespace RAC
 
 
             res = API.Invoke(typeCode, uid, apiCode, pm);
+            
+            // stats
+            if (source == MsgSrc.client)
+            {
+                Profiler.clientOpsTotal += 1;
+                if (res.status == Status.success)
+                    Profiler.clientOpsSuccess += 1;
+            }
 
             return res;
         }

@@ -10,6 +10,10 @@ namespace RAC
         // Performance
         public static long peakMemUsage = 0;
 
+        // client ops
+        public static int clientOpsTotal = 0;
+        public static int clientOpsSuccess = 0;
+
         // Network Stats
         public static long numReqReceived = 0;
         public static long numReqSent = 0;
@@ -44,6 +48,11 @@ namespace RAC
             return totalBytesOfMemoryUsed;
         }
         
+        public (int total, int succeed) GetNumberOfOps()
+        {
+            return (clientOpsTotal, clientOpsSuccess);
+        }
+
     }
     
 

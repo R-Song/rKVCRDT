@@ -1,5 +1,7 @@
 from .helper import msg_construct
 from .helper import req_construct
+from type.Action import Action
+
 
 class Performance:
     def __init__(self, s):
@@ -18,7 +20,7 @@ class Performance:
         opcode = text[2]
 
         if (opcode == Action.GET):
-            print(pf.get())
+            print(self.get())
         else:
             print("Operation \'{}\' is not valid".format(opcode))
         
