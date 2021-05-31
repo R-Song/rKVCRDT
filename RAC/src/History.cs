@@ -92,7 +92,7 @@ namespace RAC.History
         public string AddNewEntry(string before, string after, bool rev = false, Clock time = null)
         {
             var opid = InsertEntry(before, after);
-            this.log[opid].revflag = rev;
+            this.log[opid].revflag = rev; 
             return opid;
         }
 
