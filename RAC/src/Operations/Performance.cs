@@ -31,20 +31,16 @@ namespace RAC.Operations
             long mem = Global.profiler.GetCurrentMemUsage();
             long peakmem = Profiler.peakMemUsage;
             int totalops = Profiler.clientOpsTotal;
-            int succeedOps = Profiler.clientOpsSuccess;
+            int successdOps = Profiler.clientOpsSuccess;
 
             var res = new Responses(Status.success);
             
             var report = string.Format(
 @"===Performance Report===
 Current Memory Usage: {0}
-Peak Memory Usage: {1}
-Total Operation Succeeded: {2}
-Total Operation Executed: {3}"
-            , mem / 1000000, 
-            peakmem / 1000000,
-            succeedOps,
-            totalops);
+Total Operation Executed: {}
+Total Operation Succeeded: {}"
+            , mem / 1000000);
 
             res.AddResponse(Dest.client, report);
             return res;
