@@ -23,6 +23,8 @@ namespace RAC.History
         public string after;
         public string time;
         public HashSet<string> related;
+        // use to mark if this op is a reverse op
+        public bool revflag = false;
 
         // graph pointers
         public List<String> aft;
@@ -87,9 +89,11 @@ namespace RAC.History
         /// <param name="after"></param>
         /// <param name="time"></param>
         /// <returns></returns>
-        public string AddNewEntry(string before, string after, Clock time = null)
+        public string AddNewEntry(string before, string after, bool rev = false, Clock time = null)
         {
-            return InsertEntry(before, after);
+            var opid = InsertEntry(before, after);
+            this.log[opid].revflag = rev;
+            return opid;
         }
 
         private string InsertEntry(string before, string after, Clock time = null)
@@ -98,7 +102,7 @@ namespace RAC.History
                 time = this.curTime;
 
             string opid = time.ToString();
-            time.Increment();
+
             StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, opid, before, after, time.ToString());
             this.log.Add(opid, newEntry);
 
@@ -113,9 +117,11 @@ namespace RAC.History
             this.heads.Clear();
             this.heads.Add(opid);
             
-            this.curTime = time;
+            
             Sync(newEntry);
 
+            time.Increment();
+            this.curTime = time;
             return opid;
         }
 
@@ -309,7 +315,7 @@ namespace RAC.History
             while (Q.Count > 0)
             {
                 string opid = Q.Dequeue();
-                Console.WriteLine(string.Join(" ", this.log.Select(kvp => kvp.Key)));
+
                 StateHisotryEntry op = this.log[opid];
                 Clock optime = Clock.FromString(op.time);                
 
@@ -318,22 +324,25 @@ namespace RAC.History
                 {
 
                     // a new level (BFS)
-                    if (concurrents.Count == 0)
-                        concurrents.Add(opid);
-                    else
+                    if (!op.revflag)
                     {
-                        // if concurrent with other op in concurrents
-                        if (optime.CompareVectorClock(Clock.FromString(this.log[concurrents[0]].time)) == 0)
-                        {
+                        if (concurrents.Count == 0)
                             concurrents.Add(opid);
-                        }
-                        else // next level
+                        else
                         {
-                            res.AddRange(ResolveConcurrent(concurrents));
-                            concurrents.Clear();
-                            concurrents.Add(opid);
-                        }
+                            // if concurrent with other op in concurrents
+                            if (optime.CompareVectorClock(Clock.FromString(this.log[concurrents[0]].time)) == 0)
+                            {
+                                concurrents.Add(opid);
+                            }
+                            else // next level
+                            {
+                                res.AddRange(ResolveConcurrent(concurrents));
+                                concurrents.Clear();
+                                concurrents.Add(opid);
+                            }
 
+                        }
                     }
 
                     foreach (var i in op.aft)

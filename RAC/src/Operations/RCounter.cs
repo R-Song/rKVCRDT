@@ -46,7 +46,9 @@ namespace RAC.Operations
                     
                     history.GetEntry(tombed, out starttime, out endtime, out _);
 
-                    var toReversed = history.CasualSearch(starttime, endtime);
+                    List<String> toReversed = history.CasualSearch(starttime, endtime);
+
+                    
 
                     foreach (var ops in toReversed)
                     {   
@@ -166,8 +168,10 @@ namespace RAC.Operations
             string opid = this.parameters.GetParam<String>(0);
             string startime = this.history.log[opid].time;
             string curTime = this.history.curTime.ToString(); 
-            string reverseop = this.history.AddNewEntry(startime, curTime);
+            string reverseop = this.history.AddNewEntry(startime, curTime, true);
             
+            DEBUG("reversed until: " + reverseop);
+
             this.history.addTombstone(reverseop);
             
             res.AddResponse(Dest.client);
