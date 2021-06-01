@@ -2,10 +2,16 @@ import string
 import random 
 import time
 import subprocess
+from enum import Enum
 from client import *
 from draw import *
 
 KEY_LEN = 5
+STR_LEN = 10
+
+class VAR_TYPE(Enum):
+    INT = 1
+    STRING = 2
 
 def rand_str(n):
     return ''.join(random.choices(string.ascii_uppercase +
@@ -19,10 +25,13 @@ def generate_keys(num_elements, key_len):
 
     return res
 
-def generate_values(num_elements):
+def generate_values(num_elements, values_types = VAR_TYPE.INT):
     res = []
     for i in range(num_elements):
-        res.append(int(random.uniform(1,100)))
+        if values_types == VAR_TYPE.INT:
+            res.append(int(random.uniform(1,100)))
+        elif values_types == VAR_TYPE.STRING: 
+            res.append(rand_str(STR_LEN))
 
     return res
 
@@ -36,6 +45,184 @@ def generate_kv_pair(num_elements):
         res[keys[i]] = values[i]
 
     return res
+
+
+
+
+# 1. Generate Test Data
+# a). generate random keys
+# b). generate random values(based on data type)
+# b). generate random ops(based on % and data type)
+# d). combine them
+class DataType():
+    def __init__(self, val_type, op_types) -> None:
+        self.val_type = val_type
+        self.op_types = op_types
+
+GCounter = DataType(VAR_TYPE.INT, ["i", "g"])
+RCounter = DataType(VAR_TYPE.INT, ["i", "d", "r", "g"])
+
+class TestData():
+    def __init__(self, datatype, num_objects, num_ops, ops_ratio) -> None:
+        self.datatype = datatype
+        self.num_objects = num_objects
+        self.num_ops = num_ops
+
+        self._init_test(ops_ratio)
+
+    def _init_test(self, ops_ratio):
+        self.keys = self._generate_keys()
+        self.values = self._generate_values()
+        self.ops = self._generate_ops(ops_ratio)
+
+    def _generate_keys(self):
+        res = []
+        for i in range(self.num_objects):
+            res.append(rand_str(KEY_LEN))
+
+        return res
+
+
+    def _generate_values(self):
+        res = []
+        for i in range(self.num_ops):
+            if self.datatype.val_type == VAR_TYPE.INT:
+                res.append(int(random.uniform(1,100)))
+            elif self.datatype.val_type == VAR_TYPE.STRING: 
+                res.append(rand_str(STR_LEN))
+
+        return res
+
+    def _generate_ops(self, ops_ratio):
+        res = []
+        if round(sum(ops_ratio)) != 1 or len(ops_ratio) != len(self.datatype.op_types):
+            print("Ratio error:" + str(ops_ratio))
+            raise ValueError
+
+        slots = [0]
+        for r in ops_ratio:
+            slots.append(slots[-1] + r)
+
+        for _ in range(self.num_ops):
+            sample = random.uniform(0,1)
+            for i in range(len(slots)):
+                if sample > slots[i] and sample <= slots[i+1]:
+                    res.append(self.datatype.op_types[i])
+
+        return res
+
+if __name__ == "__main__":
+    print("test")
+    total_objects = 5
+    total_ops = 10
+    td = TestData(GCounter, total_objects, total_ops, [0.5, 0.5])
+    #td = TestData(RCounter, total_objects, total_ops, [0.25, 0.25, 0.3, 0.2])
+    print(td.keys)
+    print(td.values)
+    print(td.ops)
+
+    for o in td.datatype.op_types:
+        c = 0
+        for r in td.ops:
+            if o == r:
+                c = c + 1
+        
+        print(c/total_ops)
+
+
+
+
+class Test:
+    def __init__(self, addresses, num_element, CRDT, sample_rate=0.1):
+        self.servers = []
+        for ip, port in addresses.items():
+            s = Server(ip, port)
+            s.connect()
+            self.servers.append(s)
+
+        self.data  = generate_kv_pair(num_element)
+        self.keys = self.data.keys()
+        self.sample_rate = sample_rate
+
+        self.crdts = []
+        self.prefs = []
+        
+        for i in range(len(self.servers)):
+            self.crdts.append(CRDT(self.servers[i]))
+            self.prefs.append(Performance(self.servers[i]))
+
+       
+
+    def init_data(self):
+        print("Initialize data with size of {0}".format(len(self.data)))
+
+        sample_point = 0
+        start = time.time()
+        i = 0
+
+        for k, v in self.data.items():
+            
+            res = self._set(k, v)
+            self._check_success(res)
+
+            sample_point = self._throughout(start, i, len(self.data), sample_point)
+            i = i + 1
+
+    def test_data(self):
+        print("Verifying initialized data by reading all data")
+
+        for k, v in self.data.items():
+            res = self._read(k, v)
+            if not self._check_success(res):
+                return False
+            
+
+        print("Verifying complete")
+        return True
+
+    def _set(self, k, v):
+        raise NotImplementedError
+
+    def _read(self, k, v):
+        raise NotImplementedError
+
+    def _throughout(self, start_time, num_ops, total_ops, sample_point, tpo=[0]):
+        if (num_ops == int(sample_point * total_ops)):
+                cur_t = time.time()
+                tp = num_ops / (cur_t + 0.00001 - start_time)
+                print("Throughput at {0} % is {1} ops/s".format(int(sample_point * 100), int(tp)))
+                self._pref()
+                tpo[0] = tp
+                return sample_point + self.sample_rate
+        
+        return sample_point
+    
+    def _pref(self):
+        for p in self.prefs:
+            res = p.get()
+            print("Node: {0}".format(res[1]))
+
+
+    def _check_success(self, res):
+        if not res[0]:
+            print("WARNING: OP FAILED WITH RES {0}".format(res))
+            return False
+        else:
+            return True
+
+    def _do_actions(self, actions, num_actions):
+        raise NotImplementedError
+
+    def _do_actions_intermix(self, actions):
+        raise NotImplementedError
+
+
+    def end(self):
+        for s in self.servers:
+            s.disconnect()
+
+
+
 
 class GCounterBench:
 
@@ -275,95 +462,6 @@ class RCounterBench:
 
 
 
-class Test:
-    def __init__(self, addresses, num_element, CRDT, sample_rate=0.1):
-        self.servers = []
-        for ip, port in addresses.items():
-            s = Server(ip, port)
-            s.connect()
-            self.servers.append(s)
-
-        self.data  = generate_kv_pair(num_element)
-        self.keys = self.data.keys()
-        self.sample_rate = sample_rate
-
-        self.crdts = []
-        self.prefs = []
-        
-        for i in range(len(self.servers)):
-            self.crdts.append(CRDT(self.servers[i]))
-            self.prefs.append(Performance(self.servers[i]))
-
-       
-
-    def init_data(self):
-        print("Initialize data with size of {0}".format(len(self.data)))
-
-        sample_point = 0
-        start = time.time()
-        i = 0
-
-        for k, v in self.data.items():
-            
-            res = self._set(k, v)
-            self._check_success(res)
-
-            sample_point = self._throughout(start, i, len(self.data), sample_point)
-            i = i + 1
-
-    def test_data(self):
-        print("Verifying initialized data by reading all data")
-
-        for k, v in self.data.items():
-            res = self._read(k, v)
-            if not self._check_success(res):
-                return False
-            
-
-        print("Verifying complete")
-        return True
-
-    def _set(self, k, v):
-        raise NotImplementedError
-
-    def _read(self, k, v):
-        raise NotImplementedError
-
-    def _throughout(self, start_time, num_ops, total_ops, sample_point, tpo=[0]):
-        if (num_ops == int(sample_point * total_ops)):
-                cur_t = time.time()
-                tp = num_ops / (cur_t + 0.00001 - start_time)
-                print("Throughput at {0} % is {1} ops/s".format(int(sample_point * 100), int(tp)))
-                self._pref()
-                tpo[0] = tp
-                return sample_point + self.sample_rate
-        
-        return sample_point
-    
-    def _pref(self):
-        for p in self.prefs:
-            res = p.get()
-            print("Node: {0}".format(res[1]))
-
-
-    def _check_success(self, res):
-        if not res[0]:
-            print("WARNING: OP FAILED WITH RES {0}".format(res))
-            return False
-        else:
-            return True
-
-    def _do_actions(self, actions, num_actions):
-        raise NotImplementedError
-
-    def _do_actions_intermix(self, actions):
-        raise NotImplementedError
-
-
-    def end(self):
-        for s in self.servers:
-            s.disconnect()
-
 
 class GCounterTest(Test):
     def __init__(self, addresses, num_element, sample_rate=0.1) -> None:
@@ -471,70 +569,70 @@ class RGraphTest(Test):
 
 
 
-if __name__ == "__main__":
-    # kv_pair = generate_kv_pair(1250)
-    # host1 = "127.0.0.1"
-    # port1 = 5000
-    # s = Server(host1, port2)  
-    # s.connect()
+# if __name__ == "__main__":
+#     # kv_pair = generate_kv_pair(1250)
+#     # host1 = "127.0.0.1"
+#     # port1 = 5000
+#     # s = Server(host1, port2)  
+#     # s.connect()
 
-    # host2 = "127.0.0.1"
-    # port2 = 5001
-    # s2 = Server(host1, port2)  
-    # s2.connect()
+#     # host2 = "127.0.0.1"
+#     # port2 = 5001
+#     # s2 = Server(host1, port2)  
+#     # s2.connect()
 
-    # gcbench = RCounterBench(s, kv_pair)
-    # gcbench.test_set()
-    # gcbench.test_mixed_update_reverse_read(1000000)
+#     # gcbench = RCounterBench(s, kv_pair)
+#     # gcbench.test_set()
+#     # gcbench.test_mixed_update_reverse_read(1000000)
 
-    # s.disconnect()
-    # gctest = GCounterTest({"127.0.0.1": 5000}, 10000)
-    # gctest.init_data()
-    # gctest.test_data()
-    # gctest.test_mixed_update_read(0.5, 100000)
-    # gctest.end()
+#     # s.disconnect()
+#     # gctest = GCounterTest({"127.0.0.1": 5000}, 10000)
+#     # gctest.init_data()
+#     # gctest.test_data()
+#     # gctest.test_mixed_update_read(0.5, 100000)
+#     # gctest.end()
 
-    # rgtest = RGraphTest({"127.0.0.1": 5000}, 1000)
-    # rgtest.init_data()
-    # rgtest.test_data()
-    # rgtest.set_reverse(800)
-    # rgtest.test_mixed_update_read(0.5, 100000)
-    # rgtest.end()
-    proc = subprocess.Popen(["dotnet", "run", "-p", "D:\md\Project_RAC\RAC", "D:\md\Project_RAC\RAC\cluster_config.json"], stdout=subprocess.DEVNULL)
-    time.sleep(3)
-    proc2 = subprocess.Popen(["dotnet", "run", "-p", "D:\md\Project_RAC\RAC", "D:\md\Project_RAC\RAC\cluster_config.1.json"], stdout=subprocess.DEVNULL)
-    time.sleep(3)
+#     # rgtest = RGraphTest({"127.0.0.1": 5000}, 1000)
+#     # rgtest.init_data()
+#     # rgtest.test_data()
+#     # rgtest.set_reverse(800)
+#     # rgtest.test_mixed_update_read(0.5, 100000)
+#     # rgtest.end()
+#     proc = subprocess.Popen(["dotnet", "run", "-p", "D:\md\Project_RAC\RAC", "D:\md\Project_RAC\RAC\cluster_config.json"], stdout=subprocess.DEVNULL)
+#     time.sleep(3)
+#     proc2 = subprocess.Popen(["dotnet", "run", "-p", "D:\md\Project_RAC\RAC", "D:\md\Project_RAC\RAC\cluster_config.1.json"], stdout=subprocess.DEVNULL)
+#     time.sleep(3)
 
-    try:
+#     try:
 
-        kv_pair = generate_kv_pair(1250)
-        host1 = "127.0.0.1"
-        port1 = 5000
-        s = Server(host1, port1)  
-        s.connect()
+#         kv_pair = generate_kv_pair(1250)
+#         host1 = "127.0.0.1"
+#         port1 = 5000
+#         s = Server(host1, port1)  
+#         s.connect()
 
-        gctest = GCounterTest({"127.0.0.1": 5000}, 10000)
-        gctest.init_data()
-        #gctest.test_data()
-        res = gctest.test_mixed_update_read(0.5, 100000)
-        gctest.end()
+#         gctest = GCounterTest({"127.0.0.1": 5000}, 10000)
+#         gctest.init_data()
+#         #gctest.test_data()
+#         res = gctest.test_mixed_update_read(0.5, 100000)
+#         gctest.end()
 
-        todraw = []
-        for i in range(len(res)):
-            todraw.append({"x": i, 1:res[i]})
+#         todraw = []
+#         for i in range(len(res)):
+#             todraw.append({"x": i, 1:res[i]})
 
-        print([todraw])
+#         print([todraw])
 
-        write_to_csv("x.csv", ["x", 1], todraw)
-        headers, x, y = read_from_csv("x.csv")
-        print(x)
-        print(y)
-        draw("test", "# of Ops", "Throughput", x, y)
+#         write_to_csv("x.csv", ["x", 1], todraw)
+#         headers, x, y = read_from_csv("x.csv")
+#         print(x)
+#         print(y)
+#         draw("test", "# of Ops", "Throughput", x, y)
 
-        s.disconnect()
+#         s.disconnect()
 
-    finally:
+#     finally:
 
-        proc.terminate()
-        proc2.terminate()
-        print("end")
+#         proc.terminate()
+#         proc2.terminate()
+#         print("end")
