@@ -54,28 +54,17 @@ def split_ipport(address):
 
     return res[0], int(res[1])
 
-
-# 1. Generate Test Data
-# a). generate random keys
-# b). generate random values(based on data type)
-# b). generate random ops(based on % and data type)
-# d). combine them
-class DataType():
-    def __init__(self, val_type, op_types) -> None:
-        self.val_type = val_type
-        self.op_types = op_types
-
-GC = DataType(VAR_TYPE.INT, ["i", "g"])
-RC = DataType(VAR_TYPE.INT, ["i", "d", "r", "g"])
-
 class ExperimentData():
-    def __init__(self, datatype, num_objects, keys = []) -> None:
-        self.datatype = datatype
+    def __init__(self, num_objects, keys = []) -> None:
         self.num_objects = num_objects
-
         self.keys = keys if len(keys) > 0 else self._generate_keys()
-        
 
+    def CRDT(self, server):
+        raise NotImplementedError
+
+        
+    def generate_op_values(self, num_ops, ops_ratio):
+        raise NotImplementedError
 
     def _generate_keys(self):
         res = []
@@ -83,37 +72,20 @@ class ExperimentData():
             res.append(rand_str(KEY_LEN))
 
         return res
-    
-    def generate_op_values(self, num_ops, ops_ratio):
-        res = []
-        values = self._generate_values(num_ops)
-        ops = self._generate_ops(num_ops, ops_ratio)
-        assert len(ops) == len(values)
-        kidx = 0
-        for i in range(len(values)):
-            k = self.keys[kidx]
-            v = values[i]
-            op = ops[i]
-            res.append((k, op, v))
-            kidx += 1
-            if (kidx == len(self.keys)):
-                kidx = 0
 
-        return res
-
-    def _generate_values(self, num_ops):
+    def _generate_values(self, num_ops, val_type):
         res = []
         for i in range(num_ops):
-            if self.datatype.val_type == VAR_TYPE.INT:
+            if val_type == VAR_TYPE.INT:
                 res.append(int(random.uniform(1,100)))
-            elif self.datatype.val_type == VAR_TYPE.STRING: 
+            elif val_type == VAR_TYPE.STRING: 
                 res.append(rand_str(STR_LEN))
 
         return res
 
-    def _generate_ops(self, num_ops, ops_ratio):
+    def _generate_ops(self, num_ops, ops_ratio, op_types):
         res = []
-        if round(sum(ops_ratio)) != 1 or len(ops_ratio) != len(self.datatype.op_types):
+        if round(sum(ops_ratio)) != 1 or len(ops_ratio) != len(op_types):
             print("Ratio error:" + str(ops_ratio))
             raise ValueError
 
@@ -125,9 +97,45 @@ class ExperimentData():
             sample = random.uniform(0,1)
             for i in range(len(slots)):
                 if sample > slots[i] and sample <= slots[i+1]:
-                    res.append(self.datatype.op_types[i])
+                    res.append(op_types[i])
 
         return res
+
+class GCExperimentData(ExperimentData):
+
+    def CRDT(self, server):
+        return GCounter(server)
+
+    def generate_op_values(self, num_ops, ops_ratio):
+        res = []
+        values = self._generate_values(num_ops, VAR_TYPE.INT)
+        ops = self._generate_ops(num_ops, ops_ratio, ["i", "g"])
+        assert len(ops) == len(values)
+        kidx = 0
+        for i in range(len(values)):
+            k = self.keys[kidx]
+            v = values[i]
+            op = ops[i]
+            res.append((op, k, v))
+            kidx += 1
+            if (kidx == len(self.keys)):
+                kidx = 0
+
+        return res
+
+    def op_execute(self, crdt, req):
+        op = req[0]
+        key = req[1]
+        v = req[2]
+        if op == "g":
+            res = crdt.get(key)
+        elif op == "s":
+            res = crdt.set(key, v)
+        elif op == "i":
+            res = crdt.inc(key, v)
+
+        return res
+
 
 class TestRunner():
     def __init__(self, nodes, multiplier, data) -> None:
@@ -136,7 +144,7 @@ class TestRunner():
         self.num_clients = self.num_nodes * multiplier
         self.data = data
         self.connections = self._connect()
-        self.crdts = []
+        self.crdts = [self.data.CRDT(s) for s in self.connections]
 
     def _connect(self):
         res = []
@@ -149,44 +157,25 @@ class TestRunner():
         return res
 
 
-    
-    def op_execute(self, crdt, op, key, values = []):
-        raise NotImplementedError
-
-    def worker(self):
-        pass
+    def worker(self, crdt, list_reqs):
+        for req in list_reqs:
+            self.data.op_execute(crdt, req)
 
 
     def init_data(self):
-        cur_node_indx = 0
+        nidx = 0
         for key in self.data.keys:
-            self.crdts[cur_node_indx].set(key, cur_node_indx)
-            if (cur_node_indx == len(self.crdts) - 1):
-                cur_node_indx = 0
-            else:
-                cur_node_indx += 1
+            self.crdts[nidx].set(key, nidx)
+            nidx += 1
+            if (nidx == len(self.crdts)):
+                nidx = 0
 
-    def pre_ops(self, num_ops_per_key):
+    def prep_ops(self, total_prep_ops, pre_ops_ratio):
         pass
 
     def peak_throughput_benchmark(self):
         pass
 
-
-class GCRunner(TestRunner):
-    def __init__(self, nodes, multiplier, testdata):
-        super().__init__(nodes, multiplier, testdata)
-        self.crdts = [GCounter(g) for g in self.connections]
-
-    def op_execute(self, crdt, op, key, values = []):
-        if op == "g":
-            res = crdt.get(key)
-        elif op == "s":
-            res = crdt.set(key, values[0])
-        elif op == "i":
-            res = crdt.inc(key, values[0])
-
-        return res
 
 def f(name):
     while True:
@@ -206,21 +195,13 @@ if __name__ == "__main__":
 
     total_objects = 5
     total_ops = 10
-    td = ExperimentData(GC, total_objects)
+    td = GCExperimentData(total_objects)
     # #td = TestData(RCounter, total_objects, total_ops, [0.25, 0.25, 0.3, 0.2])
     print(td.keys)
-    print(td.generate_op_values(total_ops, [0.5, 0.5]))
+    #print(td.generate_op_values(total_ops, [0.5, 0.5]))
 
-    # for o in td.datatype.op_types:
-    #     c = 0
-    #     for r in td.ops:
-    #         if o == r:
-    #             c = c + 1
-        
-    #     print(c/total_ops)
-
-    #tr = GCRunner(["127.0.0.1:5000", "127.0.0.1:5001"],1, td)
-    #tr.init_data()
+    tr = TestRunner(["127.0.0.1:5000", "127.0.0.1:5001"],1, td)
+    tr.init_data()
 
 
 
