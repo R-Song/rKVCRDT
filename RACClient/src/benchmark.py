@@ -102,9 +102,18 @@ class ExperimentData():
         return res
 
 class GCExperimentData(ExperimentData):
-
     def CRDT(self, server):
         return GCounter(server)
+
+    def generate_init_req(self):
+        res = []
+        i = 0
+        for key in self.keys:
+            res.append(("s", key, i))
+            i = i + 1
+
+        return res
+
 
     def generate_op_values(self, num_ops, ops_ratio):
         res = []
@@ -163,12 +172,13 @@ class TestRunner():
 
 
     def init_data(self):
-        nidx = 0
-        for key in self.data.keys:
-            self.crdts[nidx].set(key, nidx)
-            nidx += 1
-            if (nidx == len(self.crdts)):
-                nidx = 0
+        reqs = self.data.generate_init_req()
+        c = 0
+        for r in reqs:
+            self.data.op_execute(self.crdts[c], r)
+            c += 1
+            if (c == len(self.crdts)):
+                c = 0
 
     def prep_ops(self, total_prep_ops, pre_ops_ratio):
         pass
