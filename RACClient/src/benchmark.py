@@ -1,11 +1,13 @@
+import multiprocessing
 import string 
 import random 
+import math
 import time
 import subprocess
 from enum import Enum
 from client import *
 from draw import *
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 
 
 KEY_LEN = 5
@@ -53,6 +55,7 @@ def split_ipport(address):
     res = address.split(":")
 
     return res[0], int(res[1])
+
 
 class ExperimentData():
     def __init__(self, num_objects, keys = []) -> None:
@@ -150,58 +153,69 @@ class TestRunner():
     def __init__(self, nodes, multiplier, data) -> None:
         self.nodes = nodes
         self.num_nodes = len(nodes)
-        self.num_clients = self.num_nodes * multiplier
+        self.num_clients = math.ceil(self.num_nodes * multiplier)
         self.data = data
         self.connections = self._connect()
         self.crdts = [self.data.CRDT(s) for s in self.connections]
 
     def _connect(self):
         res = []
-        for adddress in self.nodes:
+        i = 0
+        for _ in range(self.num_clients):
+            adddress = self.nodes[i]
             ip, port = split_ipport(adddress)
             s = Server(ip, port)
             s.connect()
             res.append(s)
 
+            i += 1
+            if i == len(self.nodes):
+                i = 0
+
         return res
 
+    def init_data(self):
+        reqs = self.data.generate_init_req()
+        c = 0
+        for r in reqs:
+            res = self.data.op_execute(self.crdts[c], r)
+            if not res[0]:
+                raise Exception("Initialization failed because " + str(res))
+            c += 1
+            if (c == len(self.crdts)):
+                c = 0
+
+
+
+    def split_work(self, list_reqs):
+        split = math.ceil(len(list_reqs) / len(self.crdts))
+        works = []
+        for i in range(0, len(list_reqs), split):
+            works.append(list_reqs[i:i + split])
+
+        workers_pool = multiprocessing.Pool(self.num_clients)
+        workers_pool.starmap(self.worker, zip(self.crdts, works))
+        workers_pool.close()
+        workers_pool.join() 
 
     def worker(self, crdt, list_reqs):
         for req in list_reqs:
             self.data.op_execute(crdt, req)
 
 
-    def init_data(self):
-        reqs = self.data.generate_init_req()
-        c = 0
-        for r in reqs:
-            self.data.op_execute(self.crdts[c], r)
-            c += 1
-            if (c == len(self.crdts)):
-                c = 0
-
     def prep_ops(self, total_prep_ops, pre_ops_ratio):
-        pass
+        reqs = self.data.generate_op_values(total_prep_ops, pre_ops_ratio)
+        print(reqs)
+        self.split_work(reqs)
+
 
     def peak_throughput_benchmark(self):
         pass
-
-
-def f(name):
-    while True:
-        i = 809809238482402340 / 32084240923480923
-
-
 
         
 if __name__ == "__main__":
     print("test")
 
-    # p = Process(target=f, args=('bob',))
-    # p2 = Process(target=f, args=('bob',))
-    # p.start()  
-    # p2.start()
-    # p.join()
 
     total_objects = 5
     total_ops = 10
@@ -212,6 +226,7 @@ if __name__ == "__main__":
 
     tr = TestRunner(["127.0.0.1:5000", "127.0.0.1:5001"],1, td)
     tr.init_data()
+    tr.prep_ops(4, [1, 0])
 
 
 
