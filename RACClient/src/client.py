@@ -23,7 +23,6 @@ class Server:
     def connect(self):
         try:
             self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-            self.s.settimeout(5)
             self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.s.connect((self.ip, self.port))
             return 1
@@ -34,7 +33,9 @@ class Server:
 
     def response(self):
         try:
+            self.s.settimeout(5)
             msg = self.s.recv(1024)   
+            self.s.settimeout(None)
         except socket.timeout:
             print("timeout on receive")
             self.s.close()
