@@ -5,6 +5,8 @@ import subprocess
 from enum import Enum
 from client import *
 from draw import *
+from multiprocessing import Process
+
 
 KEY_LEN = 5
 STR_LEN = 10
@@ -46,7 +48,11 @@ def generate_kv_pair(num_elements):
 
     return res
 
+def split_ipport(address):
 
+    res = address.split(":")
+
+    return res[0], int(res[1])
 
 
 # 1. Generate Test Data
@@ -59,21 +65,17 @@ class DataType():
         self.val_type = val_type
         self.op_types = op_types
 
-GCounter = DataType(VAR_TYPE.INT, ["i", "g"])
-RCounter = DataType(VAR_TYPE.INT, ["i", "d", "r", "g"])
+GC = DataType(VAR_TYPE.INT, ["i", "g"])
+RC = DataType(VAR_TYPE.INT, ["i", "d", "r", "g"])
 
-class TestData():
-    def __init__(self, datatype, num_objects, num_ops, ops_ratio) -> None:
+class ExperimentData():
+    def __init__(self, datatype, num_objects, keys = []) -> None:
         self.datatype = datatype
         self.num_objects = num_objects
-        self.num_ops = num_ops
 
-        self._init_test(ops_ratio)
+        self.keys = keys if len(keys) > 0 else self._generate_keys()
+        
 
-    def _init_test(self, ops_ratio):
-        self.keys = self._generate_keys()
-        self.values = self._generate_values()
-        self.ops = self._generate_ops(ops_ratio)
 
     def _generate_keys(self):
         res = []
@@ -81,11 +83,27 @@ class TestData():
             res.append(rand_str(KEY_LEN))
 
         return res
-
-
-    def _generate_values(self):
+    
+    def generate_op_values(self, num_ops, ops_ratio):
         res = []
-        for i in range(self.num_ops):
+        values = self._generate_values(num_ops)
+        ops = self._generate_ops(num_ops, ops_ratio)
+        assert len(ops) == len(values)
+        kidx = 0
+        for i in range(len(values)):
+            k = self.keys[kidx]
+            v = values[i]
+            op = ops[i]
+            res.append((k, op, v))
+            kidx += 1
+            if (kidx == len(self.keys)):
+                kidx = 0
+
+        return res
+
+    def _generate_values(self, num_ops):
+        res = []
+        for i in range(num_ops):
             if self.datatype.val_type == VAR_TYPE.INT:
                 res.append(int(random.uniform(1,100)))
             elif self.datatype.val_type == VAR_TYPE.STRING: 
@@ -93,7 +111,7 @@ class TestData():
 
         return res
 
-    def _generate_ops(self, ops_ratio):
+    def _generate_ops(self, num_ops, ops_ratio):
         res = []
         if round(sum(ops_ratio)) != 1 or len(ops_ratio) != len(self.datatype.op_types):
             print("Ratio error:" + str(ops_ratio))
@@ -103,7 +121,7 @@ class TestData():
         for r in ops_ratio:
             slots.append(slots[-1] + r)
 
-        for _ in range(self.num_ops):
+        for _ in range(num_ops):
             sample = random.uniform(0,1)
             for i in range(len(slots)):
                 if sample > slots[i] and sample <= slots[i+1]:
@@ -111,23 +129,98 @@ class TestData():
 
         return res
 
+class TestRunner():
+    def __init__(self, nodes, multiplier, data) -> None:
+        self.nodes = nodes
+        self.num_nodes = len(nodes)
+        self.num_clients = self.num_nodes * multiplier
+        self.data = data
+        self.connections = self._connect()
+        self.crdts = []
+
+    def _connect(self):
+        res = []
+        for adddress in self.nodes:
+            ip, port = split_ipport(adddress)
+            s = Server(ip, port)
+            s.connect()
+            res.append(s)
+
+        return res
+
+
+    
+    def op_execute(self, crdt, op, key, values = []):
+        raise NotImplementedError
+
+    def worker(self):
+        pass
+
+
+    def init_data(self):
+        cur_node_indx = 0
+        for key in self.data.keys:
+            self.crdts[cur_node_indx].set(key, cur_node_indx)
+            if (cur_node_indx == len(self.crdts) - 1):
+                cur_node_indx = 0
+            else:
+                cur_node_indx += 1
+
+    def pre_ops(self, num_ops_per_key):
+        pass
+
+    def peak_throughput_benchmark(self):
+        pass
+
+
+class GCRunner(TestRunner):
+    def __init__(self, nodes, multiplier, testdata):
+        super().__init__(nodes, multiplier, testdata)
+        self.crdts = [GCounter(g) for g in self.connections]
+
+    def op_execute(self, crdt, op, key, values = []):
+        if op == "g":
+            res = crdt.get(key)
+        elif op == "s":
+            res = crdt.set(key, values[0])
+        elif op == "i":
+            res = crdt.inc(key, values[0])
+
+        return res
+
+def f(name):
+    while True:
+        i = 809809238482402340 / 32084240923480923
+
+
+
+        
 if __name__ == "__main__":
     print("test")
+
+    # p = Process(target=f, args=('bob',))
+    # p2 = Process(target=f, args=('bob',))
+    # p.start()  
+    # p2.start()
+    # p.join()
+
     total_objects = 5
     total_ops = 10
-    td = TestData(GCounter, total_objects, total_ops, [0.5, 0.5])
-    #td = TestData(RCounter, total_objects, total_ops, [0.25, 0.25, 0.3, 0.2])
+    td = ExperimentData(GC, total_objects)
+    # #td = TestData(RCounter, total_objects, total_ops, [0.25, 0.25, 0.3, 0.2])
     print(td.keys)
-    print(td.values)
-    print(td.ops)
+    print(td.generate_op_values(total_ops, [0.5, 0.5]))
 
-    for o in td.datatype.op_types:
-        c = 0
-        for r in td.ops:
-            if o == r:
-                c = c + 1
+    # for o in td.datatype.op_types:
+    #     c = 0
+    #     for r in td.ops:
+    #         if o == r:
+    #             c = c + 1
         
-        print(c/total_ops)
+    #     print(c/total_ops)
+
+    #tr = GCRunner(["127.0.0.1:5000", "127.0.0.1:5001"],1, td)
+    #tr.init_data()
 
 
 
