@@ -1,8 +1,10 @@
 import multiprocessing
+from multiprocessing import managers
 import string 
 import random 
 import math
 import time
+import timeit
 import subprocess
 from enum import Enum
 from client import *
@@ -20,35 +22,6 @@ class VAR_TYPE(Enum):
 def rand_str(n):
     return ''.join(random.choices(string.ascii_uppercase +
                              string.digits, k = n)) 
-
-
-def generate_keys(num_elements, key_len):
-    res = []
-    for i in range(num_elements):
-        res.append(rand_str(key_len))
-
-    return res
-
-def generate_values(num_elements, values_types = VAR_TYPE.INT):
-    res = []
-    for i in range(num_elements):
-        if values_types == VAR_TYPE.INT:
-            res.append(int(random.uniform(1,100)))
-        elif values_types == VAR_TYPE.STRING: 
-            res.append(rand_str(STR_LEN))
-
-    return res
-
-def generate_kv_pair(num_elements):
-    res = {}
-
-    keys = generate_keys(num_elements, KEY_LEN)
-    values = generate_values(num_elements)
-
-    for i in range(num_elements):
-        res[keys[i]] = values[i]
-
-    return res
 
 def split_ipport(address):
 
@@ -148,6 +121,21 @@ class GCExperimentData(ExperimentData):
 
         return res
 
+class Results():
+    def __init__(self, num_clients) -> None:
+        sharing = multiprocessing.Manager()
+        self.tp = []
+        self.latency = sharing.list()
+
+    def get_latency(self):
+        res = []
+        for l in self.latency:
+            if l != 0:
+                res.append(l / 1000000)
+
+        return res
+
+
 
 class TestRunner():
     def __init__(self, nodes, multiplier, data) -> None:
@@ -156,7 +144,10 @@ class TestRunner():
         self.num_clients = math.ceil(self.num_nodes * multiplier)
         self.data = data
         self.connections = self._connect()
+        print(self.connections)
         self.crdts = [self.data.CRDT(s) for s in self.connections]
+        self.timing = False
+        self.results = Results(self.num_clients)
 
     def _connect(self):
         res = []
@@ -199,472 +190,64 @@ class TestRunner():
         workers_pool.join() 
 
     def worker(self, crdt, list_reqs):
+        temp = []
         for req in list_reqs:
-            self.data.op_execute(crdt, req)
+            start = time.time_ns() 
+            res = self.data.op_execute(crdt, req)
+            end = time.time_ns() 
+            if (self.timing):
+                temp.append(end - start)
+        
+        for l in temp:
+            self.results.latency.append(l)
 
 
     def prep_ops(self, total_prep_ops, pre_ops_ratio):
         reqs = self.data.generate_op_values(total_prep_ops, pre_ops_ratio)
-        print(reqs)
         self.split_work(reqs)
 
 
-    def peak_throughput_benchmark(self):
-        pass
+    def benchmark(self, total_ops, ops_ratio, throughput = 0):
+        '''
+        throughput = limit # of ops per second per worker, if 0 then unlimited
+        '''
+        self.timing = True
+
+        reqs = self.data.generate_op_values(total_ops, ops_ratio)
+        start = time.time()
+        self.split_work(reqs)
+        end = time.time()
+
+        self.results.tp = total_ops / (end - start)
+        
+        
 
         
 if __name__ == "__main__":
-    print("test")
+    nodes = ["127.0.0.1:5000", "127.0.0.1:5001"]
 
-
-    total_objects = 5
-    total_ops = 10
+    total_objects = 10
+    total_ops = 100000
     td = GCExperimentData(total_objects)
+
     # #td = TestData(RCounter, total_objects, total_ops, [0.25, 0.25, 0.3, 0.2])
     print(td.keys)
     #print(td.generate_op_values(total_ops, [0.5, 0.5]))
+    
+    print("Starting experiment...")
+    tr = TestRunner(nodes, 1, td)
 
-    tr = TestRunner(["127.0.0.1:5000", "127.0.0.1:5001"],1, td)
+    print("Initializing Data")
     tr.init_data()
-    tr.prep_ops(4, [1, 0])
 
+    print("Preping Ops")
+    tr.prep_ops(20, [1, 0])
 
-
-
-class Test:
-    def __init__(self, addresses, num_element, CRDT, sample_rate=0.1):
-        self.servers = []
-        for ip, port in addresses.items():
-            s = Server(ip, port)
-            s.connect()
-            self.servers.append(s)
-
-        self.data  = generate_kv_pair(num_element)
-        self.keys = self.data.keys()
-        self.sample_rate = sample_rate
-
-        self.crdts = []
-        self.prefs = []
-        
-        for i in range(len(self.servers)):
-            self.crdts.append(CRDT(self.servers[i]))
-            self.prefs.append(Performance(self.servers[i]))
-
-       
-
-    def init_data(self):
-        print("Initialize data with size of {0}".format(len(self.data)))
-
-        sample_point = 0
-        start = time.time()
-        i = 0
-
-        for k, v in self.data.items():
-            
-            res = self._set(k, v)
-            self._check_success(res)
-
-            sample_point = self._throughout(start, i, len(self.data), sample_point)
-            i = i + 1
-
-    def test_data(self):
-        print("Verifying initialized data by reading all data")
-
-        for k, v in self.data.items():
-            res = self._read(k, v)
-            if not self._check_success(res):
-                return False
-            
-
-        print("Verifying complete")
-        return True
-
-    def _set(self, k, v):
-        raise NotImplementedError
-
-    def _read(self, k, v):
-        raise NotImplementedError
-
-    def _throughout(self, start_time, num_ops, total_ops, sample_point, tpo=[0]):
-        if (num_ops == int(sample_point * total_ops)):
-                cur_t = time.time()
-                tp = num_ops / (cur_t + 0.00001 - start_time)
-                print("Throughput at {0} % is {1} ops/s".format(int(sample_point * 100), int(tp)))
-                self._pref()
-                tpo[0] = tp
-                return sample_point + self.sample_rate
-        
-        return sample_point
+    print("Measuing Throughput")
+    tr.benchmark(total_ops, [0.5, 0.5])
     
-    def _pref(self):
-        for p in self.prefs:
-            res = p.get()
-            print("Node: {0}".format(res[1]))
-
-
-    def _check_success(self, res):
-        if not res[0]:
-            print("WARNING: OP FAILED WITH RES {0}".format(res))
-            return False
-        else:
-            return True
-
-    def _do_actions(self, actions, num_actions):
-        raise NotImplementedError
-
-    def _do_actions_intermix(self, actions):
-        raise NotImplementedError
-
-
-    def end(self):
-        for s in self.servers:
-            s.disconnect()
-
-
-
-
-class GCounterBench:
-
-    def __init__(self, server, data):
-        self.gc = GCounter(server)
-        self.data = data
-        self.keys = data.keys()
-        self.values = list(data.values())
-        self.size = len(self.data)
-
-    def test_set(self):
-        bad = []
-
-        print("Benching pure write")
-        size = len(self.data)
-        sample = 0.1
-
-        i = 0
-
-        latency = []
-        throughput = []
-
-        start = time.time()
-        for k, v in self.data.items():
-            lap = time.time()
-            res = self.gc.set(k, v)
-            #lap1 = time.time()
-
-            #latency.append(lap1 - lap)
-
-            if (i == int(sample * size)):
-                print("Throughput at {0} % is {1} ops/s".format(int((sample + 0.001) * 100), i / (lap - start) ))
-                #print("Latency at {0} % for write is {1} ms".format(int((sample + 0.001) * 100), 1000 * sum(latency) / len(latency) ) )
-                sample += 0.1
-
-
-            i = i + 1
-
-        for k in bad:
-            del data[k]
-
-    def test_read(self):
-        bad = []
-
-        print("Benching read")
-        sample = 0.1
-
-        i = 0
-
-        latency = []
-        throughput = []
-
-        start = time.time()
-        for k, v in self.data.items():
-            lap = time.time()
-            res = self.gc.get(k)
-            #lap1 = time.time()
-
-            #latency.append(lap1 - lap)
-
-            if (i == int(sample * self.size)):
-                print("Throughput at {0} % is {1} ops/s".format(int((sample + 0.001) * 100), i / (lap - start) ))
-                #print("Latency at {0} % for write is {1} ms".format(int((sample + 0.001) * 100), 1000 * sum(latency) / len(latency) ) )
-                sample += 0.1
-
-
-            i = i + 1
-
-        for k in bad:
-            del data[k]
-
-    def test_mixed_update_read(self, ops):
-        print("Benching mixed update/read")
-
-        sample_rate = 0.1
-
-        i = 0
-        flag = True
-
-        start = time.time()
-        while (i < ops):
-            for k, v in self.data.items():
-                if (flag):
-                    # rotation off incrementing 1 - 10
-                    res = self.gc.inc(k, i % 10 + 1)
-                    flag = False
-                else:
-                    res = self.gc.get(k)
-                    flag = True
-
-                if (i == int(sample_rate * ops)):
-                    lap = time.time()
-                    print("Throughput at {0} % is {1} ops/s".format(int((sample_rate + 0.001) * 100), i / (lap - start) ))
-                    sample_rate += 0.1
-
-
-                i = i + 1
-
-
-class RCounterBench:
-
-    def __init__(self, server, data):
-        self.gc = RCounter(server)
-        self.data = data
-        self.keys = data.keys()
-        self.values = list(data.values())
-
-    def test_set(self):
-        bad = []
-
-        print("Benching pure write")
-        size = len(self.data)
-        sample = 0.1
-
-        i = 0
-
-        latency = []
-        throughput = []
-
-        start = time.time()
-        for k, v in self.data.items():
-            res = self.gc.set(k, v)
-            #lap1 = time.time()
-            #latency.append(lap1 - lap)
-
-            if (i == int(sample * size)):
-                lap = time.time()
-                print("Throughput at {0} % is {1} ops/s".format(int((sample + 0.001) * 100), i / (lap - start) ))
-                #print("Latency at {0} % for write is {1} ms".format(int((sample + 0.001) * 100), 1000 * sum(latency) / len(latency) ) )
-                sample += 0.1
-
-
-            i = i + 1
-
-        for k in bad:
-            del data[k]
-
-    def test_read(self):
-        bad = []
-
-        print("Benching read")
-        size = len(self.data)
-        sample = 0.1
-
-        i = 0
-
-        latency = []
-        throughput = []
-
-        start = time.time()
-        for k, v in self.data.items():
-            res = self.gc.get(k)
-            #lap1 = time.time()
-
-            #latency.append(lap1 - lap)
-
-            if (i == int(sample * size)):
-                lap = time.time()
-                print("Throughput at {0} % is {1} ops/s".format(int((sample + 0.001) * 100), i / (lap - start) ))
-                #print("Latency at {0} % for write is {1} ms".format(int((sample + 0.001) * 100), 1000 * sum(latency) / len(latency) ) )
-                sample += 0.1
-
-
-            i = i + 1
-
-        for k in bad:
-            del data[k]
-
-
-    def test_mixed_update_read(self, ops):
-        print("Benching mixed update/read")
-
-        sample_rate = 0.1
-
-        i = 0
-        flag = True
-
-        start = time.time()
-        while (i < ops):
-            for k, v in self.data.items():
-                if (flag):
-                    # rotation off incrementing 1 - 10
-                    res = self.gc.inc(k, i % 10 + 1)
-                    flag = False
-                else:
-                    res = self.gc.get(k)
-                    flag = True
-
-                if (i == int(sample_rate * ops)):
-                    lap = time.time()
-                    print("Throughput at {0} % is {1} ops/s".format(int((sample_rate + 0.001) * 100), i / (lap - start) ))
-                    sample_rate += 0.1
-
-
-                i = i + 1
-
-    def test_mixed_update_reverse_read(self, ops):
-        print("Benching mixed update/read")
-
-        sample_rate = 0.1
-
-        i = 0
-        flag = 0
-
-        op_his = {}
-
-        start = time.time()
-        while (i < ops):
-            for k, v in self.data.items():
-                if (flag == 0 or flag == 1):
-                    # rotation off incrementing 1 - 10
-                    res = self.gc.inc(k, i % 10 + 1)
-
-                    if (res[0]):
-                        if k in op_his:
-                            op_his[k].append(res[1][0])
-                        else:
-                            op_his[k] = [res[1][0]]
-                elif (flag == 2):
-                    opid = random.choice(op_his[k])
-                    op_his[k].remove(opid)
-                    res = self.gc.rev(k, opid)
-                elif (flag == 3):
-                    res = self.gc.get(k)
-
-                if (i == int(sample_rate * ops)):
-                    lap = time.time()
-                    print("Throughput at {0} % is {1} ops/s".format(int((sample_rate + 0.001) * 100), i / (lap - start) ))
-                    sample_rate += 0.1
-            
-                i = i + 1
-
-            if flag == 3:
-                flag = 0
-            else:
-                flag += 1
-
-
-
-
-class GCounterTest(Test):
-    def __init__(self, addresses, num_element, sample_rate=0.1) -> None:
-        super().__init__(addresses, num_element, GCounter, sample_rate)
-
-    def _set(self, k, v):
-        return self.crdts[0].set(k, v)
-
-    def _read(self, k, v):
-        return self.crdts[0].get(k)
-
-    def test_mixed_update_read(self, read_ratio, num_ops):
-
-        sample_point = 0
-        start = time.time()
-        i = 0
-        
-        all = []
-        while(i < num_ops):
-            k = random.choice(list(self.data.keys()))
-            v = random.uniform(0, 1)
-            
-            # update
-            if (v > read_ratio):
-                res = self.crdts[0].inc(k, int(v * 10))
-            else:
-                res = self.crdts[0].get(k)
-
-            temp = [0]
-            sample_point = self._throughout(start, i, num_ops, sample_point, temp)
-            if (temp[0] != 0):
-                all.append(temp[0])
-            i = i + 1
-
-        return all
-
-class RGraphTest(Test):
-    def __init__(self, addresses, num_element, sample_rate=0.1) -> None:
-        super().__init__(addresses, num_element, RGraph, sample_rate)
-
-    def _set(self, k, v):
-        return self.crdts[0].set(k)
-
-    def _read(self, k, v):
-        return self.crdts[0].get(k)
-
-    def set_reverse(self, num_reversed):
-        print("setting up reversible")
-        sample_point = 0
-        start = time.time()
-        i = 0
-
-        vertices = []
-        edges = []
-
-        for r in range(num_reversed):
-            vertices.append("v{0}".format(r))
-            edges.append(("v{0}".format(r), "v{0}".format(r + 1)))
-        
-        edges.pop()
-
-        num_run = len(self.data.items()) * num_reversed * 3
-        for k, v in self.data.items():
-            opids = []
-            # add
-            for vt in vertices:
-                res = self.crdts[0].addvertex(k, vt)
-                opids.append(res[1][0])
-                sample_point = self._throughout(start, i, num_run, sample_point)
-                i = i + 1
-
-            for ed in edges:
-                self.crdts[0].addedge(k, ed[0], ed[1])
-                sample_point = self._throughout(start, i, num_run, sample_point)
-                i = i + 1
-
-            # reverse
-            for opid in reversed(opids):
-                self.crdts[0].reverse(k, opid)
-                
-                sample_point = self._throughout(start, i, num_run, sample_point)
-                i = i + 1
-
-                
-
-    
-    def test_mixed_update_read(self, read_ratio, num_ops):
-        print("testing mixed update")
-        sample_point = 0
-        start = time.time()
-        i = 0
-
-        while(i < num_ops):
-            k = random.choice(list(self.data.keys()))
-            v = random.uniform(0, 1)
-            
-            # update
-            if (v > read_ratio):
-                res = self.crdts[0].addvertex(k, v)
-            else:
-                res = self.crdts[0].get(k)
-
-            sample_point = self._throughout(start, i, num_ops, sample_point)
-            i = i + 1
+    print(tr.results.tp)
+    print( sum(tr.results.get_latency()) / len(tr.results.get_latency()))
 
 
 
