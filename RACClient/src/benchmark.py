@@ -38,6 +38,9 @@ def mix_lists(lists):
 
     return res
 
+def sleep_time(target_tp, num_clients):
+    return (1 / target_tp) * num_clients
+
 
 class Results():
     def __init__(self, num_clients) -> None:
@@ -224,6 +227,7 @@ class TestRunner():
         self.do_reverse = False
         self.results = Results(self.num_clients)
         self.rid = SharedManager.dict()
+        self.sleeptime = 0
         for k in self.data.keys:
             self.rid[k] = ""
         
@@ -272,6 +276,8 @@ class TestRunner():
         temp = []
         last_rid = {}
         for req in list_reqs:
+            if self.sleeptime > 0:
+                time.sleep(0.001)
             start = time.time_ns() 
             
             if self.do_reverse and req[0] == "r":
@@ -284,6 +290,7 @@ class TestRunner():
                 res = self.data.op_execute(crdt, req)
 
             end = time.time_ns() 
+
             if (self.timing):
                 temp.append(end - start)
         
@@ -305,6 +312,9 @@ class TestRunner():
         self.do_reverse = False
         self.timing = True
 
+        if throughput > 0:
+            self.sleeptime = sleep_time(throughput, self.num_clients)
+
         reqs = self.data.generate_op_values(ops_per_object, ops_ratio)
         start = time.time()
         self.split_work(reqs)
@@ -318,16 +328,18 @@ class TestRunner():
 if __name__ == "__main__":
     manager = multiprocessing.Manager()
     nodes = ["127.0.0.1:5000", "127.0.0.1:5001"]
-    client_multiplier = 5
+    client_multiplier = 4
 
     total_objects = 100
 
     prep_ops_pre_obj = 100
     num_reverse = 0
     prep_ratio = [0.5, 0.5, 0]
+    
 
     ops_per_object = 1000
     op_ratio = [0.25, 0.25, 0.5]
+    target_throughput = 10000
 
     #td = GCExperimentData(total_objects)   
     td = RCExperimentData(total_objects)
@@ -345,7 +357,7 @@ if __name__ == "__main__":
 
     print("Total ops:" + str(total_objects * ops_per_object))
     print("Measuing Throughput")
-    tr.benchmark(ops_per_object, op_ratio)
+    tr.benchmark(ops_per_object, op_ratio, target_throughput)
 
     print("Experiment ends")
     
