@@ -277,7 +277,7 @@ class TestRunner():
         last_rid = {}
         for req in list_reqs:
             if self.sleeptime > 0:
-                time.sleep(0.001)
+                time.sleep(self.sleeptime)
             start = time.time_ns() 
             
             if self.do_reverse and req[0] == "r":
