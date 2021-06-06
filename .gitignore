@@ -356,5 +356,5 @@ cluster_config.*.json
 local_test.cs
 *.DS_Store
 
-*cluster_config1.json
-*cluster_config2.json
+log.*.txt
+temp.txt

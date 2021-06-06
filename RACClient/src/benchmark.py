@@ -327,8 +327,8 @@ class TestRunner():
         
 if __name__ == "__main__":
     manager = multiprocessing.Manager()
-    nodes = ["127.0.0.1:5000", "127.0.0.1:5001"]
-    client_multiplier = 4
+    nodes = ["192.168.0.11:5000", "192.168.0.11:5001"]
+    client_multiplier = 8
 
     total_objects = 100
 
@@ -339,7 +339,7 @@ if __name__ == "__main__":
 
     ops_per_object = 1000
     op_ratio = [0.25, 0.25, 0.5]
-    target_throughput = 10000
+    target_throughput = 0
 
     #td = GCExperimentData(total_objects)   
     td = RCExperimentData(total_objects)
