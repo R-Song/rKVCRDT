@@ -8,8 +8,6 @@ import time
 
 SERVER_PATH = "D:/md/Project_RAC/RAC"
 START_PORT = 5000
-# if > 0, set # of cores that a server can run on
-MAX_CORES = 1
 
 def each_server_json(node_id, num_server, print_addr = False) -> str:
     res = []

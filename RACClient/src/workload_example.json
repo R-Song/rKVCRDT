@@ -1,4 +1,5 @@
 {
+    "!!!!!CHANGE_FILE_NAME_TO_\"workload.json\"!!!!!!!": 0,
     "nodes": ["192.168.0.11:5000"],
     "client_multiplier": 3,
 
