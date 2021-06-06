@@ -4,6 +4,7 @@ import string
 import random 
 import math
 import time
+import json
 import timeit
 import subprocess
 from enum import Enum
@@ -264,8 +265,10 @@ class TestRunner():
     def split_work(self, list_reqs):
         split = math.ceil(len(list_reqs) / len(self.crdts))
         works = []
+        
         for i in range(0, len(list_reqs), split):
             works.append(mix_lists(list_reqs[i:i + split]))
+
 
         workers_pool = multiprocessing.Pool(self.num_clients)
         workers_pool.starmap(self.worker, zip(self.crdts, works))
@@ -280,12 +283,15 @@ class TestRunner():
                 time.sleep(self.sleeptime)
             start = time.time_ns() 
             
-            if self.do_reverse and req[0] == "r":
-                try:
+            if self.do_reverse:
+                if req[0] == "r":
                     res = self.data.op_execute(crdt, req, last_rid[req[1]])
-                    last_rid[req[1]] = res[1][0]
-                except Exception:
-                    continue
+                else:
+                    try:
+                        res = self.data.op_execute(crdt, req)
+                        last_rid[req[1]] = res[1][0]
+                    except Exception:
+                        continue
             else:
                 res = self.data.op_execute(crdt, req)
 
@@ -327,35 +333,41 @@ class TestRunner():
         
 if __name__ == "__main__":
     manager = multiprocessing.Manager()
-    nodes = ["192.168.0.11:5000", "192.168.0.11:5001"]
-    client_multiplier = 8
 
-    total_objects = 100
 
-    prep_ops_pre_obj = 100
-    num_reverse = 0
-    prep_ratio = [0.5, 0.5, 0]
+    with open('workload.json') as wl_file:
+        workload = json.loads(wl_file.read())
+    
+    print(workload)
+
+    nodes = workload["nodes"]
+    client_multiplier = workload["client_multiplier"]
+
+    total_objects = workload["total_objects"]
+
+    prep_ops_pre_obj = workload["prep_ops_pre_obj"]
+    num_reverse = workload["num_reverse"]
+    prep_ratio = workload["prep_ratio"]
     
 
-    ops_per_object = 1000
-    op_ratio = [0.25, 0.25, 0.5]
-    target_throughput = 0
+    ops_per_object = workload["ops_per_object"]
+    op_ratio = workload["op_ratio"]
+    target_throughput = workload["target_throughput"]
 
     #td = GCExperimentData(total_objects)   
     td = RCExperimentData(total_objects)
-    print(td.keys)
 
     print("Starting experiment...")
-    print("Total " + str(len(nodes)) + " server and " + str(len(nodes) * client_multiplier ) + " client")
+    print("Total " + str(len(nodes)) + " server and " + str(math.ceil(len(nodes) * client_multiplier)) + " client")
     tr = TestRunner(nodes, client_multiplier, td, manager)
 
-    print("Initializing Data")
+    print("Initializing Data with " + str(total_objects) + " objects")
     tr.init_data()
 
-    print("Preping Ops")
+    print("Preping Ops with " + str(prep_ops_pre_obj) + " prep ops and " + str(num_reverse) + " reverses")
     tr.prep_ops(prep_ops_pre_obj, prep_ratio, num_reverse)
 
-    print("Total ops:" + str(total_objects * ops_per_object))
+    print("Total ops:" + str(total_objects * ops_per_object) + " with each obj " + str(ops_per_object) + " ops")
     print("Measuing Throughput")
     tr.benchmark(ops_per_object, op_ratio, target_throughput)
 

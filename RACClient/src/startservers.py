@@ -8,7 +8,8 @@ import time
 
 SERVER_PATH = "D:/md/Project_RAC/RAC"
 START_PORT = 5000
-
+# if > 0, set # of cores that a server can run on
+MAX_CORES = 1
 
 def each_server_json(node_id, num_server, print_addr = False) -> str:
     res = []
@@ -60,6 +61,7 @@ def start_server(num_server):
         pid = str(proc.pid)
         print(pid)
         ftemp.write(pid + "\n")
+        time.sleep(0.5)
 
     ftemp.close()
 
@@ -86,8 +88,10 @@ def stop_server():
 
     files = os.listdir(os.getcwd())
     for f in files:
+        filename = os.path.splitext(f)[0]
         extension = os.path.splitext(f)[1]
-        if extension == ".json":
+
+        if extension == ".json" and filename[0:7] == "cluster":
             os.remove(f)
 
 def restart_server():
