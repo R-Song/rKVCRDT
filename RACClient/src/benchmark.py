@@ -318,11 +318,12 @@ class TestRunner():
 if __name__ == "__main__":
     manager = multiprocessing.Manager()
     nodes = ["127.0.0.1:5000", "127.0.0.1:5001"]
+    client_multiplier = 5
 
     total_objects = 100
 
-    prep_ops_pre_obj = 1000
-    num_reverse = 100
+    prep_ops_pre_obj = 100
+    num_reverse = 0
     prep_ratio = [0.5, 0.5, 0]
 
     ops_per_object = 1000
@@ -333,7 +334,8 @@ if __name__ == "__main__":
     print(td.keys)
 
     print("Starting experiment...")
-    tr = TestRunner(nodes, 1, td, manager)
+    print("Total " + str(len(nodes)) + " server and " + str(len(nodes) * client_multiplier ) + " client")
+    tr = TestRunner(nodes, client_multiplier, td, manager)
 
     print("Initializing Data")
     tr.init_data()
@@ -344,6 +346,8 @@ if __name__ == "__main__":
     print("Total ops:" + str(total_objects * ops_per_object))
     print("Measuing Throughput")
     tr.benchmark(ops_per_object, op_ratio)
+
+    print("Experiment ends")
     
     print(tr.results.tp)
     print( sum(tr.results.get_latency()) / len(tr.results.get_latency()))

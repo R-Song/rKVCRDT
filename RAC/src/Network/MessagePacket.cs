@@ -24,7 +24,7 @@ namespace RAC.Network
         private const string lengthPrefix = "LEN:";
         private const string contentPrefix = "CNT:";
 
-        public string from { get; }
+        public string from { get; set; }
         public string to { get; set; }
         public MsgSrc msgSrc { get; }
         public int length { get; }

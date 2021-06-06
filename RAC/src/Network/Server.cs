@@ -158,14 +158,17 @@ namespace RAC.Network
                         {
                             msg = new MessagePacket(msgstr);
                             DEBUG("Received packet: \n " + msgstr.ToString());
-                            reqQueue.Post(msg);
+                            
+                            clientIP = IPAddress.Parse (((IPEndPoint)connection.Client.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)connection.Client.RemoteEndPoint).Port.ToString();
+                            msg.from = clientIP;
 
-                            // if new connection, add to the list
+                            // if new connection, add to the client list
                             if (first && msg.msgSrc == MsgSrc.client)
                             {
-                                clientIP = msg.from;
                                 activeClients[clientIP] = connection;
                             }
+
+                            reqQueue.Post(msg);
                             first = false;
 
                         }
