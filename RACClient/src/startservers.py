@@ -73,7 +73,10 @@ def stop_server():
             pid = ftemp.readline()
             print("Server started at pid:")
             while(pid):
-                os.kill(int(pid.strip()), signal.SIGTERM)  
+                try:
+                    os.kill(int(pid.strip()), signal.SIGTERM)  
+                except OSError:
+                    continue
                 print(pid.strip())
                 pid = ftemp.readline()
     except FileNotFoundError:
