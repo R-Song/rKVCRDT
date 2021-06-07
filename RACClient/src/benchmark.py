@@ -10,6 +10,7 @@ import subprocess
 from enum import Enum
 from client import *
 from draw import *
+import numpy as np
 from multiprocessing import Process, Pool
 
 
@@ -42,20 +43,26 @@ def mix_lists(lists):
 def sleep_time(target_tp, num_clients):
     return (1 / target_tp) * num_clients
 
+def reject_outliers(data, m = 2.):
+    d = np.abs(data - np.median(data))
+    mdev = np.median(d)
+    s = d/mdev if mdev else 0.
+    return data[s<m]
 
 class Results():
     def __init__(self, num_clients) -> None:
         sharing = multiprocessing.Manager()
         self.tp = []
         self.latency = sharing.list()
+        self.latency_result = []
 
-    def get_latency(self):
-        res = []
+    def hanlde_latency(self):
         for l in self.latency:
             if l != 0:
-                res.append(l / 1000000)
+                self.latency_result.append(l / 1000000)
 
-        return res
+    def get_latency(self):        
+        return reject_outliers(reject_outliers(np.array(self.latency_result)))
 
 
 class ExperimentData():
@@ -217,7 +224,7 @@ class RCExperimentData(GCExperimentData):
 
 class TestRunner():
     
-    def __init__(self, nodes, multiplier, data, SharedManager) -> None:
+    def __init__(self, nodes, multiplier, data, SharedManager, measuredops = []) -> None:
         self.nodes = nodes
         self.num_nodes = len(nodes)
         self.num_clients = math.ceil(self.num_nodes * multiplier)
@@ -226,6 +233,7 @@ class TestRunner():
         self.crdts = [self.data.CRDT(s) for s in self.connections]
         self.timing = False
         self.do_reverse = False
+        self.measuredops = ["g"]
         self.results = Results(self.num_clients)
         self.rid = SharedManager.dict()
         self.sleeptime = 0
@@ -281,6 +289,7 @@ class TestRunner():
         for req in list_reqs:
             if self.sleeptime > 0:
                 time.sleep(self.sleeptime)
+
             start = time.time_ns() 
             
             if self.do_reverse:
@@ -298,8 +307,9 @@ class TestRunner():
             end = time.time_ns() 
 
             if (self.timing):
-                temp.append(end - start)
-        
+                if self.measuredops == [] or req[0] in self.measuredops:
+                    temp.append(end - start)
+
         for l in temp:
             self.results.latency.append(l)
 
@@ -327,7 +337,7 @@ class TestRunner():
         end = time.time()
 
         self.results.tp = (ops_per_object * len(self.data.keys)) / (end - start)
-        
+        self.results.hanlde_latency()
         
 
         
@@ -373,7 +383,11 @@ if __name__ == "__main__":
 
     print("Experiment ends")
     
+    print("Throughput:")
     print(tr.results.tp)
-    print( sum(tr.results.get_latency()) / len(tr.results.get_latency()))
+    print("Mean Latency")
+    print(np.average(tr.results.get_latency()))
+    print("Latency std")
+    print(np.std(tr.results.get_latency()))
 
 
