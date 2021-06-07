@@ -385,8 +385,8 @@ if __name__ == "__main__":
     
     print("Throughput:")
     print(tr.results.tp)
-    print("Mean Latency")
-    print(np.average(tr.results.get_latency()))
+    print("Median Latency")
+    print(np.median(tr.results.get_latency()))
     print("Latency std")
     print(np.std(tr.results.get_latency()))
 

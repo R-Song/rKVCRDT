@@ -71,7 +71,7 @@ def stop_server():
     try:
         with open("temp.txt", "r") as ftemp:
             pid = ftemp.readline()
-            print("Server started at pid:")
+            print("Server stopped at pid:")
             while(pid):
                 try:
                     os.kill(int(pid.strip()), signal.SIGTERM)  
