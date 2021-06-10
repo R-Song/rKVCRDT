@@ -4,6 +4,7 @@ import socket
 import os
 import subprocess
 import time
+import psutil
 
 
 SERVER_PATH = "D:/md/Project_RAC/RAC"
@@ -70,15 +71,23 @@ def stop_server():
 
     try:
         with open("temp.txt", "r") as ftemp:
-            pid = ftemp.readline()
-            print("Server stopped at pid:")
+            pid = int(ftemp.readline())
+            print("Server stopped with pid:")
             while(pid):
+                print(pid)
                 try:
-                    os.kill(int(pid.strip()), signal.SIGTERM)  
+                    os.kill(pid, signal.SIGTERM)  
+                    print(pid)
                 except OSError:
                     continue
-                print(pid.strip())
-                pid = ftemp.readline()
+                finally:
+                    try:
+                        pid = int(ftemp.readline())
+                    except ValueError:
+                        break
+
+                
+                
     except FileNotFoundError:
         raise IndentationError("Servers are not started!")
 
