@@ -1,5 +1,6 @@
 using System;
 using RAC.Payloads;
+using static RAC.Errors.Log;
 
 namespace RAC.Operations
 {
@@ -26,6 +27,10 @@ namespace RAC.Operations
         {
             history.Merge(parameters.GetParam<string>(0), parameters.GetParam<int>(1));
             return new Responses(Status.success);
+        }
+
+        public new void Save()
+        {
         }
     }
 }

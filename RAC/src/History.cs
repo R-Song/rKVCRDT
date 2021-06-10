@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using RAC.Payloads;
@@ -5,6 +6,7 @@ using RAC.Operations;
 using Newtonsoft.Json;
 using static RAC.Errors.Log;
 using System.Linq;
+
 
 /// <summary>
 /// These classes are for reversible CRDT.
@@ -24,14 +26,14 @@ namespace RAC.History
         public string time;
         public HashSet<string> related;
         // use to mark if this op is a reverse op
-        public bool revflag = false;
+        public bool isrev = false;
 
         // graph pointers
         public List<String> aft;
         // prev used for sync'd ops to link
         public List<String> prev;
 
-        public StateHisotryEntry(string uid, string opid, string before, string after, string time)
+        public StateHisotryEntry(string uid, string opid, string before, string after, string time, bool isrev)
         {   
             this.opid = opid;
             this.before = before;
@@ -40,6 +42,7 @@ namespace RAC.History
             this.related = new HashSet<string>();
             this.aft = new List<string>();
             this.prev = new List<string>();
+            this.isrev = isrev;
         }
     }
     
@@ -74,12 +77,12 @@ namespace RAC.History
         /// <param name="payloadToStr"></param>
         /// <param name="time"></param>
         /// <returns></returns>
-        public string AddNewEntry(Payload before, Payload after, PayloadToStrDelegate payloadToStr, Clock time = null)
+        public string AddNewEntry(Payload before, Payload after, PayloadToStrDelegate payloadToStr, bool rev = false, Clock time = null)
         {
             string beforestr = payloadToStr(before);
             string afterstr = payloadToStr(after);
 
-            return InsertEntry(beforestr, afterstr, time);
+            return AddNewEntry(beforestr, afterstr, rev, time);
         }
         
         /// <summary>
@@ -91,19 +94,18 @@ namespace RAC.History
         /// <returns></returns>
         public string AddNewEntry(string before, string after, bool rev = false, Clock time = null)
         {
-            var opid = InsertEntry(before, after);
-            this.log[opid].revflag = rev; 
+            var opid = InsertEntry(before, after, rev);
             return opid;
         }
 
-        private string InsertEntry(string before, string after, Clock time = null)
+        private string InsertEntry(string before, string after, bool rev, Clock time = null)
         {
             if (time is null)   
                 time = this.curTime;
 
             string opid = time.ToString();
 
-            StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, opid, before, after, time.ToString());
+            StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, opid, before, after, time.ToString(), rev);
             this.log.Add(opid, newEntry);
 
             foreach (var i in this.heads)
@@ -185,7 +187,7 @@ namespace RAC.History
                     // in case prev op is not sync'd yet, create a placeholder, see above also
                     if (!this.log.ContainsKey(i))
                     {
-                        StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, i, "", "", "");
+                        StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, i, "", "", "", false);
                         this.log[i] = newEntry;
                     }
                         
@@ -324,7 +326,7 @@ namespace RAC.History
                 {
 
                     // a new level (BFS)
-                    if (!op.revflag)
+                    if (!op.isrev)
                     {
                         if (concurrents.Count == 0)
                             concurrents.Add(opid);
@@ -398,6 +400,127 @@ namespace RAC.History
             }
 
             return res;
+        }
+    }
+
+    public class OpHistoryEager : OpHistory
+    {
+
+        public delegate void CompensateMethod(string opid);
+        public CompensateMethod Compensate;
+
+        public OpHistoryEager(string uid, CompensateMethod compensate) : base(uid)
+        {      
+            this.Compensate = compensate;
+        }
+
+        /// <summary>
+        /// still overrides to keep things consistent
+        /// </summary>
+        /// <param name="opid"></param>
+        public new void addTombstone(string opid)
+        {
+            addTombstone(opid, true);
+        }
+
+        /// <summary>
+        /// Also applying compenstation while revresing
+        /// </summary>
+        /// <param name="opid"></param>
+        public void addTombstone(string opid, bool sync)
+        {
+            tombstone.Add(opid);
+            if (sync)
+                Sync(opid, 1);
+
+            // reverse things
+            string starttime;
+            string endtime;
+            
+            this.GetEntry(opid, out starttime, out endtime, out _);
+
+            List<String> toReversed = this.CasualSearch(starttime, endtime);
+
+            DEBUG("Compenstating eagerly");
+
+            foreach (var ops in toReversed)
+            {   
+                this.Compensate(ops);
+            }
+        }
+
+        public new void Merge(string otherop, int status)
+        {
+            if (status == 0)
+            {
+                StateHisotryEntry op = JsonConvert.DeserializeObject<StateHisotryEntry>(otherop);
+                DEBUG("Merging new op " + otherop);
+                Clock optime = Clock.FromString(op.time);
+                curTime.Merge(optime);
+
+                // if an empty place holder already created to hold
+                // the pointers, update that
+                string opid = op.opid;
+                if (this.log.ContainsKey(opid))
+                    op.prev.AddRange(this.log[opid].prev);
+
+
+
+                this.log[op.opid] = op;
+
+                // update the pointers
+                foreach (var i in op.prev)
+                {   
+                    // in case prev op is not sync'd yet, create a placeholder, see above also
+                    if (!this.log.ContainsKey(i))
+                    {
+                        StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, i, "", "", "", true);
+                        this.log[i] = newEntry;
+                    }
+                        
+                    this.log[i].aft.Add(opid);
+                }
+
+                // check if reversing needed
+                // calculated ones been reversed
+                foreach (var tombed in this.tombstone)
+                {
+                    string starttime;
+                    string endtime;
+                    
+                    this.GetEntry(tombed, out starttime, out endtime, out _);
+
+                    Clock st = Clock.FromString(starttime);
+                    Clock et = Clock.FromString(endtime);
+
+                   if ((optime.CompareVectorClock(st) == 1 && optime.CompareVectorClock(et) < 1) || 
+                        (optime.ToString().Equals(starttime)))    
+                    {
+                        this.Compensate(opid); 
+                        break;
+                    }
+                   
+                }
+
+            }
+            else if (status == 1)
+            {
+                DEBUG("Merging tombstone op " + otherop);
+                this.addTombstone(otherop, false);
+            }
+            else if (status == 2)
+            {
+                StateHisotryEntry op = JsonConvert.DeserializeObject<StateHisotryEntry>(otherop);
+                DEBUG("Merging new related op " + otherop);
+
+                foreach (var r in op.related)
+                {
+                    // hashset automatically remove duplicate
+                    this.log[op.opid].related.Add(r);   
+                }
+
+            }
+
         }
     }
 }

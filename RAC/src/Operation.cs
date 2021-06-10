@@ -1,4 +1,5 @@
-using System;
+#define EAGER
+//#undef EAGER
 
 using RAC.Payloads;
 using RAC.Errors;
@@ -17,7 +18,12 @@ namespace RAC.Operations
         public string uid { get; }
         public abstract string typecode { get; set; }
         public Parameters parameters { protected set; get; }
+        
+#if EAGER
+        public OpHistoryEager history;
+#else 
         public OpHistory history;
+#endif
 
         /// <summary>
         /// Payload that actually holds the states of a CRDT.
@@ -51,6 +57,20 @@ namespace RAC.Operations
                 this.payload = null;
             }
 
+#if EAGER
+            try
+            {
+                this.history = (OpHistoryEager)Global.memoryManager.history[uid];
+                if (!(this is HistoryHandler))
+                    history.Compensate = this.Compensate;
+            }
+            catch (System.Collections.Generic.KeyNotFoundException)
+            {
+                Global.memoryManager.history.Add(uid, new OpHistoryEager(uid, this.Compensate));
+                this.history = (OpHistoryEager)Global.memoryManager.history[uid];
+
+            }
+#else 
             try
             {
                 this.history = Global.memoryManager.history[uid];
@@ -61,6 +81,8 @@ namespace RAC.Operations
                 this.history = Global.memoryManager.history[uid];
 
             }
+#endif
+
             
         }
 
@@ -122,6 +144,14 @@ namespace RAC.Operations
             // TODO: deletion things
 
             return res;
+        }
+
+        /// <summary>
+        /// Used for reverse
+        /// </summary>
+        public virtual void Compensate(string opid)
+        {
+            
         }
 
     }

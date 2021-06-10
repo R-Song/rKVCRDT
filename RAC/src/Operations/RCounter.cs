@@ -1,3 +1,6 @@
+#define EAGER
+//#undef EAGER
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,7 +40,8 @@ namespace RAC.Operations
                 int pos = payload.PVector.Sum();
                 int neg = payload.NVector.Sum();
                 int compensate = 0;
-
+#if EAGER
+#else
                 // calculated ones been reversed
                 foreach (var tombed in this.history.tombstone)
                 {
@@ -47,8 +51,6 @@ namespace RAC.Operations
                     history.GetEntry(tombed, out starttime, out endtime, out _);
 
                     List<String> toReversed = history.CasualSearch(starttime, endtime);
-
-                    
 
                     foreach (var ops in toReversed)
                     {   
@@ -65,14 +67,14 @@ namespace RAC.Operations
                         compensate -= diff;
                     }
                 }
-
+#endif
                 DEBUG("actual value: " + (pos - neg).ToString() + " compensate: " + compensate);
 
                 res = new Responses(Status.success);
                 res.AddResponse(Dest.client, (pos - neg + compensate).ToString()); 
             }
+
             noSideEffect = true;
-            
             return res;
         }
 
@@ -187,6 +189,34 @@ namespace RAC.Operations
             string broadcast = Parser.BuildCommand(this.typecode, "y", this.uid, syncPm);
             
             res.AddResponse(Dest.broadcast, broadcast, false);
+        }
+
+        public override void Compensate(string opid)
+        {
+
+            RCounterPayload rcafter;
+            RCounterPayload rcbefore;
+
+            history.GetEntry(opid, RCounterPayload.StrToPayload, out rcbefore, out rcafter, out _);
+
+            int compensate = (rcbefore.PVector.Sum() - rcbefore.NVector.Sum()) - 
+                        (rcafter.PVector.Sum() - rcafter.NVector.Sum());
+
+
+            if (compensate != 0)
+            {   
+                var pChange = rcafter.PVector.Zip(rcbefore.PVector, (one, two) => one - two).ToList();
+                var nChange = rcafter.NVector.Zip(rcbefore.NVector, (one, two) => one - two).ToList();
+                    
+                for (int i = 0; i < this.payload.PVector.Count; i++)
+                {
+                    this.payload.PVector[i] += nChange[i];
+                    this.payload.NVector[i] += pChange[i];
+                }
+            }
+
+            DEBUG("compensate: " + compensate + " applied on states for " + uid);
+
         }
 
     }
