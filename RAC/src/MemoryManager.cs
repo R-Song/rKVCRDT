@@ -9,8 +9,9 @@ namespace RAC
 {
     public class MemoryManager
     {
-        // TODO: a better storage system
+
         private Dictionary<string, Payload> storage;
+        // TODO: make history private
         public Dictionary<string, OpHistory> history;
 
         public MemoryManager()
