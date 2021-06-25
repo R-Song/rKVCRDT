@@ -1,5 +1,5 @@
 class Type:
-	GCOUNTER = "gc"
+	PNCOUNTER = "pnc"
 	RCOUNTER = "rc"
 	ORSET = "os"
 	RGRAPH = "rg"

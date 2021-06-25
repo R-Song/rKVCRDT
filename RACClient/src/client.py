@@ -4,7 +4,7 @@ import socket
 import random
 import time
 import sys
-from type.GCounter import GCounter
+from type.GCounter import PNCounter
 from type.RCounter import RCounter
 from type.ORSet import ORSet
 from type.RGraph import RGraph
@@ -95,8 +95,8 @@ if __name__ == "__main__":
             opcode = text[2]
             typeClass = None
 
-            if (typecode == Type.GCOUNTER):
-                typeClass = GCounter(s)
+            if (typecode == Type.PNCOUNTER):
+                typeClass = PNCounter(s)
 
             elif (typecode == Type.RCOUNTER):
                 typeClass = RCounter(s)

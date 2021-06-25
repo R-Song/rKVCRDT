@@ -18,13 +18,13 @@ namespace RAC.Operations
     ///     Add content to Response res.AddResponse(Dest dest, string content = "", bool includeStatus = true)
     /// Access op history: this.history
     /// </summary>
-    public class PNC : Operation<PNCPayload>
+    public class PNCounter : Operation<PNCPayload>
     {
 
         // todo: set this to its typecode
-        public override string typecode { get ; set; } = "nc";
+        public override string typecode { get ; set; } = "pnc";
 
-        public PNC(string uid, Parameters parameters) : base(uid, parameters)
+        public PNCounter(string uid, Parameters parameters) : base(uid, parameters)
         {
             // todo: put any necessary data here
         }
@@ -67,13 +67,36 @@ namespace RAC.Operations
 
             this.payload = pl;
 
-            GenerateSyncRes(ref res, "");
+            GenerateSyncRes(ref res);
             res.AddResponse(Dest.client); 
             
             return res;
         }
 
-        private void GenerateSyncRes(ref Responses res, string newop)
+        public Responses Increment()
+        {   
+            this.payload.PVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
+
+            Responses res = new Responses(Status.success);
+            res.AddResponse(Dest.client);
+            GenerateSyncRes(ref res);
+            return res;
+
+        }
+
+        public Responses Decrement()
+        {            
+            this.payload.NVector[this.payload.replicaid] += this.parameters.GetParam<int>(0);
+
+            Responses res = new Responses(Status.success);
+            res.AddResponse(Dest.client); 
+            GenerateSyncRes(ref res);
+
+            return res;
+
+        }
+
+        private void GenerateSyncRes(ref Responses res)
         {
             Parameters syncPm = new Parameters(2);
             syncPm.AddParam(0, this.payload.PVector);

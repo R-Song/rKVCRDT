@@ -65,7 +65,7 @@ class RCounter:
                 rid = ""
             print(self.inc(uid, value, rid))
         elif (opcode == Action.DECREMENT):
-            value = text[5]
+            value = text[3]
             try:
                 rid = text[4]
             except:
