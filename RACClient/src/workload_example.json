@@ -3,6 +3,7 @@
     "nodes": ["192.168.0.11:5000"],
     "client_multiplier": 3,
 
+    "typecode": "pnc",
     "total_objects" : 100,
 
     "prep_ops_pre_obj" : 1000,

@@ -21,6 +21,8 @@ class VAR_TYPE(Enum):
     INT = 1
     STRING = 2
 
+
+
 def rand_str(n):
     return ''.join(random.choices(string.ascii_uppercase +
                              string.digits, k = n)) 
@@ -117,9 +119,9 @@ class ExperimentData():
 
         return res
 
-class GCExperimentData(ExperimentData):
+class PNCExperimentData(ExperimentData):
     def CRDT(self, server):
-        return GCounter(server)
+        return PNCounter(server)
 
     def generate_init_req(self):
         res = []
@@ -132,25 +134,32 @@ class GCExperimentData(ExperimentData):
 
 
     def generate_op_values(self, num_ops, ops_ratio, reverse=0):
+        '''
+        reverse: num of reverse each key has
+        '''
         res = []
-        values = self._generate_values(num_ops, VAR_TYPE.INT)
-        ops = self._generate_ops(num_ops, ops_ratio, ["i", "g"])
-        assert len(ops) == len(values)
-        kidx = 0
-        for i in range(len(values)):
-            k = self.keys[kidx]
-            v = values[i]
-            op = ops[i]
-            res.append((op, k, v))
-            kidx += 1
-            if (kidx == len(self.keys)):
-                kidx = 0
-    
+
+        for k in self.keys:
+            
+            reqs = []
+            values = self._generate_values(num_ops, VAR_TYPE.INT)
+            ops = self._generate_ops(num_ops, ops_ratio, ["i", "d", "g"])
+            assert len(ops) == len(values)
+
+            for i in range(len(values)):
+                v = values[i]
+                op = ops[i]
+                reqs.append((op, k, v))
+
+            res.append(reqs)
+
         return res
 
     def op_execute(self, crdt, req, last_res=""):
         op = req[0]
         key = req[1]
+
+
         v = req[2]
         if op == "g":
             res = crdt.get(key)
@@ -158,10 +167,12 @@ class GCExperimentData(ExperimentData):
             res = crdt.set(key, v)
         elif op == "i":
             res = crdt.inc(key, v)
+        elif op == "d":
+            res = crdt.dec(key, v)
 
         return res
 
-class RCExperimentData(GCExperimentData):
+class RCExperimentData(PNCExperimentData):
     def CRDT(self, server):
         return RCounter(server)
 
@@ -221,7 +232,6 @@ class RCExperimentData(GCExperimentData):
 
         return res
 
-
 class TestRunner():
     
     def __init__(self, nodes, multiplier, data, SharedManager, measuredops = []) -> None:
@@ -244,22 +254,28 @@ class TestRunner():
     def _connect(self):
         res = []
         i = 0
+        print("Connecting to servers:" + str(self.nodes))
         for _ in range(self.num_clients):
             adddress = self.nodes[i]
             ip, port = split_ipport(adddress)
             s = Server(ip, port)
-            s.connect()
+            
+            if (s.connect() == 0):
+                print("Connection failed, exiting")
+                exit()
+
             res.append(s)
 
             i += 1
             if i == len(self.nodes):
                 i = 0
-
+        print("Connection complete")
         return res
 
     def init_data(self):
         reqs = self.data.generate_init_req()
         c = 0
+
         for r in reqs:
             res = self.data.op_execute(self.crdts[c], r)
             if not res[0]:
@@ -338,7 +354,17 @@ class TestRunner():
 
         self.results.tp = (ops_per_object * len(self.data.keys)) / (end - start)
         self.results.hanlde_latency()
-        
+
+
+TYPECODE_MAP = {
+    "pnc": PNCExperimentData,
+    "rc": RCExperimentData
+}
+
+
+def select_exp(typecode:str, total_objects:int) -> ExperimentData:
+    return TYPECODE_MAP[typecode](total_objects)
+
 
         
 if __name__ == "__main__":
@@ -347,13 +373,13 @@ if __name__ == "__main__":
 
     with open('workload.json') as wl_file:
         workload = json.loads(wl_file.read())
-    
-    print(workload)
 
     nodes = workload["nodes"]
     client_multiplier = workload["client_multiplier"]
 
+    typecode = workload["typecode"]
     total_objects = workload["total_objects"]
+
 
     prep_ops_pre_obj = workload["prep_ops_pre_obj"]
     num_reverse = workload["num_reverse"]
@@ -363,9 +389,8 @@ if __name__ == "__main__":
     ops_per_object = workload["ops_per_object"]
     op_ratio = workload["op_ratio"]
     target_throughput = workload["target_throughput"]
-
-    #td = GCExperimentData(total_objects)   
-    td = RCExperimentData(total_objects)
+ 
+    td = select_exp(typecode, total_objects)
 
     print("Starting experiment...")
     print("Total " + str(len(nodes)) + " server and " + str(math.ceil(len(nodes) * client_multiplier)) + " client")
