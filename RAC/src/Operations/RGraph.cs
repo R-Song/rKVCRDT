@@ -1,3 +1,6 @@
+#define EAGER
+//#undef EAGER
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +37,9 @@ namespace RAC.Operations
 
             Responses res = new Responses(Status.success);
 
+#if EAGER
+#else
+
             var addedVertices = new HashSet<(string value, string tag)>();
             var removedVertices = new HashSet<(string value, string tag)>();
             var addedEdges = new HashSet<((string v1, string v2), string tag)>();
@@ -53,11 +59,36 @@ namespace RAC.Operations
                     HandleSavedState(op, addedVertices, removedVertices, addedEdges, removedEdges);
                 }
             }
+#endif
 
             StringBuilder sb = new StringBuilder();
 
+#if EAGER
+            // vertices
+            sb.Append("Vertices:\n");
+            foreach (var v in this.payload.vertices)
+            {
+                // remove
+                sb.Append(v.value + "|");
+            }
+
+            sb.Append("\nEdges:\n");
+
+            foreach (var e in this.payload.edges)
+            {
+                string v1 = e.Item1.v1;
+                string v2 = e.Item1.v2;
+
+                // remove
+                if (lookup(v1) == (null, null) ||
+                    lookup(v2) == (null, null))
+                    continue;
+                else
+                    sb.Append("<" + v1 + "," + v2 + ">");
+            }
 
 
+#else
             // vertices
             sb.Append("Vertices:\n");
             foreach (var v in this.payload.vertices)
@@ -94,11 +125,45 @@ namespace RAC.Operations
             {
                 sb.Append("<" + e.Item1.v1 + "," + e.Item1.v2 + ">");
             }
-
+#endif
             // TODO: wait for client to recognize long strings
-            res.AddResponse(Dest.client, "");//sb.ToString());
+            // TODO: ^ i forgot what this means
+            res.AddResponse(Dest.client, sb.ToString());//sb.ToString());
             return res;
         }
+
+        public override void Compensate(string opid)
+        {
+                var op = this.history.log[opid];
+                var addedVertices = new HashSet<(string value, string tag)>();
+                var removedVertices = new HashSet<(string value, string tag)>();
+                var addedEdges = new HashSet<((string v1, string v2), string tag)>();
+                var removedEdges = new HashSet<((string v1, string v2), string tag)>();
+
+                HandleSavedState(op, addedVertices, removedVertices, addedEdges, removedEdges);
+                foreach (var av in addedVertices)
+                {
+                    this.payload.vertices.Add(av);
+                }
+
+                foreach (var rv in removedVertices)
+                {
+                    this.payload.vertices.Remove(rv);
+                }
+
+                foreach (var ae in addedEdges)
+                {
+                    this.payload.edges.Add(ae);
+                }
+
+                foreach (var re in removedEdges)
+                {
+                    this.payload.edges.Remove(re);
+                }
+
+
+        }
+
 
         private void HandleSavedState(in StateHisotryEntry op,
                                     in HashSet<(string, string)> addedVertices,
@@ -136,6 +201,8 @@ namespace RAC.Operations
 
         }
 
+
+
         public override Responses SetValue()
         {
             this.payload = new RGraphPayload(uid);
@@ -149,19 +216,19 @@ namespace RAC.Operations
         public Responses AddVertex()
         {
             string tag = UniqueTag();
-            var v = (this.parameters.GetParam<string>(0), tag);
+            (string, string)v = (this.parameters.GetParam<string>(0), tag);
             this.payload.vertices.Add(v);
 
             // history
             string opid = this.history.AddNewEntry("", v.ToString());
             this.payload.vaddops[v.Item1] = opid;
-            
+            DEBUG("Vertex " + v.Item1 + " with opid " + opid + " added");
             Responses res = new Responses(Status.success);
             res.AddResponse(Dest.client, opid);
-            GenerateSyncRes(ref res, "av", v.ToString());
+            GenerateSyncRes(ref res, "av", v.ToString(), v.Item1+ "," + opid);
             return res;
         }
-
+        
         public Responses RemoveVertex()
         {
             string value = this.parameters.GetParam<string>(0);
@@ -297,6 +364,14 @@ namespace RAC.Operations
             string type = this.parameters.GetParam<string>(0);
             string update = this.parameters.GetParam<string>(1);
             var updateSplit = update.Split(",").Select(x => x.Trim(')', '(', ' ')).ToArray();
+            
+            string[] vaddopSplit = {};
+            if (type == "av")
+            {
+                string vaddop = this.parameters.GetParam<string>(2);
+                vaddopSplit = vaddop.Split(",").Select(x => x.Trim(')', '(', ' ')).ToArray();
+            }
+
 
             switch (type)
             {
@@ -306,6 +381,7 @@ namespace RAC.Operations
                 case "av":
                     var v = (updateSplit[0], updateSplit[1]);
                     this.payload.vertices.Add(v);
+                    this.payload.vaddops[vaddopSplit[0]] = vaddopSplit[1];
                     break;
                 case "rv":
                     var vremove = (updateSplit[0], updateSplit[1]);
@@ -325,9 +401,13 @@ namespace RAC.Operations
             return new Responses(Status.success);
         }
 
-        private void GenerateSyncRes(ref Responses res, string type, string update)
-        {
-            Parameters syncPm = new Parameters(2);
+        private void GenerateSyncRes(ref Responses res, string type, string update, string vaddops = "")
+        {   
+            Parameters syncPm;
+            if (vaddops == "")
+                syncPm = new Parameters(2);
+            else
+                syncPm = new Parameters(3);
 
             // type: 
             // "n": new graph
@@ -338,16 +418,19 @@ namespace RAC.Operations
             syncPm.AddParam(0, type);
             // effect-update msg
             syncPm.AddParam(1, update);
+            if (vaddops != "")
+                syncPm.AddParam(2, vaddops);
 
             string broadcast = Parser.BuildCommand(this.typecode, "y", this.uid, syncPm);
             res.AddResponse(Dest.broadcast, broadcast, false);
         }
 
 
+        // TODO: not entirely working when vertices added on different clients...
         public Responses Reverse()
         {
             string opid = this.parameters.GetParam<string>(0);
-            this.history.addTombstone(opid);
+            this.history.addTombstone(opid, 1);
 
             var res = new Responses(Status.success);
             res.AddResponse(Dest.client);
@@ -365,6 +448,7 @@ namespace RAC.Operations
             }
             return result.ToString();
         }
+
 
     }
 

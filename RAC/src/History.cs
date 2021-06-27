@@ -11,6 +11,7 @@ using System.Linq;
 /// <summary>
 /// These classes are for reversible CRDT.
 /// For normal CRDT, this module does not needed to be included.
+/// TODO: clean up this mess
 /// </summary>
 namespace RAC.History
 {
@@ -164,7 +165,7 @@ namespace RAC.History
         /// </summary>
         /// <param name="otherop"></param>
         /// <param name="status"></param>
-        public void Merge(string otherop, int status)
+        public void Merge(string otherop, int status, int searchtype = 0)
         {
             if (status == 0)
             {
@@ -234,15 +235,17 @@ namespace RAC.History
         /// </summary>
         /// <param name="newop"></param>
         /// <param name="status">0 = op, 1 = tombstone, 2 = related</param>
-        public void Sync(StateHisotryEntry newop, int status = 0)
+        /// <param name="searchtype">0 = causal, 1 = logical</param>
+        public void Sync(StateHisotryEntry newop, int status = 0, int searchtype = 0)
         {
             DEBUG("Syncing new op " + newop.opid);
             string json = JsonConvert.SerializeObject(newop, Formatting.Indented);
             
             Responses res = new Responses(Status.success);
-            Parameters syncPm = new Parameters(2);
+            Parameters syncPm = new Parameters(3);
             syncPm.AddParam(0, json);
             syncPm.AddParam(1, status);
+            syncPm.AddParam(2, searchtype);
             string broadcast = Parser.BuildCommand("h", "y", this.uid, syncPm);
 
             res.AddResponse(Dest.broadcast, broadcast, false);
@@ -250,14 +253,16 @@ namespace RAC.History
 
         }   
 
-        public void Sync(string newop, int status = 0)
+        // TODO: somehow combine this and above...
+        public void Sync(string newop, int status = 0, int searchtype = 0)
         {
             DEBUG("Syncing new op " + newop);
             
             Responses res = new Responses(Status.success);
-            Parameters syncPm = new Parameters(2);
+            Parameters syncPm = new Parameters(3);
             syncPm.AddParam(0, newop);
             syncPm.AddParam(1, status);
+            syncPm.AddParam(2, searchtype);
             string broadcast = Parser.BuildCommand("h", "y", this.uid, syncPm);
 
             res.AddResponse(Dest.broadcast, broadcast, false);
@@ -386,7 +391,7 @@ namespace RAC.History
         /// </summary>
         /// <param name="opid"></param>
         /// <returns>opids of found ops</returns>
-        public List<string> Related(string opid)
+        public List<string> LogicalSearch(string opid)
         {
             List<string> res = new List<string>();
             Stack<string> toSearch = new Stack<string>();
@@ -401,6 +406,7 @@ namespace RAC.History
 
             return res;
         }
+
     }
 
     public class OpHistoryEager : OpHistory
@@ -416,22 +422,29 @@ namespace RAC.History
 
         /// <summary>
         /// still overrides to keep things consistent
+        /// TODO: clean this thing up
         /// </summary>
         /// <param name="opid"></param>
         public new void addTombstone(string opid)
         {
-            addTombstone(opid, true);
+            addTombstone(opid, true, 0);
+        }
+
+        public void addTombstone(string opid, int searchtype)
+        {
+            addTombstone(opid, true, searchtype);
         }
 
         /// <summary>
         /// Also applying compenstation while revresing
         /// </summary>
         /// <param name="opid"></param>
-        public void addTombstone(string opid, bool sync)
+        /// <param name="searchtype">0 = causal; 1 = logical</param>
+        public void addTombstone(string opid, bool sync, int searchtype = 0)
         {
             tombstone.Add(opid);
             if (sync)
-                Sync(opid, 1);
+                Sync(opid, 1, searchtype);
 
             // reverse things
             string starttime;
@@ -439,7 +452,13 @@ namespace RAC.History
             
             this.GetEntry(opid, out starttime, out endtime, out _);
 
-            List<String> toReversed = this.CasualSearch(starttime, endtime);
+            List<String> toReversed;
+            if (searchtype == 0)
+                toReversed = this.CasualSearch(starttime, endtime);
+            else if (searchtype == 1)
+                toReversed = this.LogicalSearch(opid);
+            else // stop foreach below complain
+                toReversed = this.CasualSearch(starttime, endtime);
 
             DEBUG("Compenstating eagerly");
 
@@ -449,7 +468,7 @@ namespace RAC.History
             }
         }
 
-        public new void Merge(string otherop, int status)
+        public new void Merge(string otherop, int status, int searchtype)
         {
             if (status == 0)
             {
@@ -463,8 +482,6 @@ namespace RAC.History
                 string opid = op.opid;
                 if (this.log.ContainsKey(opid))
                     op.prev.AddRange(this.log[opid].prev);
-
-
 
                 this.log[op.opid] = op;
 
@@ -485,19 +502,32 @@ namespace RAC.History
                 // calculated ones been reversed
                 foreach (var tombed in this.tombstone)
                 {
-                    string starttime;
-                    string endtime;
-                    
-                    this.GetEntry(tombed, out starttime, out endtime, out _);
-
-                    Clock st = Clock.FromString(starttime);
-                    Clock et = Clock.FromString(endtime);
-
-                   if ((optime.CompareVectorClock(st) == 1 && optime.CompareVectorClock(et) < 1) || 
-                        (optime.ToString().Equals(starttime)))    
+                    if (searchtype == 1)
                     {
-                        this.Compensate(opid); 
-                        break;
+                        string starttime;
+                        string endtime;
+                        
+                        this.GetEntry(tombed, out starttime, out endtime, out _);
+
+                        Clock st = Clock.FromString(starttime);
+                        Clock et = Clock.FromString(endtime);
+
+                        if ((optime.CompareVectorClock(st) == 1 && optime.CompareVectorClock(et) < 1) || 
+                                (optime.ToString().Equals(starttime)))    
+                            {
+                                this.Compensate(opid); 
+                                break;
+                            }
+                    }
+                    else if (searchtype == 2)
+                    {
+                        if (LogicalSearch(tombed).Contains(opid))
+                        {
+                            this.Compensate(opid);
+                            break;
+                        }
+                            
+
                     }
                    
                 }
@@ -506,7 +536,7 @@ namespace RAC.History
             else if (status == 1)
             {
                 DEBUG("Merging tombstone op " + otherop);
-                this.addTombstone(otherop, false);
+                this.addTombstone(otherop, false, searchtype);
             }
             else if (status == 2)
             {

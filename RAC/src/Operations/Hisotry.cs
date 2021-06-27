@@ -25,7 +25,7 @@ namespace RAC.Operations
 
         public override Responses Synchronization()
         {
-            history.Merge(parameters.GetParam<string>(0), parameters.GetParam<int>(1));
+            history.Merge(parameters.GetParam<string>(0), parameters.GetParam<int>(1), parameters.GetParam<int>(2));
             return new Responses(Status.success);
         }
 

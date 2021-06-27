@@ -34,7 +34,7 @@ namespace RAC
             AddNewAPI("HistoryHandler", "GetValue", "g", "");
             // not used, just to keep parser happy
             AddNewAPI("HistoryHandler", "SetValue", "s", "");
-            AddNewAPI("HistoryHandler", "Synchronization", "y", "string, int");
+            AddNewAPI("HistoryHandler", "Synchronization", "y", "string, int, int");
 
             // Performance monitor, DO NOT CHANGE THIS
             AddNewType("PerformanceMonitor", "pref");
@@ -91,7 +91,7 @@ namespace RAC
             AddNewAPI("RGraph", "RemoveVertex", "rv", "string");
             AddNewAPI("RGraph", "AddEdge", "ae", "string, string");
             AddNewAPI("RGraph", "RemoveEdge", "re", "string, string");
-            AddNewAPI("RGraph", "Synchronization", "y", "string, string");
+            AddNewAPI("RGraph", "Synchronization", "y", "string, string, string");
             AddNewAPI("RGraph", "Reverse", "r", "string");
         }
     }
