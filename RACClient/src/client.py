@@ -7,6 +7,7 @@ import sys
 from type.GCounter import PNCounter
 from type.RCounter import RCounter
 from type.ORSet import ORSet
+from type.Graph import Graph
 from type.RGraph import RGraph
 from type.Performance import Performance
 from type.helper import res_parse

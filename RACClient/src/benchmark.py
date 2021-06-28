@@ -33,11 +33,14 @@ def split_ipport(address):
 
     return res[0], int(res[1])
 
-def mix_lists(lists):
+def mix_lists(lists) -> list:
+    '''
+    Expand any single nested list
+    '''
     res = []
 
-    for i in range(len(lists[0])):
-        for l in lists:
+    for l in lists:
+        for i in range(len(l)):
             res.append(l[i])
 
     return res
@@ -84,7 +87,10 @@ class ExperimentData():
     def op_execute(self, crdt, req, last_res=""):
         raise NotImplementedError
 
-    def _generate_keys(self):
+    def _generate_keys(self) -> list:
+        '''
+        Return a list of random strings with Key_Len
+        '''
         res = []
         for i in range(self.num_objects):
             res.append(rand_str(KEY_LEN))
@@ -232,6 +238,131 @@ class RCExperimentData(PNCExperimentData):
 
         return res
 
+class GExperimentData(ExperimentData):
+    def CRDT(self, server):
+        return Graph(server)
+
+    def generate_init_req(self):
+        res = []
+        for key in self.keys:
+            res.append(("s", key, ""))
+
+        return res
+
+
+    def generate_op_values(self, num_ops, ops_ratio, reverse=0):
+        '''
+        reverse: num of reverse each key has
+        '''
+        res = []
+
+        num_write_ops = num_ops * ops_ratio[0]
+        num_cycles_per_key = num_write_ops / 5
+
+        num_read_per_cycle = math.floor(num_ops * op_ratio[1] / num_cycles_per_key)
+        print("Each graph has " + str(num_read_per_cycle) + " cycles")
+
+
+        for k in self.keys:
+
+            for _ in range(num_cycles_per_key):
+                values = self._generate_values(3, VAR_TYPE.STRING)
+                
+                ops = self._generate_ops(k, values[0], values[1], values[2])
+                res.append(ops)
+                res.append([("g", k, "")] * num_read_per_cycle)
+                i = i + 1
+
+        return res
+
+    def _generate_ops(self, key, v1, v2, v3):
+        res = []
+        res.append(("av", key, v1))
+        res.append(("av", key, v2))
+        res.append(("av", key, v3))
+        res.append(("ae", key, (v1, v2)))
+        res.append(("ae", key, (v2, v3)))
+
+        return res
+
+    
+
+    def op_execute(self, crdt, req, last_res=""):
+        op = req[0]
+        key = req[1]
+        v = req[2]
+
+        if op == "g":
+            res = crdt.get(key)
+        elif op == "av":
+            res = crdt.addvertex(key, v)
+        elif op == "rv":
+            res = crdt.remvoevertex(key, v)
+        elif op == "ae":
+            res = crdt.addedge(key, v[0], v[1])
+        elif op == "re":
+            res = crdt.removeedge(key, v[0], v[1])
+        elif op == "r":
+            res = crdt.rev(key, last_res)
+
+        return res
+
+class RGExperimentData(GExperimentData):
+    def CRDT(self, server):
+        return RGraph(server)
+
+
+
+    def generate_op_values(self, num_ops, ops_ratio, reverse=0):
+        '''
+        reverse: num of reverse each key has
+        '''
+        res = []
+
+        num_write_ops = num_ops * ops_ratio[0]
+        num_cycles_per_key = math.floor(num_write_ops / 5)
+
+        num_read_per_cycle = math.floor(num_ops * op_ratio[1] / num_cycles_per_key)
+
+        print("Each graph has " + str(num_read_per_cycle) + " cycles")
+        i = 0
+
+        for k in self.keys:
+            for _ in range(num_cycles_per_key):
+                values = self._generate_values(3, VAR_TYPE.STRING)
+                ops = self._generate_ops(k, values[0], values[1], values[2])
+                res.append(ops)
+                res.append([("g", k, "")] * num_read_per_cycle)
+                if (i < num_reverse):
+                    res.append([("r", k, "")])
+                i = i + 1
+
+        return res
+
+
+    def op_execute(self, crdt, req, last_res=""):
+        op = req[0]
+        key = req[1]
+        v = req[2]
+
+        
+        if op == "s":
+            res = crdt.set(key)
+        elif op == "g":
+            res = crdt.get(key)
+        elif op == "av":
+            res = crdt.addvertex(key, v)
+        elif op == "rv":
+            res = crdt.remvoevertex(key, v)
+        elif op == "ae":
+            res = crdt.addedge(key, v[0], v[1])
+        elif op == "re":
+            res = crdt.removeedge(key, v[0], v[1])
+        elif op == "r":
+            res = crdt.rev(key, last_res)
+
+        return res
+
 class TestRunner():
     
     def __init__(self, nodes, multiplier, data, SharedManager, measuredops = []) -> None:
@@ -285,11 +416,14 @@ class TestRunner():
                 c = 0
 
 
-
+    
     def split_work(self, list_reqs):
+        '''
+        list_reqs: expecting [("op", "key", "value"), ("op", "key", "value"), ...]
+        '''
         split = math.ceil(len(list_reqs) / len(self.crdts))
         works = []
-        
+
         for i in range(0, len(list_reqs), split):
             works.append(mix_lists(list_reqs[i:i + split]))
 
@@ -358,7 +492,9 @@ class TestRunner():
 
 TYPECODE_MAP = {
     "pnc": PNCExperimentData,
-    "rc": RCExperimentData
+    "rc": RCExperimentData,
+    "g": GExperimentData,
+    "rg": RGExperimentData
 }
 
 
