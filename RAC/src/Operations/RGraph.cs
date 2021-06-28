@@ -127,8 +127,7 @@ namespace RAC.Operations
             }
 #endif
             // TODO: wait for client to recognize long strings
-            // TODO: ^ i forgot what this means
-            res.AddResponse(Dest.client, sb.ToString());//sb.ToString());
+            res.AddResponse(Dest.client, "");//sb.ToString());
             return res;
         }
 

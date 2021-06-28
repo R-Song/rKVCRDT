@@ -292,7 +292,9 @@ class GExperimentData(ExperimentData):
         key = req[1]
         v = req[2]
 
-        if op == "g":
+        if op == "s":
+            res = crdt.set(key)
+        elif op == "g":
             res = crdt.get(key)
         elif op == "av":
             res = crdt.addvertex(key, v)
@@ -303,7 +305,7 @@ class GExperimentData(ExperimentData):
         elif op == "re":
             res = crdt.removeedge(key, v[0], v[1])
         elif op == "r":
-            res = crdt.rev(key, last_res)
+            res = crdt.reverse(key, last_res)
 
         return res
 
@@ -333,35 +335,12 @@ class RGExperimentData(GExperimentData):
                 ops = self._generate_ops(k, values[0], values[1], values[2])
                 res.append(ops)
                 res.append([("g", k, "")] * num_read_per_cycle)
-                if (i < num_reverse):
+                if (i < reverse):
                     res.append([("r", k, "")])
                 i = i + 1
 
         return res
 
-
-    def op_execute(self, crdt, req, last_res=""):
-        op = req[0]
-        key = req[1]
-        v = req[2]
-
-        
-        if op == "s":
-            res = crdt.set(key)
-        elif op == "g":
-            res = crdt.get(key)
-        elif op == "av":
-            res = crdt.addvertex(key, v)
-        elif op == "rv":
-            res = crdt.remvoevertex(key, v)
-        elif op == "ae":
-            res = crdt.addedge(key, v[0], v[1])
-        elif op == "re":
-            res = crdt.removeedge(key, v[0], v[1])
-        elif op == "r":
-            res = crdt.rev(key, last_res)
-
-        return res
 
 class TestRunner():
     
@@ -448,7 +427,8 @@ class TestRunner():
                 else:
                     try:
                         res = self.data.op_execute(crdt, req)
-                        last_rid[req[1]] = res[1][0]
+                        if res[1][0] != "":
+                            last_rid[req[1]] = res[1][0] 
                     except Exception:
                         continue
             else:

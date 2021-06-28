@@ -60,7 +60,7 @@ def start_server(num_server):
         pid = str(proc.pid)
         print(pid)
         ftemp.write(pid + "\n")
-        time.sleep(0.5)
+        time.sleep(1)
 
     ftemp.close()
 
