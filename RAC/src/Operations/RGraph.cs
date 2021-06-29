@@ -429,7 +429,9 @@ namespace RAC.Operations
         public Responses Reverse()
         {
             string opid = this.parameters.GetParam<string>(0);
+
             this.history.addTombstone(opid, 1);
+
 
             var res = new Responses(Status.success);
             res.AddResponse(Dest.client);

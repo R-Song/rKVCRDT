@@ -1,5 +1,5 @@
 #define EAGER
-//#undef EAGER
+#undef EAGER
 
 using RAC.Payloads;
 using RAC.Errors;
@@ -77,7 +77,7 @@ namespace RAC.Operations
             }
             catch (System.Collections.Generic.KeyNotFoundException)
             {
-                Global.memoryManager.history.Add(uid, new OpHistory(uid));
+                Global.memoryManager.history.Add(uid, new OpHistory(uid, this.Compensate));
                 this.history = Global.memoryManager.history[uid];
 
             }

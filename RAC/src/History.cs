@@ -1,3 +1,6 @@
+#define OPTMIZE
+//#undef OPTMIZE
+//TODO: make these better
 
 using System;
 using System.Collections.Generic;
@@ -17,10 +20,10 @@ namespace RAC.History
 {
     public delegate string PayloadToStrDelegate(Payload pl);
     public delegate T StringToPayloadDelegate<T>(string str);
-    
+
     public class StateHisotryEntry
     {
-        public string nodeid;
+        public int nodeid;
         public string opid;
         public string before;
         public string after;
@@ -35,7 +38,8 @@ namespace RAC.History
         public List<String> prev;
 
         public StateHisotryEntry(string uid, string opid, string before, string after, string time, bool isrev)
-        {   
+        {
+            this.nodeid = Global.selfNode.nodeid;
             this.opid = opid;
             this.before = before;
             this.after = after;
@@ -46,28 +50,60 @@ namespace RAC.History
             this.isrev = isrev;
         }
     }
-    
+
 
     // history of each object
     public class OpHistory
-    {   
-        public string uid;
-        public Dictionary<string, StateHisotryEntry> log;
+    {
+        public string uid { set; get; }
+        public Dictionary<string, StateHisotryEntry> log { set; get; }
 
         // heads of the graph
-        public List<string> heads;
-        // can be used tombstone reverse
-        public List<string> tombstone;
+        public List<string> heads { set; get; }
+        /// <summary>
+        /// Used by bulk reverses
+        /// </summary>
+        /// <value></value>
+        public List<string> tombstone { set; get; }
 
-        public Clock curTime;
+        /// <summary>
+        /// TODO:
+        /// </summary>
+        /// <value></value>
+        public int searchtype { set; get; }
 
-        public OpHistory(string uid)
+        /// <summary>
+        /// Current time
+        /// </summary>
+        /// <value></value>
+        public Clock curTime { set; get; }
+
+        /// <summary>
+        /// Keep track of knowing global states info
+        /// </summary>
+        /// <value></value>
+        public List<Clock> globalTimes { set; get; }
+
+        public delegate void CompensateMethod(string opid);
+        /// <summary>
+        /// Used for compenstation
+        /// </summary>
+        /// <value></value>
+        public CompensateMethod Compensate { set; get; }
+
+        public OpHistory(string uid, CompensateMethod compensate)
         {
             this.uid = uid;
             this.log = new Dictionary<string, StateHisotryEntry>();
             this.heads = new List<string>();
             this.tombstone = new List<string>();
             this.curTime = new Clock(Config.numReplicas, Config.replicaId);
+            this.globalTimes = new List<Clock>(Global.cluster.numNodes);
+            this.Compensate = compensate;
+
+            for (int i = 0; i < globalTimes.Capacity; i++)
+                this.globalTimes.Add(new Clock(globalTimes.Capacity, i));
+
         }
 
         /// <summary>
@@ -85,7 +121,7 @@ namespace RAC.History
 
             return AddNewEntry(beforestr, afterstr, rev, time);
         }
-        
+
         /// <summary>
         /// Add an entry, but states already in strings.
         /// </summary>
@@ -101,7 +137,7 @@ namespace RAC.History
 
         private string InsertEntry(string before, string after, bool rev, Clock time = null)
         {
-            if (time is null)   
+            if (time is null)
                 time = this.curTime;
 
             string opid = time.ToString();
@@ -119,12 +155,14 @@ namespace RAC.History
             // reset head
             this.heads.Clear();
             this.heads.Add(opid);
-            
-            
+
+
             Sync(newEntry);
 
             time.Increment();
             this.curTime = time;
+            this.UpdateGlobalTime(time);
+
             return opid;
         }
 
@@ -144,7 +182,7 @@ namespace RAC.History
             after = stringToPayload(item.after);
             time = Clock.FromString(item.time);
         }
-        
+
         /// <summary>
         /// Get an entry in string form.
         /// </summary>
@@ -172,7 +210,6 @@ namespace RAC.History
                 StateHisotryEntry op = JsonConvert.DeserializeObject<StateHisotryEntry>(otherop);
                 DEBUG("Merging new op " + otherop);
                 Clock newtime = Clock.FromString(op.time);
-                curTime.Merge(newtime);
 
                 // if an empty place holder already created to hold
                 // the pointers, update that
@@ -182,24 +219,42 @@ namespace RAC.History
 
                 this.log[op.opid] = op;
 
+                if (this.heads.Count == 0)
+                    this.heads.Add(opid);
+                else
+                {
+                    var curheadtime = Clock.FromString(this.log[this.heads[0]].time);
+                    if (newtime.CompareVectorClock(curheadtime) == 1)
+                    {
+                        this.heads.Clear();
+                        this.heads.Add(opid);
+                    }
+                }
+
                 // update the pointers
                 foreach (var i in op.prev)
-                {   
+                {
                     // in case prev op is not sync'd yet, create a placeholder, see above also
                     if (!this.log.ContainsKey(i))
                     {
                         StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, i, "", "", "", false);
                         this.log[i] = newEntry;
                     }
-                        
+
                     this.log[i].aft.Add(opid);
                 }
+
+
+                curTime.Merge(newtime);
+
+                UpdateGlobalTime(newtime, op.nodeid);
 
             }
             else if (status == 1)
             {
                 DEBUG("Merging tombstone op " + otherop);
                 this.tombstone.Add(otherop);
+                ApplyCompleteReverses(searchtype);
             }
             else if (status == 2)
             {
@@ -209,13 +264,13 @@ namespace RAC.History
                 foreach (var r in op.related)
                 {
                     // hashset automatically remove duplicate
-                    this.log[op.opid].related.Add(r);   
+                    this.log[op.opid].related.Add(r);
                 }
 
             }
         }
 
-        public void addTombstone(string opid)
+        public void addTombstone(string opid, int searchtype = 0)
         {
             tombstone.Add(opid);
             Sync(opid, 1);
@@ -225,7 +280,7 @@ namespace RAC.History
         {
             foreach (var opid in opids)
             {
-                addTombstone(opid);       
+                addTombstone(opid);
             }
         }
 
@@ -240,7 +295,7 @@ namespace RAC.History
         {
             DEBUG("Syncing new op " + newop.opid);
             string json = JsonConvert.SerializeObject(newop, Formatting.Indented);
-            
+
             Responses res = new Responses(Status.success);
             Parameters syncPm = new Parameters(3);
             syncPm.AddParam(0, json);
@@ -251,13 +306,13 @@ namespace RAC.History
             res.AddResponse(Dest.broadcast, broadcast, false);
             Global.server.StageResponse(res);
 
-        }   
+        }
 
         // TODO: somehow combine this and above...
         public void Sync(string newop, int status = 0, int searchtype = 0)
         {
             DEBUG("Syncing new op " + newop);
-            
+
             Responses res = new Responses(Status.success);
             Parameters syncPm = new Parameters(3);
             syncPm.AddParam(0, newop);
@@ -268,7 +323,7 @@ namespace RAC.History
             res.AddResponse(Dest.broadcast, broadcast, false);
             Global.server.StageResponse(res);
 
-        }   
+        }
 
         /// <summary>
         /// Search through ops happens between startop and endop time
@@ -278,7 +333,7 @@ namespace RAC.History
         /// <param name="endtime"></param>
         /// <returns>opids of found ops</returns>
         public List<string> CasualSearch(Clock starttime, Clock endtime)
-        {   
+        {
             List<string> res = new List<string>();
 
             //linear search
@@ -286,7 +341,7 @@ namespace RAC.History
             {
                 StateHisotryEntry op = item.Value;
                 Clock optime = Clock.FromString(op.time);
-                
+
                 // op exactly the same as start date,
                 // after start time,
                 // and before/concurrent of endtime
@@ -308,7 +363,7 @@ namespace RAC.History
         /// <returns>opids of found ops</returns>
         public List<string> CasualSearch(string starttime, string endtime)
         {
-            
+
             List<string> res = new List<string>();
             Clock st = Clock.FromString(starttime);
             Clock et = Clock.FromString(endtime);
@@ -324,7 +379,7 @@ namespace RAC.History
                 string opid = Q.Dequeue();
 
                 StateHisotryEntry op = this.log[opid];
-                Clock optime = Clock.FromString(op.time);                
+                Clock optime = Clock.FromString(op.time);
 
                 if ((optime.CompareVectorClock(st) == 1 && optime.CompareVectorClock(et) < 1) ||
                     (optime.ToString().Equals(starttime)))
@@ -359,12 +414,12 @@ namespace RAC.History
                     }
                 }
             }
-            
+
             res.AddRange(ResolveConcurrent(concurrents));
 
             return res;
         }
-        
+
         private List<string> ResolveConcurrent(List<string> concurrents)
         {
             // TODO: check the concurrent ones
@@ -407,17 +462,88 @@ namespace RAC.History
             return res;
         }
 
+        /// <summary>
+        /// Update the lastest known time of given node.
+        /// </summary>
+        /// <param name="time"></param>
+        /// <param name="nodeid"></param>
+        public void UpdateGlobalTime(Clock time, int nodeid = -1)
+        {
+
+            if (nodeid == -1)
+                nodeid = Global.selfNode.nodeid;
+
+            this.globalTimes[nodeid] = time;
+        }
+
+        public void ApplyCompleteReverses(int searchtype = 0)
+        {
+#if OPTMIZE
+
+            Clock minTime = this.globalTimes[0];
+
+            if (searchtype == 0)
+            {
+                return;
+            }
+
+            foreach (Clock time in this.globalTimes)
+            {
+                if (minTime.CompareVectorClock(time) == 1)
+                    minTime = time;
+            }
+
+            List<string> to_remove = new List<string>();
+            foreach (var tombed in this.tombstone)
+            {
+                if (searchtype == 1)
+                {
+                    string starttime;
+                    string endtime;
+
+                    this.GetEntry(tombed, out starttime, out endtime, out _);
+
+                    Clock st = Clock.FromString(starttime);
+                    Clock et = Clock.FromString(endtime);
+
+                    if (minTime.CompareVectorClock(et) == 1)
+                    {
+                        List<string> to_revrese = CasualSearch(st, et);
+                        foreach (var opid in to_revrese)
+                        {
+                            this.Compensate(opid);
+                        }
+                        to_remove.Add(tombed);
+                    }
+
+                }
+                /** else if (searchtype == 2)
+                 {
+                     if (LogicalSearch(tombed).Contains(opid))
+                    {
+                     this.Compensate(opid);
+                        break;
+                    }
+
+
+                 }**/
+            }
+
+            foreach (var completed in to_remove)
+            {
+                this.tombstone.Remove(completed);
+            }
+#endif
+
+        }
+
     }
 
     public class OpHistoryEager : OpHistory
     {
 
-        public delegate void CompensateMethod(string opid);
-        public CompensateMethod Compensate;
-
-        public OpHistoryEager(string uid, CompensateMethod compensate) : base(uid)
-        {      
-            this.Compensate = compensate;
+        public OpHistoryEager(string uid, CompensateMethod compensate) : base(uid, compensate)
+        {
         }
 
         /// <summary>
@@ -449,7 +575,7 @@ namespace RAC.History
             // reverse things
             string starttime;
             string endtime;
-            
+
             this.GetEntry(opid, out starttime, out endtime, out _);
 
             List<String> toReversed;
@@ -463,7 +589,7 @@ namespace RAC.History
             DEBUG("Compenstating eagerly");
 
             foreach (var ops in toReversed)
-            {   
+            {
                 this.Compensate(ops);
             }
         }
@@ -475,7 +601,7 @@ namespace RAC.History
                 StateHisotryEntry op = JsonConvert.DeserializeObject<StateHisotryEntry>(otherop);
                 DEBUG("Merging new op " + otherop);
                 Clock optime = Clock.FromString(op.time);
-                curTime.Merge(optime);
+
 
                 // if an empty place holder already created to hold
                 // the pointers, update that
@@ -485,16 +611,29 @@ namespace RAC.History
 
                 this.log[op.opid] = op;
 
+
+                if (this.heads.Count == 0)
+                    this.heads.Add(opid);
+                else
+                {
+                    var curheadtime = Clock.FromString(this.log[this.heads[0]].time);
+                    if (optime.CompareVectorClock(curheadtime) == 1)
+                    {
+                        this.heads.Clear();
+                        this.heads.Add(opid);
+                    }
+                }
+
                 // update the pointers
                 foreach (var i in op.prev)
-                {   
+                {
                     // in case prev op is not sync'd yet, create a placeholder, see above also
                     if (!this.log.ContainsKey(i))
                     {
                         StateHisotryEntry newEntry = new StateHisotryEntry(this.uid, i, "", "", "", true);
                         this.log[i] = newEntry;
                     }
-                        
+
                     this.log[i].aft.Add(opid);
                 }
 
@@ -502,41 +641,47 @@ namespace RAC.History
                 // calculated ones been reversed
                 foreach (var tombed in this.tombstone)
                 {
-                    if (searchtype == 1)
+                    if (searchtype == 0)
                     {
                         string starttime;
                         string endtime;
-                        
+
                         this.GetEntry(tombed, out starttime, out endtime, out _);
 
                         Clock st = Clock.FromString(starttime);
                         Clock et = Clock.FromString(endtime);
 
-                        if ((optime.CompareVectorClock(st) == 1 && optime.CompareVectorClock(et) < 1) || 
-                                (optime.ToString().Equals(starttime)))    
-                            {
-                                this.Compensate(opid); 
-                                break;
-                            }
+                        if ((optime.CompareVectorClock(st) == 1 && optime.CompareVectorClock(et) < 1) ||
+                                (optime.ToString().Equals(starttime)))
+                        {
+                            this.Compensate(opid);
+                            break;
+                        }
                     }
-                    else if (searchtype == 2)
+                    else if (searchtype == 1)
                     {
                         if (LogicalSearch(tombed).Contains(opid))
                         {
                             this.Compensate(opid);
                             break;
                         }
-                            
+
 
                     }
-                   
+
                 }
+
+
+                curTime.Merge(optime);
+
+                UpdateGlobalTime(optime, op.nodeid);
 
             }
             else if (status == 1)
             {
                 DEBUG("Merging tombstone op " + otherop);
                 this.addTombstone(otherop, false, searchtype);
+                ApplyCompleteReverses(searchtype);
             }
             else if (status == 2)
             {
@@ -546,7 +691,7 @@ namespace RAC.History
                 foreach (var r in op.related)
                 {
                     // hashset automatically remove duplicate
-                    this.log[op.opid].related.Add(r);   
+                    this.log[op.opid].related.Add(r);
                 }
 
             }
