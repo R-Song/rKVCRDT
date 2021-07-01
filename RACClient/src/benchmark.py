@@ -481,13 +481,10 @@ TYPECODE_MAP = {
 def select_exp(typecode:str, total_objects:int) -> ExperimentData:
     return TYPECODE_MAP[typecode](total_objects)
 
-
-        
-if __name__ == "__main__":
+def run_benchmark(workloadfile) -> Results:
     manager = multiprocessing.Manager()
-
-
-    with open('workload.json') as wl_file:
+    
+    with open(workloadfile) as wl_file:
         workload = json.loads(wl_file.read())
 
     nodes = workload["nodes"]
@@ -524,11 +521,20 @@ if __name__ == "__main__":
 
     print("Experiment ends")
     
-    print("Throughput:")
-    print(tr.results.tp)
-    print("Median Latency")
-    print(np.median(tr.results.get_latency()))
-    print("Latency std")
-    print(np.std(tr.results.get_latency()))
+    #print("Throughput:")
+    #print(tr.results.tp)
+    #print("Median Latency")
+    #print(np.median(tr.results.get_latency()))
+    #print("Latency std")
+    #print(np.std(tr.results.get_latency()))
+
+    return tr.results
 
 
+        
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        raise ValueError('wrong arg')
+
+    workloadfile = sys.argv[1]
+    run_benchmark(workloadfile)

@@ -359,3 +359,4 @@ local_test.cs
 log.*.txt
 temp.txt
 workload.json
+results/
