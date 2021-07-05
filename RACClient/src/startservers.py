@@ -34,22 +34,24 @@ def each_server_json(node_id, num_server, print_addr = False) -> str:
         print("Server addresses:")
         print(addresses)
 
-    return json.dumps(res)
+    return json.dumps(res), addresses
 
 
 
-def generate_json(num_server):
+def generate_json(num_server) -> list:
     
     for i in range(num_server):
         
-        cfg_json = each_server_json(i, num_server, i == 0)
+        cfg_json, addresses = each_server_json(i, num_server, i == 0)
         f = open("cluster_config." + str(i) + ".json", "w")
         f.write(cfg_json)
         f.close()
 
+    return addresses
 
-def start_server(num_server):
-    generate_json(num_server)
+
+def start_server(num_server) -> list:
+    addresses = generate_json(num_server)
     cwd = os.getcwd()
     ftemp = open("temp.txt", "w")
     print("Server started at pid:")
@@ -63,6 +65,8 @@ def start_server(num_server):
         time.sleep(1)
 
     ftemp.close()
+
+    return addresses
 
 
 def stop_server():

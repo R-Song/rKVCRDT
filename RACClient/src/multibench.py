@@ -40,13 +40,22 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, targ
             json_dict[secondary_variable] = s
 
             wlfilename = str(p) + str(s) + ".json"
+            
+
+            if "nodes" == primaries:
+                num_server = p
+            elif "nodes" == secondaries:
+                num_server = s
+            else:
+                num_server = json_dict["nodes"]
+
+            addresses = start_server(num_server)
+
+            json_dict["nodes"] = addresses
 
             with open(wlfilename, 'w') as json_file:
                 json.dump(json_dict, json_file)
 
-            num_server = len(json_dict["nodes"])
-
-            start_server(num_server)
             r = run_benchmark(wlfilename)
 
             if target_metric == 'tp':
@@ -82,7 +91,7 @@ def plot():
 
 if __name__ == "__main__":
     peaktp = {
-    "nodes": ["192.168.0.10:5000", "192.168.0.10:5001", "192.168.0.10:5001"],
+    "nodes": 3,
     "client_multiplier": 3,
 
     "typecode": "rc",
