@@ -2,6 +2,7 @@ import csv
 import json
 from benchmark import *
 from startservers import *
+import time
 
 # 1. prep json
 # set & variables
@@ -28,14 +29,16 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, targ
     for s in secondaries:
         labels.append(str(s))
 
+    # running benchmarks
     for p in primaries:
-        json_dict[prime_variable] = p
+        
 
         p_result = {}
-
         p_result[prime_variable] = p
+        
 
         for s in secondaries:
+            json_dict[prime_variable] = p
             
             json_dict[secondary_variable] = s
 
@@ -55,7 +58,7 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, targ
 
             with open(wlfilename, 'w') as json_file:
                 json.dump(json_dict, json_file)
-
+            time.sleep(2)
             r = run_benchmark(wlfilename)
 
             if target_metric == 'tp':
@@ -65,11 +68,13 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, targ
 
             p_result[str(s)] = rval
             stop_server()
-   
+
             os.remove(wlfilename)
 
-        result.append(p_result)
+            json_dict = wokload_config.copy()
 
+        result.append(p_result)
+    print(result)
     parse_result(result, labels, 1, rfilename)
        
 
@@ -98,13 +103,13 @@ if __name__ == "__main__":
     "total_objects" : 100,
 
     "prep_ops_pre_obj" : 1000,
-    "num_reverse" : [0, 50, 100, 150, 200, 250, 300],
+    "num_reverse" : [0, 50],#, 100, 150, 200, 250, 300],
     "prep_ratio" : [0.5, 0.5, 0],
     
 
     "ops_per_object" : 1000,
-    "op_ratio" : [[0.35, 0.35, 0.3], [0.25, 0.25, 0.5], [0.15, 0.15, 0.7]],
+    "op_ratio" : [[0.35, 0.35, 0.3], [0.25, 0.25, 0.5]],#, [0.15, 0.15, 0.7]],
     "target_throughput" : 0
     }
 
-    generate_json(peaktp, "num_reverse", "op_ratio", "tp", "peak_tp.csv")
+    generate_json(peaktp, "num_reverse", "op_ratio", "tp", "peak_rc_tp.csv")
