@@ -371,7 +371,7 @@ class TestRunner():
             s = Server(ip, port)
             
             if (s.connect() == 0):
-                print("Connection failed, exiting")
+                print("Connection to " + adddress + " failed, exiting")
                 exit()
 
             res.append(s)
