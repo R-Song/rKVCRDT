@@ -7,7 +7,7 @@ import time
 import psutil
 from pathlib import Path
 
-SERVER_PATH = str(Path(__file__).resolve().parent.parent.parent) + "\RAC"
+SERVER_PATH = str(Path(__file__).resolve().parent.parent.parent) + "/RAC"
 START_PORT = 5000
 
 def each_server_json(node_id, num_server, print_addr = False) -> str:
