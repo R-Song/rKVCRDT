@@ -18,7 +18,7 @@ SERVER_PATH = str(Path(__file__).resolve().parent.parent.parent) + "/RAC"
 REMOTE_SCRIPT_PATH = "/home/ubuntu/Project_RAC/RACClient/src/startservers.py"
 START_PORT = 5000
 
-SSH_KEY_FILE = "cc.pem"
+SSH_KEY_FILE = "/home/ubuntu/cc.pem"
 
 
 def each_server_json(node_id: int, num_per_server: int, servers_list: list , print_addr: bool = False) -> str:
@@ -48,7 +48,7 @@ def each_server_json(node_id: int, num_per_server: int, servers_list: list , pri
         print("Server addresses:")
         print(addresses)
 
-    return json.dumps(res), addresses
+    return json.dumps(res)
 
 
 def generate_json(num_per_server, servers_list) -> list:
@@ -61,6 +61,8 @@ def generate_json(num_per_server, servers_list) -> list:
 
     i = 0
     for ip in servers_list:
+        print(ip)
+        print(selfip)
         for _ in range(num_per_server):
             if ip == selfip:
                 cfg_json, addresses = each_server_json(i, num_per_server, servers_list, i == 0)
@@ -96,17 +98,15 @@ def start_server_remote(num_server, servers_list) -> list:
     res = []
     for ip in servers_list:
         proc = subprocess.run(
-            ["ssh", "-i", "-p", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " start " + str(num_server) + " " + servers_list], stdout=subprocess.PIPE)
+            ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " rstart " + str(num_server) + " " + str(servers_list)], stdout=subprocess.PIPE)
 
-        print(proc.stdout)
-
-        res.append(str(proc.pid))
+        print(proc.stdout.decode())
         
     
-def stop_server_remote(servers_list, list_pids):
+def stop_server_remote(servers_list):
     for ip in servers_list:
         proc = subprocess.run(
-            ["ssh", "-i", "-p", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " stop"])
+            ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " stop"])
 
     
 
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     elif (action == "rstart"):
         try:
             num_pre_server = int(sys.argv[2])
-            host_ips = sys.argv[3].split(',')
+            host_ips = sys.argv[3][1:-1].split(',')
         except Exception:
             raise ValueError(
                 'Need number of server, Usage: StartServers.py rstart [number_pre_servers] [ip1, ip2]')
