@@ -95,16 +95,18 @@ def start_server(num_server, servers_list = []) -> list:
 def start_server_remote(num_server, servers_list) -> list:
     res = []
     for ip in servers_list:
-        proc = subprocess.Popen(
-            ["ssh", "-i", "-p", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " start " + str(num_server) + " " + servers_list], stdout=flog, stderr=flog)
+        proc = subprocess.run(
+            ["ssh", "-i", "-p", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " start " + str(num_server) + " " + servers_list], stdout=subprocess.PIPE)
+
+        print(proc.stdout)
 
         res.append(str(proc.pid))
         
     
 def stop_server_remote(servers_list, list_pids):
     for ip in servers_list:
-        proc = subprocess.Popen(
-            ["ssh", "-i", "-p", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " stop"], stdout=flog, stderr=flog)
+        proc = subprocess.run(
+            ["ssh", "-i", "-p", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " stop"])
 
     
 
