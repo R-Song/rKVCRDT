@@ -179,7 +179,7 @@ if __name__ == "__main__":
     elif (action == "rstart"):
         try:
             num_pre_server = int(sys.argv[2])
-            print(sys.argv[3])
+            print(sys.argv)
             host_ips = sys.argv[3][1:-1].split(',')
         except Exception:
             raise ValueError(
