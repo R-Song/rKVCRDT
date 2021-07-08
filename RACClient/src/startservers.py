@@ -77,6 +77,7 @@ def start_server(num_server, servers_list = []) -> list:
     addresses = generate_json(num_server, servers_list)
     cwd = os.getcwd()
     ftemp = open("temp.txt", "w")
+    print(servers_list)
     print("Server started at pid:")
     for i in range(num_server):
         cfg = cwd + "/cluster_config." + str(i) + ".json"
