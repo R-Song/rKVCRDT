@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 SERVER_PATH = str(Path(__file__).resolve().parent.parent.parent) + "/RAC"
-REMOTE_SCRIPT_PATH = ""
+REMOTE_SCRIPT_PATH = "/home/ubuntu/Project_RAC/RACClient/src/startservers.py"
 START_PORT = 5000
 
 SSH_KEY_FILE = "cc.pem"
