@@ -94,10 +94,10 @@ def start_server(num_server, servers_list = []) -> list:
 
 
 def start_server_remote(num_server, servers_list) -> list:
-    res = []
+    ips_arg = ",".join(servers_list)
     for ip in servers_list:
         proc = subprocess.run(
-            ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " rstart " + str(num_server) + " " + str(servers_list)], stdout=subprocess.PIPE)
+            ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " rstart " + str(num_server) + " " + ips_arg], stdout=subprocess.PIPE)
 
         print(proc.stdout.decode())
         
@@ -180,7 +180,7 @@ if __name__ == "__main__":
         try:
             num_pre_server = int(sys.argv[2])
             print(sys.argv)
-            host_ips = sys.argv[3][1:-1].split(',')
+            host_ips = sys.argv[3].split(',')
         except Exception:
             raise ValueError(
                 'Need number of server, Usage: StartServers.py rstart [number_pre_servers] [ip1, ip2]')
