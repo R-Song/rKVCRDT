@@ -64,7 +64,6 @@ def generate_json(num_per_server, servers_list) -> list:
         for _ in range(num_per_server):
             if ip == selfip:
                 cfg_json, addresses = each_server_json(i, num_per_server, servers_list, i == 0)
-                print(addresses)
                 f = open("cluster_config." + str(i) + ".json", "w")
                 f.write(cfg_json)
                 f.close()
@@ -180,6 +179,7 @@ if __name__ == "__main__":
     elif (action == "rstart"):
         try:
             num_pre_server = int(sys.argv[2])
+            print(sys.argv[3])
             host_ips = sys.argv[3][1:-1].split(',')
         except Exception:
             raise ValueError(
