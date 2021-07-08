@@ -48,7 +48,7 @@ def each_server_json(node_id: int, num_per_server: int, servers_list: list , pri
         print("Server addresses:")
         print(addresses)
 
-    return json.dumps(res)
+    return json.dumps(res), addresses
 
 
 def generate_json(num_per_server, servers_list) -> list:
@@ -62,9 +62,6 @@ def generate_json(num_per_server, servers_list) -> list:
     i = 0
     for ip in servers_list:
         for _ in range(num_per_server):
-            
-            print(ip == selfip)
-
             if ip == selfip:
                 cfg_json, addresses = each_server_json(i, num_per_server, servers_list, i == 0)
                 f = open("cluster_config." + str(i) + ".json", "w")
