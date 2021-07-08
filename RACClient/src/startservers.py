@@ -96,11 +96,17 @@ def start_server(num_server, servers_list = []) -> list:
 
 def start_server_remote(num_server, servers_list) -> list:
     ips_arg = ",".join(servers_list)
+    ip_port_list = []
+    i = 0
     for ip in servers_list:
         proc = subprocess.run(
-            ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " rstart " + str(num_server) + " " + ips_arg], stdout=subprocess.PIPE)
+            ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " rstart " + str(num_server) + " " + ips_arg])
+        
+        for _ in range(num_server):
+            ip_port_list.append(ip + ":" + str(START_PORT + i))
+            i += 1
 
-        print(proc.stdout.decode())
+    return ip_port_list
         
     
 def stop_server_remote(servers_list):
