@@ -58,12 +58,13 @@ def generate_json(num_per_server, servers_list) -> list:
 
     if servers_list == []:
         servers_list = [selfip]
-
+    addresses = []
     i = 0
     for ip in servers_list:
         for _ in range(num_per_server):
             if ip == selfip:
                 cfg_json, addresses = each_server_json(i, num_per_server, servers_list, i == 0)
+                print(addresses)
                 f = open("cluster_config." + str(i) + ".json", "w")
                 f.write(cfg_json)
                 f.close()
