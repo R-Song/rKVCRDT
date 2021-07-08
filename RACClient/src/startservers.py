@@ -182,7 +182,7 @@ if __name__ == "__main__":
         except Exception:
             raise ValueError(
                 'Need number of server, Usage: StartServers.py rstart [number_pre_servers] [ip1, ip2]')
-        start_server_remote(num_pre_server, host_ips)
+        start_server(num_pre_server, host_ips)
 
     elif (action == "stop"):
         stop_server()
