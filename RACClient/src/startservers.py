@@ -60,13 +60,15 @@ def generate_json(num_per_server, servers_list) -> list:
         servers_list = [selfip]
     addresses = []
     i = 0
+    c = 0
     for ip in servers_list:
         for _ in range(num_per_server):
             if ip == selfip:
                 cfg_json, addresses = each_server_json(i, num_per_server, servers_list, i == 0)
-                f = open("cluster_config." + str(i) + ".json", "w")
+                f = open("cluster_config." + str(c) + ".json", "w")
                 f.write(cfg_json)
                 f.close()
+                c += 1
             i += 1
 
     return addresses
@@ -76,7 +78,6 @@ def start_server(num_server, servers_list = []) -> list:
     addresses = generate_json(num_server, servers_list)
     cwd = os.getcwd()
     ftemp = open("temp.txt", "w")
-    print(servers_list)
     print("Server started at pid:")
     for i in range(num_server):
         cfg = cwd + "/cluster_config." + str(i) + ".json"
@@ -179,7 +180,6 @@ if __name__ == "__main__":
     elif (action == "rstart"):
         try:
             num_pre_server = int(sys.argv[2])
-            print(sys.argv)
             host_ips = sys.argv[3].split(',')
         except Exception:
             raise ValueError(
