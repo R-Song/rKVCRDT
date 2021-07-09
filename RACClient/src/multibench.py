@@ -25,7 +25,8 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, targ
 
     json_dict = wokload_config.copy()
 
-    result = []
+    tp_result = []
+    latency_results = {}
 
     labels = [prime_variable]
     for s in secondaries:
@@ -61,29 +62,36 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, targ
             time.sleep(2)
             r = run_benchmark(wlfilename)
 
-            if target_metric == 'tp':
-                rval = r.tp
-            elif target_metric == 'ml':
-                rval = np.median(r.get_latency())
-
-            p_result[str(s)] = rval
             stop_server_remote(SERVER_LIST[0:wokload_config["use_server"]])
 
             os.remove(wlfilename)
 
+            p_result[str(s)] = r.tp
+            latency_results[str(p) + str(s)] = r.latency_result
+            
             json_dict = wokload_config.copy()
 
-        result.append(p_result)
-    print(result)
-    parse_result(result, labels, 1, rfilename)
+        tp_result.append(p_result)
 
 
-def parse_result(result, labels, target_metric, rfilename):
+    parse_tpresult(tp_result, labels, 1, rfilename + "_tp.csv")
+    parse_latencyresults(latency_results, rfilename + "_lt.txt")
+
+
+def parse_tpresult(result, labels, target_metric, rfilename):
     with open('results/' + rfilename, 'w') as f:
         writer = csv.DictWriter(f, fieldnames=labels)
         writer.writeheader()
         for elem in result:
             writer.writerow(elem)
+
+def parse_latencyresults(results: dict, rfilename):
+    with open('results/' + rfilename, 'w') as f:
+        for k, v in results.items():
+            f.write(k)
+            for l in v:
+                f.write(str(l) + "\n")
+            
 
 
 
@@ -110,4 +118,4 @@ if __name__ == "__main__":
         "target_throughput": 0
     }
 
-    generate_json(peaktp, "num_reverse", "op_ratio", "tp", "peak_rc_tp.csv")
+    generate_json(peaktp, "num_reverse", "op_ratio", "tp", "peak_tp_rc")

@@ -62,9 +62,16 @@ class Results():
         self.latency_result = []
 
     def hanlde_latency(self):
+        flag = False # somehow it is needed
         for l in self.latency:
-            if l != 0:
-                self.latency_result.append(l / 1000000)
+            for lt in l:
+                if lt[1] != 0:
+                    self.latency_result.append((lt[0], lt[1] / 1000000))
+                    flag = True
+
+            if flag:
+                self.latency_result.append("-NW-")
+                flag = False
 
     def get_latency(self):        
         return reject_outliers(reject_outliers(np.array(self.latency_result)))
@@ -353,7 +360,6 @@ class TestRunner():
         self.crdts = [self.data.CRDT(s) for s in self.connections]
         self.timing = False
         self.do_reverse = False
-        self.measuredops = ["g"]
         self.results = Results(self.num_clients)
         self.rid = SharedManager.dict()
         self.sleeptime = 0
@@ -437,11 +443,9 @@ class TestRunner():
             end = time.time_ns() 
 
             if (self.timing):
-                if self.measuredops == [] or req[0] in self.measuredops:
-                    temp.append(end - start)
-
-        for l in temp:
-            self.results.latency.append(l)
+                temp.append((req[0], end - start))
+    
+        self.results.latency.append(temp)
 
 
     def prep_ops(self, total_prep_ops, pre_ops_ratio, reverse=0):
