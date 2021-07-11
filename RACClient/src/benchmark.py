@@ -266,7 +266,7 @@ class GExperimentData(ExperimentData):
         num_write_ops = num_ops * ops_ratio[0]
         num_cycles_per_key = num_write_ops / 5
 
-        num_read_per_cycle = math.floor(num_ops * op_ratio[1] / num_cycles_per_key)
+        num_read_per_cycle = math.floor(num_ops * ops_ratio[1] / num_cycles_per_key)
         print("Each graph has " + str(num_read_per_cycle) + " cycles")
 
 
@@ -331,7 +331,7 @@ class RGExperimentData(GExperimentData):
         num_write_ops = num_ops * ops_ratio[0]
         num_cycles_per_key = math.floor(num_write_ops / 5)
 
-        num_read_per_cycle = math.floor(num_ops * op_ratio[1] / num_cycles_per_key)
+        num_read_per_cycle = math.floor(num_ops * ops_ratio[1] / num_cycles_per_key)
 
         print("Each graph has " + str(num_read_per_cycle) + " cycles")
         i = 0

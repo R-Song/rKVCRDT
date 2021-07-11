@@ -15,7 +15,9 @@ import time
 SERVER_LIST = ["192.168.41.205", "192.168.41.188"]
 
 
-def generate_json(wokload_config: dict, prime_variable, secondary_variable, target_metric, rfilename):
+def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfilename):
+
+    print("Running: " + rfilename)
 
     # y-axis
     primaries = wokload_config[prime_variable]
@@ -32,6 +34,9 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, targ
     for s in secondaries:
         labels.append(str(s))
 
+    total = len(primaries) * len(secondaries)
+    count = 0
+
     # running benchmarks
     for p in primaries:
 
@@ -39,43 +44,70 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, targ
         p_result[prime_variable] = p
 
         for s in secondaries:
-            json_dict[prime_variable] = p
-
-            json_dict[secondary_variable] = s
-
-            wlfilename = str(p) + str(s) + ".json"
-
-            if "nodes_pre_server" == primaries:
-                num_server = p
-            elif "nodes_pre_server" == secondaries:
-                num_server = s
-            else:
-                num_server = json_dict["nodes_pre_server"]
-
-            addresses = start_server_remote(
-                num_server, SERVER_LIST[0:wokload_config["use_server"]])
-
-            json_dict["nodes"] = addresses
-
-            with open(wlfilename, 'w') as json_file:
-                json.dump(json_dict, json_file)
-            time.sleep(2)
-            r = run_benchmark(wlfilename)
-
-            stop_server_remote(SERVER_LIST[0:wokload_config["use_server"]])
-
-            os.remove(wlfilename)
-
-            p_result[str(s)] = r.tp
-            latency_results[str(p) + str(s)] = r.latency_result
             
-            json_dict = wokload_config.copy()
+            redo = 5
+            while True:
+
+                json_dict[prime_variable] = p
+
+                json_dict[secondary_variable] = s
+
+                wlfilename = str(p) + str(s) + ".json"
+
+                if "nodes_pre_server" == primaries:
+                    num_server = p
+                elif "nodes_pre_server" == secondaries:
+                    num_server = s
+                else:
+                    num_server = json_dict["nodes_pre_server"]
+
+                addresses = start_server_remote(
+                    num_server, SERVER_LIST[0:wokload_config["use_server"]])
+
+                json_dict["nodes"] = addresses
+
+                with open(wlfilename, 'w') as json_file:
+                    json.dump(json_dict, json_file)
+                time.sleep(2)
+
+                try:
+
+                    r = run_benchmark(wlfilename)
+                    redo = 0
+                except:
+                    print("Error, redoing left " + str(redo))
+
+                    if (redo <= 0):
+                        print("Error, exiting")
+                        exit()
+
+                finally:
+                    stop_server_remote(SERVER_LIST[0:wokload_config["use_server"]])
+                    os.remove(wlfilename)
+
+                    if (redo > 0):
+                        redo -= 1
+                        continue
+                    
+
+
+
+                p_result[str(s)] = r.tp
+                latency_results[str(p) + str(s)] = r.latency_result
+                
+                json_dict = wokload_config.copy()
+                count += 1
+                print(str(count) + "/" + str(total) + " done")
+                time.sleep(5 + redo)
+                break
 
         tp_result.append(p_result)
 
 
     parse_tpresult(tp_result, labels, 1, rfilename + "_tp.csv")
     parse_latencyresults(latency_results, rfilename + "_lt.txt")
+
+    print("Experiment complete")
 
 
 def parse_tpresult(result, labels, target_metric, rfilename):
@@ -88,7 +120,7 @@ def parse_tpresult(result, labels, target_metric, rfilename):
 def parse_latencyresults(results: dict, rfilename):
     with open('results/' + rfilename, 'w') as f:
         for k, v in results.items():
-            f.write(k)
+            f.write("EXP:" + k + "\n")
             for l in v:
                 f.write(str(l) + "\n")
             
@@ -100,22 +132,107 @@ def plot():
 
 
 if __name__ == "__main__":
-    peaktp = {
+
+    peak_tp_check_pnc = {
         "nodes_pre_server": 1,
         "use_server": 2,
-        "client_multiplier": 3,
+        "client_multiplier": [1,2,3,4,5,6,7],
+
+        "typecode": "pnc",
+        "total_objects": 100,
+
+        "prep_ops_pre_obj": 1000,
+        "num_reverse": 0,
+        "prep_ratio": [0.5, 0.5, 0],
+
+
+        "ops_per_object": 1000,
+        "op_ratio": [[0.25, 0.25, 0.5]],
+        "target_throughput": 0
+    }
+
+    peak_tp_check_rc = {
+        "nodes_pre_server": 1,
+        "use_server": 2,
+        "client_multiplier": [1,2,3,4,5,6,7],
 
         "typecode": "rc",
         "total_objects": 100,
 
         "prep_ops_pre_obj": 1000,
-        "num_reverse": [0],
+        "num_reverse": 0,
         "prep_ratio": [0.5, 0.5, 0],
 
 
         "ops_per_object": 1000,
-        "op_ratio": [[0.35, 0.35, 0.3]],
+        "op_ratio": [[0.25, 0.25, 0.5]],
         "target_throughput": 0
     }
 
-    generate_json(peaktp, "num_reverse", "op_ratio", "tp", "peak_tp_rc")
+    peak_tp_check_rg = {
+        "nodes_pre_server": 1,
+        "use_server": 2,
+        "client_multiplier": [1,2,3,4,5,6,7],
+
+        "typecode": "rg",
+        "total_objects": 100,
+
+        "prep_ops_pre_obj": 1000,
+        "num_reverse": 0,
+        "prep_ratio": [1, 0],
+
+
+        "ops_per_object": 1000,
+        "op_ratio": [[0.5, 0.5]],
+        "target_throughput": 0
+    }
+
+    # check peak tp: lazy_noopt need x7 clients to fill
+    #generate_json(peak_tp_check_pnc, "client_multiplier", "op_ratio", "peak_tp_check_pnc_lazy_noopt")
+    #generate_json(peak_tp_check_rc, "client_multiplier", "op_ratio", "peak_tp_check_rc_lazy_noopt")
+    #generate_json(peak_tp_check_rg, "client_multiplier", "op_ratio", "peak_tp_check_rg_lazy_noopt")
+
+    # check peak tp: 
+    peak_tp_num_rev_ratio_rc = {
+        "nodes_pre_server": 2,
+        "use_server": 2,
+        "client_multiplier": 7,
+
+        "typecode": "rc",
+        "total_objects": 100,
+
+        "prep_ops_pre_obj": 1000,
+        "num_reverse": [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340, 360, 380, 400, 450, 500],
+        "prep_ratio": [0.5, 0.5, 0],
+
+
+        "ops_per_object": 1000,
+        "op_ratio": [[0.15, 0.15, 0.7], [0.25, 0.25, 0.5], [0.35, 0.35, 0.3]],
+        "target_throughput": 0
+    }
+
+    peak_tp_num_rev_ratio_rg = {
+        "nodes_pre_server": 2,
+        "use_server": 2,
+        "client_multiplier": 7,
+
+        "typecode": "rg",
+        "total_objects": 100,
+
+        "prep_ops_pre_obj": 1000,
+        "num_reverse": [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340, 360, 380, 400, 450, 500],
+        "prep_ratio": [1, 0],
+
+
+        "ops_per_object": 1000,
+        "op_ratio": [[0.3, 0.7], [0.5, 0.5], [0.7, 0.3]],
+        "target_throughput": 0
+    }
+
+    #generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt1")
+    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt2")
+    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt3")
+    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt4")
+    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt5")
+    #generate_json(peak_tp_num_rev_ratio_rg, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rg_lazy_noopt")
+
