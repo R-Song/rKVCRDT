@@ -128,7 +128,7 @@ namespace RAC.Network
                 return;
             }
 
-            Byte[] buffer = new Byte[1024];
+            Byte[] buffer = new Byte[4096];
             int i;
             MessagePacket msg = null;
             string data = "";
@@ -174,7 +174,8 @@ namespace RAC.Network
                         }
                         catch (InvalidMessageFormatException e)
                         {
-                            WARNING("Parsing of incoming packet fails: " + e.Message);
+                            WARNING("Parsing of incoming packet fails: " + e.Message + "\n Messages: \n " + msgstr + "\n");
+                            
                         }
                     }
 

@@ -14,6 +14,7 @@ import time
 
 
 SERVER_LIST = ["192.168.41.205", "192.168.41.145"]
+REDO = 0
 
 
 def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfilename, local = False):
@@ -52,7 +53,7 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
 
         for s in secondaries:
             
-            redo = 5
+            redo = REDO
             while True:
 
                 json_dict[prime_variable] = p
@@ -153,15 +154,33 @@ def plot():
 
 if __name__ == "__main__":
     test = {
-        "nodes_pre_server": 2,
+        "nodes_pre_server": 8,
         "use_server": 1,
-        "client_multiplier": 1,
+        "client_multiplier": 7,
 
         "typecode": "rc",
         "total_objects": 100,
 
         "prep_ops_pre_obj": 1000,
-        "num_reverse": [0, 1, 2, 3],
+        "num_reverse": [0],
+        "prep_ratio": [0.5, 0.5, 0],
+
+
+        "ops_per_object": 1000,
+        "op_ratio": [[0.15, 0.15, 0.7]],
+        "target_throughput": 0
+    }
+
+    test2 = {
+        "nodes_pre_server": 5,
+        "use_server": 2,
+        "client_multiplier": 7,
+
+        "typecode": "rc",
+        "total_objects": 100,
+
+        "prep_ops_pre_obj": 1000,
+        "num_reverse": [0],
         "prep_ratio": [0.5, 0.5, 0],
 
 
@@ -172,6 +191,7 @@ if __name__ == "__main__":
 
 
     #generate_json(test, "num_reverse", "op_ratio", "test", True)
+    generate_json(test2, "num_reverse", "op_ratio", "test")
 
     peak_tp_check_pnc = {
         "nodes_pre_server": 1,
@@ -296,7 +316,7 @@ if __name__ == "__main__":
         "target_throughput": 0
     }
 
-    generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt1-cnt")
+    # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt1-cnt")
     # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt2")
     # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt3")
     # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt4")
