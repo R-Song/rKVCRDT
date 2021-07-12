@@ -128,19 +128,27 @@ namespace RAC.Network
     {
         public List<Node> nodes;
         public int numNodes;
+        public int numServers;
         public Node selfNode;
+
 
         public Cluster(string nodeconfigfile)
         {
             Node.DeserializeNodeConfig(nodeconfigfile, out nodes);
             
+            HashSet<string> numServersTemp = new HashSet<string>();
+
             foreach (var n in nodes)
             {
                 if (n.isSelf)
                     selfNode = n;
+
+                // using hasset to count unique IPs
+                numServersTemp.Add(n.address);
             }
 
-            numNodes = nodes.Count;
+            this.numNodes = nodes.Count;
+            this.numServers = numServersTemp.Count;
 
         }
 

@@ -37,15 +37,24 @@ namespace RAC
             //set cpu cores
             if (Config.MAX_CORE > 0)
             {
-                ulong cpu_affin = 0;
+                ulong cpuAffin = 0;
                 int cores = System.Environment.ProcessorCount;
+                // nodes per server
+                int nps = cluster.numNodes / cluster.numServers;
+
+                int affinPos = selfNode.nodeid;
+
+                while (affinPos > nps - 1)
+                {
+                    affinPos -= nps;
+                }
 
                 for (int i = 0; i < Config.MAX_CORE; i++)
                 {
-                    cpu_affin |= (ulong)1 << (int)(cores - (selfNode.nodeid * Config.MAX_CORE) - i - 1);
+                    cpuAffin |= (ulong)1 << (int)(cores - (affinPos * Config.MAX_CORE) - i - 1);
                 }
                 
-                System.Diagnostics.Process.GetCurrentProcess().ProcessorAffinity = (System.IntPtr)cpu_affin;
+                System.Diagnostics.Process.GetCurrentProcess().ProcessorAffinity = (System.IntPtr)cpuAffin;
             }
 
             server = new Server(Global.selfNode);
