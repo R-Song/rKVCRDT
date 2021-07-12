@@ -192,9 +192,9 @@ if __name__ == "__main__":
     }
 
     peak_tp_check_rc = {
-        "nodes_pre_server": 1,
+        "nodes_pre_server": 2,
         "use_server": 2,
-        "client_multiplier": [1,2,3,4,5,6,7],
+        "client_multiplier": [7],
 
         "typecode": "rc",
         "total_objects": 100,
