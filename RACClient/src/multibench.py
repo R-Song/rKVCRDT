@@ -269,17 +269,17 @@ if __name__ == "__main__":
         "target_throughput": 0
     }
 
-    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt1")
-    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt2")
-    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt3")
-    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt4")
-    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt5")
+    # generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt1")
+    # generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt2")
+    # generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt3")
+    # generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt4")
+    # generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt5")
     #generate_json(peak_tp_num_rev_ratio_rg, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rg_lazy_noopt")
 
 
     # check scalability
     peak_tp_scale_rev_rc = {
-        "nodes_pre_server": [1,2,3,4,5,6,7],
+        "nodes_pre_server": [5,6,7],#[1,2,3,4,5,6,7],
         "use_server": 2,
         "client_multiplier": 7,
 
@@ -296,10 +296,30 @@ if __name__ == "__main__":
         "target_throughput": 0
     }
 
-    generate_json(peak_tp_num_rev_ratio_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt1")
-    generate_json(peak_tp_num_rev_ratio_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt2")
-    generate_json(peak_tp_num_rev_ratio_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt3")
-    generate_json(peak_tp_num_rev_ratio_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt4")
-    generate_json(peak_tp_num_rev_ratio_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt5")
+    generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt1-cnt")
+    # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt2")
+    # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt3")
+    # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt4")
+    # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt5")
 
 
+    # check latency
+    peak_tp_lt_rev_rc = {
+        "nodes_pre_server": 2,
+        "use_server": 2,
+        "client_multiplier": [1,2,3,4,5,6,7,8,9,10],
+
+        "typecode": "rc",
+        "total_objects": 100,
+
+        "prep_ops_pre_obj": 1000,
+        "num_reverse": [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+        "prep_ratio": [0.5, 0.5, 0],
+
+
+        "ops_per_object": 1000,
+        "op_ratio": [0.25, 0.25, 0.5],
+        "target_throughput": 0
+    }
+
+    #generate_json(peak_tp_lt_rev_rc, "client_multiplier", "num_reverse", "peak_tp_lt_rev_rc_lazy_noopt1")

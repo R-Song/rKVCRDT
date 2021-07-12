@@ -112,7 +112,7 @@ def start_server_remote(num_server, servers_list) -> list:
 def stop_server_remote(servers_list):
     for ip in servers_list:
         proc = subprocess.run(
-            ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " stop"])
+            ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "sudo python3 " + REMOTE_SCRIPT_PATH + " stop"])
 
     
 
