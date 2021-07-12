@@ -34,7 +34,7 @@ namespace RAC
             Config.numReplicas = cluster.numNodes;
             Config.replicaId = selfNode.nodeid;
 
-            set cpu cores
+            //set cpu cores
             if (Config.MAX_CORE > 0)
             {
                 ulong cpu_affin = 0;
