@@ -13,7 +13,7 @@ import time
 # 5. stop servers
 
 
-SERVER_LIST = ["192.168.41.205", "192.168.41.188"]
+SERVER_LIST = ["192.168.41.205", "192.168.41.145"]
 
 
 def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfilename, local = False):
@@ -78,10 +78,9 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
 
                 with open(wlfilename, 'w') as json_file:
                     json.dump(json_dict, json_file)
-                time.sleep(2)
+                time.sleep(5)
 
                 try:
-
                     r = run_benchmark(wlfilename)
                     redo = 0
                 except:
@@ -89,6 +88,9 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
 
                     if (redo <= 0):
                         print("Error, exiting")
+                        parse_tpresult(tp_result, labels, rfilename + "_tp.csv")
+                        parse_tpresult(mem_result, labels, rfilename + "_mem.csv")
+                        parse_latencyresults(latency_results, rfilename + "_lt.txt")
                         exit()
 
                 finally:
@@ -119,7 +121,6 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
 
         tp_result.append(p_result)
         mem_result.append(pm_result)
-
 
 
     parse_tpresult(tp_result, labels, rfilename + "_tp.csv")

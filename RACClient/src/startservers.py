@@ -83,7 +83,7 @@ def start_server(num_server, servers_list = []) -> list:
         cfg = cwd + "/cluster_config." + str(i) + ".json"
         flog = open("log." + str(i) + ".txt", "w")
         proc = subprocess.Popen(
-            ["dotnet", "run", "-p", SERVER_PATH, cfg], stdout=flog, stderr=flog)
+            ["sudo", "dotnet", "run", "-p", SERVER_PATH, cfg], stdout=flog, stderr=flog)
         pid = str(proc.pid)
         print(pid)
         ftemp.write(pid + "\n")
