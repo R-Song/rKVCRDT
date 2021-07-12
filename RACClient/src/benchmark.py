@@ -60,6 +60,7 @@ class Results():
         self.tp = []
         self.latency = sharing.list()
         self.latency_result = []
+        self.mem = 0
 
     def hanlde_latency(self):
         flag = False # somehow it is needed
@@ -473,6 +474,13 @@ class TestRunner():
         self.results.tp = (ops_per_object * len(self.data.keys)) / (end - start)
         self.results.hanlde_latency()
 
+        mem = 0
+        for s in self.connections:
+            pref = Performance(s)
+            res = pref.get()
+            mem += int(res[1][2].split(":")[1])
+
+        self.results.mem = mem / len(self.connections)
 
 TYPECODE_MAP = {
     "pnc": PNCExperimentData,
