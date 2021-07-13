@@ -14,7 +14,7 @@ import time
 
 
 #SERVER_LIST = ["192.168.41.205", "192.168.41.145"].
-SERVER_LIST = ["192.168.41.136", "192.168.41.145"]
+SERVER_LIST = ["192.168.41.145", "192.168.41.136"]
 REDO = 0
 
 
@@ -70,13 +70,12 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
                 else:
                     num_server = json_dict["nodes_pre_server"]
 
-                #if local:
-                #    addresses = start_server(num_server)
-                #else:
-                #    addresses = start_server_remote(
-                #        num_server, SERVER_LIST[0:wokload_config["use_server"]])
+                if local:
+                    addresses = start_server(num_server)
+                else:
+                    addresses = start_server_remote(
+                        num_server, SERVER_LIST[0:wokload_config["use_server"]])
 
-                addresses = ['192.168.41.136:5000', '192.168.41.145:5001']
                 json_dict["nodes"] = addresses
 
                 with open(wlfilename, 'w') as json_file:
@@ -97,10 +96,10 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
                         exit()
 
                 finally:
-                    #if local:
-                    #    stop_server()
-                    #else:
-                    #    stop_server_remote(SERVER_LIST[0:wokload_config["use_server"]])
+                    if local:
+                        stop_server()
+                    else:
+                        stop_server_remote(SERVER_LIST[0:wokload_config["use_server"]])
                     
                     os.remove(wlfilename)
 
@@ -161,9 +160,9 @@ if __name__ == "__main__":
         "client_multiplier": 5,
 
         "typecode": "rc",
-        "total_objects": 1,
+        "total_objects": 100,
 
-        "prep_ops_pre_obj": 100,
+        "prep_ops_pre_obj": 1000,
         "num_reverse": [0],
         "prep_ratio": [1, 0, 0],
 
@@ -181,7 +180,7 @@ if __name__ == "__main__":
         "typecode": "rc",
         "total_objects": 1,
 
-        "prep_ops_pre_obj": 10,
+        "prep_ops_pre_obj": 200,
         "num_reverse": [0],
         "prep_ratio": [1, 0, 0],
 
@@ -192,8 +191,8 @@ if __name__ == "__main__":
     }
 
 
-    #generate_json(test, "num_reverse", "op_ratio", "test", True)
-    generate_json(test2, "num_reverse", "op_ratio", "test")
+    generate_json(test, "num_reverse", "op_ratio", "test", True)
+    #generate_json(test2, "num_reverse", "op_ratio", "test")
 
 
 

@@ -139,7 +139,7 @@ namespace RAC.Network
             // try read data
             while ((i = stream.Read(buffer, 0, buffer.Length)) != 0)
             {
-
+                
                 data += Encoding.Unicode.GetString(buffer);
                 enderIndex = data.IndexOf("-EOF-");
 
@@ -181,11 +181,13 @@ namespace RAC.Network
                         }
                     }
 
-
+                    // remove everything before "-EOF-"
                     data = data.Substring(enderIndex + "-EOF-".Length);
-                    enderIndex = data.IndexOf("-EOF-");
-                    Array.Clear(buffer, 0, buffer.Length);
+                    // look for next "-EOF-"
+                    enderIndex = data.IndexOf("-EOF-");                  
                 }
+
+                Array.Clear(buffer, 0, buffer.Length);
             }
 
             // if connection closed
