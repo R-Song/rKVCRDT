@@ -191,8 +191,8 @@ if __name__ == "__main__":
     }
 
 
-    generate_json(test, "num_reverse", "op_ratio", "test", True)
-    #generate_json(test2, "num_reverse", "op_ratio", "test")
+    #generate_json(test, "num_reverse", "op_ratio", "test", True)
+    generate_json(test2, "num_reverse", "op_ratio", "test")
 
 
 

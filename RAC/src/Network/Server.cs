@@ -64,22 +64,24 @@ namespace RAC.Network
             MessagePacket data;
 
             while (await reqQueue.OutputAvailableAsync())
-            {
+            {   
+                data = reqQueue.Receive();
                 try
                 {
-                    data = reqQueue.Receive();
                     Responses res = Parser.RunCommand(data.content, data.msgSrc);
                     StageResponse(res, data.from);
                     DEBUG("Resparing response");
                 }
                 catch (OperationCanceledException)
                 {
-                    // promted
+                    // TODO: handle it 
+                    ERROR("Last error caused by message: + \n" + data);
                     continue;
                 }
                 catch (Exception e)
                 {
                     ERROR("Error thrown when handling the request" , e, false);
+                    ERROR("Last error caused by message: + \n" + data);
                 }
 
             }
