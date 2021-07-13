@@ -113,7 +113,7 @@ namespace RAC.Network
             NetworkStream stream = this.connection.GetStream();
             // TODO: important!!!!! write sync
             stream.Write(data, 0, data.Length);
-            DEBUG("Sending: " + msg);
+            DEBUG("Sending the following message:\n" + msg);
         }
 
         public void disconnect()

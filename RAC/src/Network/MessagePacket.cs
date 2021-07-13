@@ -136,7 +136,7 @@ namespace RAC.Network
                                              classPrefix + msgSrcstr + 
                                              lengthPrefix + this.length + "\n" +
                                              contentPrefix + "\n" + this.content + "\n" +
-                                             ender);
+                                             ender + "\n");
         }
 
         public override string ToString()

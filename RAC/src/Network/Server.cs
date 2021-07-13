@@ -109,7 +109,7 @@ namespace RAC.Network
                         byte[] msg = toSent.Serialize();
                         NetworkStream stream = dest.GetStream();
 
-                        DEBUG("Sending: " + toSent);
+                        DEBUG("Sending the following message:\n" + toSent);
 
                         stream.Write(msg, 0, msg.Length);
                     }
@@ -143,7 +143,7 @@ namespace RAC.Network
                 data += Encoding.Unicode.GetString(buffer);
                 enderIndex = data.IndexOf("-EOF-");
 
-                DEBUG("Reciving: " + data);
+                DEBUG("Reciving the following message:\n" + data);
 
                 // if found -EOF-
                 while (enderIndex != -1)
