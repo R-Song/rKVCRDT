@@ -13,7 +13,8 @@ import time
 # 5. stop servers
 
 
-SERVER_LIST = ["192.168.41.205", "192.168.41.145"]
+#SERVER_LIST = ["192.168.41.205", "192.168.41.145"].
+SERVER_LIST = ["192.168.41.136", "192.168.41.145"]
 REDO = 0
 
 
@@ -69,12 +70,13 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
                 else:
                     num_server = json_dict["nodes_pre_server"]
 
-                if local:
-                    addresses = start_server(num_server)
-                else:
-                    addresses = start_server_remote(
-                        num_server, SERVER_LIST[0:wokload_config["use_server"]])
+                #if local:
+                #    addresses = start_server(num_server)
+                #else:
+                #    addresses = start_server_remote(
+                #        num_server, SERVER_LIST[0:wokload_config["use_server"]])
 
+                addresses = ['192.168.41.136:5000', '192.168.41.145:5001']
                 json_dict["nodes"] = addresses
 
                 with open(wlfilename, 'w') as json_file:
@@ -95,10 +97,10 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
                         exit()
 
                 finally:
-                    if local:
-                        stop_server()
-                    else:
-                        stop_server_remote(SERVER_LIST[0:wokload_config["use_server"]])
+                    #if local:
+                    #    stop_server()
+                    #else:
+                    #    stop_server_remote(SERVER_LIST[0:wokload_config["use_server"]])
                     
                     os.remove(wlfilename)
 
@@ -154,37 +156,37 @@ def plot():
 
 if __name__ == "__main__":
     test = {
-        "nodes_pre_server": 8,
+        "nodes_pre_server": 2,
         "use_server": 1,
-        "client_multiplier": 7,
+        "client_multiplier": 5,
 
         "typecode": "rc",
-        "total_objects": 100,
+        "total_objects": 1,
 
-        "prep_ops_pre_obj": 1000,
+        "prep_ops_pre_obj": 100,
         "num_reverse": [0],
-        "prep_ratio": [0.5, 0.5, 0],
+        "prep_ratio": [1, 0, 0],
 
 
-        "ops_per_object": 1000,
+        "ops_per_object": 0,
         "op_ratio": [[0.15, 0.15, 0.7]],
         "target_throughput": 0
     }
 
     test2 = {
-        "nodes_pre_server": 5,
+        "nodes_pre_server": 1,
         "use_server": 2,
-        "client_multiplier": 7,
+        "client_multiplier": 1,
 
         "typecode": "rc",
-        "total_objects": 100,
+        "total_objects": 1,
 
-        "prep_ops_pre_obj": 1000,
+        "prep_ops_pre_obj": 10,
         "num_reverse": [0],
-        "prep_ratio": [0.5, 0.5, 0],
+        "prep_ratio": [1, 0, 0],
 
 
-        "ops_per_object": 1000,
+        "ops_per_object": 0,
         "op_ratio": [[0.15, 0.15, 0.7]],
         "target_throughput": 0
     }
@@ -192,6 +194,32 @@ if __name__ == "__main__":
 
     #generate_json(test, "num_reverse", "op_ratio", "test", True)
     generate_json(test2, "num_reverse", "op_ratio", "test")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     peak_tp_check_pnc = {
         "nodes_pre_server": 1,
