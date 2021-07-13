@@ -106,11 +106,10 @@ namespace RAC.Network
                 {
                     if (dest.Connected)
                     {
-                        DEBUG("Replying:\n " + toSent);
                         byte[] msg = toSent.Serialize();
                         NetworkStream stream = dest.GetStream();
 
-                         DEBUG("Sending: " + toSent);
+                        DEBUG("Sending: " + toSent);
 
                         stream.Write(msg, 0, msg.Length);
                     }
@@ -161,7 +160,6 @@ namespace RAC.Network
                         try
                         {
                             msg = new MessagePacket(msgstr);
-                            DEBUG("Received packet: \n " + msgstr.ToString());
                             
                             clientIP = IPAddress.Parse (((IPEndPoint)connection.Client.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)connection.Client.RemoteEndPoint).Port.ToString();
                             msg.from = clientIP;
