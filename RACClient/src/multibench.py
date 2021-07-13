@@ -173,9 +173,9 @@ if __name__ == "__main__":
     }
 
     test2 = {
-        "nodes_pre_server": 1,
+        "nodes_pre_server": 5,
         "use_server": 2,
-        "client_multiplier": 1,
+        "client_multiplier": 7,
 
         "typecode": "rc",
         "total_objects": 1,

@@ -75,13 +75,13 @@ namespace RAC.Network
                 catch (OperationCanceledException)
                 {
                     // TODO: handle it 
-                    ERROR("Last error caused by message: + \n" + data);
+                    ERROR("Last error caused by message: \n" + data);
                     continue;
                 }
                 catch (Exception e)
                 {
                     ERROR("Error thrown when handling the request" , e, false);
-                    ERROR("Last error caused by message: + \n" + data);
+                    ERROR("Last error caused by message: \n" + data);
                 }
 
             }
@@ -142,7 +142,7 @@ namespace RAC.Network
             while ((i = stream.Read(buffer, 0, buffer.Length)) != 0)
             {
                 
-                data += Encoding.Unicode.GetString(buffer);
+                data += Encoding.Unicode.GetString(buffer, 0, i);
                 enderIndex = data.IndexOf("-EOF-");
 
                 DEBUG("Reciving the following message:\n" + data);
@@ -171,6 +171,8 @@ namespace RAC.Network
                             {
                                 activeClients[clientIP] = connection;
                             }
+
+                            DEBUG("Msg pushed to be handled:\n" + msgstr);
 
                             reqQueue.Post(msg);
                             first = false;
