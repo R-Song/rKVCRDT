@@ -184,6 +184,7 @@ namespace RAC.Network
 
                     data = data.Substring(enderIndex + "-EOF-".Length);
                     enderIndex = data.IndexOf("-EOF-");
+                    Array.Clear(buffer, 0, buffer.Length);
                 }
             }
 
