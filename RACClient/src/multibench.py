@@ -3,6 +3,7 @@ import json
 from benchmark import *
 from startservers import *
 import time
+import traceback
 
 # 1. prep json
 # set & variables
@@ -13,8 +14,8 @@ import time
 # 5. stop servers
 
 
-#SERVER_LIST = ["192.168.41.205", "192.168.41.145"].
-SERVER_LIST = ["192.168.41.145", "192.168.41.136"]
+#SERVER_LIST = ["192.168.41.205", "192.168.41.145"]
+SERVER_LIST = ["192.168.41.136", "192.168.41.145"]
 REDO = 0
 
 
@@ -85,7 +86,8 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
                 try:
                     r = run_benchmark(wlfilename)
                     redo = 0
-                except:
+                except Exception as e:
+                    traceback.print_exc()
                     print("Error, redoing left " + str(redo))
 
                     if (redo <= 0):
@@ -173,20 +175,20 @@ if __name__ == "__main__":
     }
 
     test2 = {
-        "nodes_pre_server": 5,
+        "nodes_pre_server": 1,
         "use_server": 2,
-        "client_multiplier": 7,
+        "client_multiplier": 1,
 
         "typecode": "rc",
         "total_objects": 1,
 
-        "prep_ops_pre_obj": 200,
+        "prep_ops_pre_obj": 100,
         "num_reverse": [0],
-        "prep_ratio": [1, 0, 0],
+        "prep_ratio": [0.5, 0.5, 0],
 
 
-        "ops_per_object": 0,
-        "op_ratio": [[0.15, 0.15, 0.7]],
+        "ops_per_object": 100,
+        "op_ratio": [[0.25, 0.25, 0.5]],
         "target_throughput": 0
     }
 
@@ -326,7 +328,7 @@ if __name__ == "__main__":
 
     # check scalability
     peak_tp_scale_rev_rc = {
-        "nodes_pre_server": [5,6,7],#[1,2,3,4,5,6,7],
+        "nodes_pre_server": [1,2,3,4,5,6,7],
         "use_server": 2,
         "client_multiplier": 7,
 
