@@ -94,7 +94,7 @@ def start_server(num_server, servers_list = []) -> list:
         cfg = cwd + "/cluster_config." + str(i) + ".json"
         flog = open("log." + str(i) + ".txt", "w")
         proc = subprocess.Popen(
-            ["./" + BUILD_PATH, cfg], stdout=flog, stderr=flog)
+            [BUILD_PATH, cfg], stdout=flog, stderr=flog)
         pid = str(proc.pid)
         print(pid)
         ftemp.write(pid + "\n")
@@ -113,7 +113,7 @@ def start_server_remote(num_server, servers_list, build) -> list:
 
         if (build):
             subprocess.run(
-                ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + "build"])
+                ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " build"])
 
         proc = subprocess.run(
             ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " rstart " + str(num_server) + " " + ips_arg])
