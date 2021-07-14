@@ -17,6 +17,7 @@ import traceback
 SERVER_LIST = ["192.168.41.205", "192.168.41.145"]
 #SERVER_LIST = ["192.168.41.136", "192.168.41.145"]
 REDO = 5
+BUILD_FLAG = True
 
 
 def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfilename, local = False):
@@ -72,10 +73,16 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
                     num_server = json_dict["nodes_pre_server"]
 
                 if local:
+                    if BUILD_FLAG:
+                        build_server()
                     addresses = start_server(num_server)
                 else:
                     addresses = start_server_remote(
-                        num_server, SERVER_LIST[0:wokload_config["use_server"]])
+                        num_server, SERVER_LIST[0:wokload_config["use_server"]], BUILD_FLAG)
+
+                # only build once per run
+                if BUILD_FLAG:
+                    BUILD_FLAG = False
 
                 json_dict["nodes"] = addresses
 

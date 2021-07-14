@@ -1,3 +1,4 @@
+import pathlib
 import sys
 import json
 import socket
@@ -15,6 +16,7 @@ from pathlib import Path
 
 
 SERVER_PATH = str(Path(__file__).resolve().parent.parent.parent) + "/RAC"
+BUILD_PATH = SERVER_PATH + "/bin/Release/net5.0/Project_RAC"
 REMOTE_SCRIPT_PATH = "/home/ubuntu/Project_RAC/RACClient/src/startservers.py"
 START_PORT = 5000
 
@@ -73,8 +75,17 @@ def generate_json(num_per_server, servers_list) -> list:
 
     return addresses
 
+def build_server():
+    print("building...")
+    subprocess.Popen(
+            ["dotnet", "build", "--configuration", "Release", SERVER_PATH])
 
 def start_server(num_server, servers_list = []) -> list:
+
+    if not Path(BUILD_PATH).exists():
+        print("RAC not built")
+        build_server()
+
     addresses = generate_json(num_server, servers_list)
     cwd = os.getcwd()
     ftemp = open("temp.txt", "w")
@@ -83,7 +94,7 @@ def start_server(num_server, servers_list = []) -> list:
         cfg = cwd + "/cluster_config." + str(i) + ".json"
         flog = open("log." + str(i) + ".txt", "w")
         proc = subprocess.Popen(
-            ["sudo", "dotnet", "run", "-p", SERVER_PATH, cfg], stdout=flog, stderr=flog)
+            ["./" + BUILD_PATH, cfg], stdout=flog, stderr=flog)
         pid = str(proc.pid)
         print(pid)
         ftemp.write(pid + "\n")
@@ -94,11 +105,16 @@ def start_server(num_server, servers_list = []) -> list:
     return addresses
 
 
-def start_server_remote(num_server, servers_list) -> list:
+def start_server_remote(num_server, servers_list, build) -> list:
     ips_arg = ",".join(servers_list)
     ip_port_list = []
     i = 0
     for ip in servers_list:
+
+        if (build):
+            subprocess.run(
+                ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + "build"])
+
         proc = subprocess.run(
             ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " rstart " + str(num_server) + " " + ips_arg])
         
@@ -112,7 +128,7 @@ def start_server_remote(num_server, servers_list) -> list:
 def stop_server_remote(servers_list):
     for ip in servers_list:
         proc = subprocess.run(
-            ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "sudo python3 " + REMOTE_SCRIPT_PATH + " stop"])
+            ["ssh", "-i", SSH_KEY_FILE, "ubuntu@" + ip, "python3 " + REMOTE_SCRIPT_PATH + " stop"])
 
     
 
@@ -196,6 +212,8 @@ if __name__ == "__main__":
         stop_server()
     elif (action == "restart"):
         restart_server()
+    elif (action == "build"):
+        build_server()
     else:
         raise ValueError(
             'Wrong action, Usage: StartServers.py [start/stop/restart] [number_of_servers]')
