@@ -14,9 +14,9 @@ import traceback
 # 5. stop servers
 
 
-#SERVER_LIST = ["192.168.41.205", "192.168.41.145"]
-SERVER_LIST = ["192.168.41.136", "192.168.41.145"]
-REDO = 0
+SERVER_LIST = ["192.168.41.205", "192.168.41.145"]
+#SERVER_LIST = ["192.168.41.136", "192.168.41.145"]
+REDO = 5
 
 
 def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfilename, local = False):
@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
 
     #generate_json(test, "num_reverse", "op_ratio", "test", True)
-    generate_json(test2, "num_reverse", "op_ratio", "test")
+    #generate_json(test2, "num_reverse", "op_ratio", "test")
 
 
 
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     peak_tp_check_rc = {
         "nodes_pre_server": 2,
         "use_server": 2,
-        "client_multiplier": [7],
+        "client_multiplier": [1,2,3,4,5,6,7],
 
         "typecode": "rc",
         "total_objects": 100,
@@ -318,11 +318,11 @@ if __name__ == "__main__":
         "target_throughput": 0
     }
 
-    # generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt1")
-    # generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt2")
-    # generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt3")
-    # generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt4")
-    # generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt5")
+    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt1")
+    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt2")
+    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt3")
+    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt4")
+    generate_json(peak_tp_num_rev_ratio_rc, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rc_lazy_noopt5")
     #generate_json(peak_tp_num_rev_ratio_rg, "num_reverse", "op_ratio", "peak_tp_num_rev_ratio_rg_lazy_noopt")
 
 
