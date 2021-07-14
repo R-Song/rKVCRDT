@@ -76,7 +76,9 @@ def generate_json(num_per_server, servers_list) -> list:
     return addresses
 
 def build_server():
-    print("building...")
+    print("Building...")
+    subprocess.Popen(
+            ["dotnet", "clean", "--configuration", "Release", SERVER_PATH])
     subprocess.Popen(
             ["dotnet", "build", "--configuration", "Release", SERVER_PATH])
 
