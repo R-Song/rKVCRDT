@@ -482,6 +482,10 @@ class TestRunner():
 
         self.results.mem = mem / len(self.connections)
 
+    def close_connection(self):
+        for c in self.connections:
+            c.disconnect()
+
 TYPECODE_MAP = {
     "pnc": PNCExperimentData,
     "rc": RCExperimentData,
@@ -531,7 +535,7 @@ def run_benchmark(workloadfile) -> Results:
     print("Measuing Throughput")
     tr.benchmark(ops_per_object, op_ratio, target_throughput)
 
-    print("Experiment ends")
+    
     
     #print("Throughput:")
     #print(tr.results.tp)
@@ -539,6 +543,11 @@ def run_benchmark(workloadfile) -> Results:
     #print(np.median(tr.results.get_latency()))
     #print("Latency std")
     #print(np.std(tr.results.get_latency()))
+
+    tr.close_connection()
+
+    print("Experiment ends, close connection")
+
 
     return tr.results
 

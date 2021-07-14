@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import csv
 import json
 from benchmark import *
@@ -16,7 +18,7 @@ import traceback
 
 SERVER_LIST = ["192.168.41.205", "192.168.41.145"]
 #SERVER_LIST = ["192.168.41.136", "192.168.41.145"]
-REDO = 5
+REDO = 0
 BUILD_FLAG = True
 
 
@@ -232,9 +234,9 @@ if __name__ == "__main__":
 
 
     peak_tp_check_pnc = {
-        "nodes_pre_server": 1,
+        "nodes_pre_server": 2,
         "use_server": 2,
-        "client_multiplier": [1,2,3,4,5,6,7],
+        "client_multiplier": [5,6,7,8,9,10],
 
         "typecode": "pnc",
         "total_objects": 100,
@@ -252,7 +254,7 @@ if __name__ == "__main__":
     peak_tp_check_rc = {
         "nodes_pre_server": 2,
         "use_server": 2,
-        "client_multiplier": [1,2,3,4,5,6,7],
+        "client_multiplier": [1,2,3,4,5,6,7,8,9,10],
 
         "typecode": "rc",
         "total_objects": 100,
@@ -285,8 +287,9 @@ if __name__ == "__main__":
         "target_throughput": 0
     }
 
-    # check peak tp: lazy_noopt need x7 clients to fill
-    generate_json(peak_tp_check_pnc, "client_multiplier", "op_ratio", "peak_tp_check_pnc_lazy_noopt")
+    # ??? to fill
+    #generate_json(peak_tp_check_pnc, "client_multiplier", "op_ratio", "peak_tp_check_pnc_lazy_noopt")
+    # > 5x clients to fill
     #generate_json(peak_tp_check_rc, "client_multiplier", "op_ratio", "peak_tp_check_rc_lazy_noopt")
     #generate_json(peak_tp_check_rg, "client_multiplier", "op_ratio", "peak_tp_check_rg_lazy_noopt")
 
@@ -337,15 +340,15 @@ if __name__ == "__main__":
 
     # check scalability
     peak_tp_scale_rev_rc = {
-        "nodes_pre_server": [1,2,3,4,5,6,7],
+        "nodes_pre_server": [4],#,6,7], #[1,2,3,4,5,6,7],
         "use_server": 2,
-        "client_multiplier": 7,
+        "client_multiplier": 9,
 
         "typecode": "rc",
         "total_objects": 100,
 
         "prep_ops_pre_obj": 1000,
-        "num_reverse": [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+        "num_reverse": [0], #, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
         "prep_ratio": [0.5, 0.5, 0],
 
 
@@ -353,8 +356,9 @@ if __name__ == "__main__":
         "op_ratio": [0.25, 0.25, 0.5],
         "target_throughput": 0
     }
-
-    # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt1-cnt")
+    
+    generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt1_cont")
+    # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt1")
     # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt2")
     # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt3")
     # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt4")
