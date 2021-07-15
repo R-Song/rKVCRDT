@@ -77,8 +77,6 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
                 global BUILD_FLAG
 
                 if local:
-                    if BUILD_FLAG:
-                        build_server()
                     addresses = start_server(num_server)
                 else:
                     addresses = start_server_remote(
@@ -96,6 +94,7 @@ def generate_json(wokload_config: dict, prime_variable, secondary_variable, rfil
 
                 try:
                     r = run_benchmark(wlfilename)
+
                     redo = 0
                 except Exception as e:
                     traceback.print_exc()
@@ -168,44 +167,45 @@ def plot():
 
 if __name__ == "__main__":
     test = {
-        "nodes_pre_server": 2,
+        "nodes_pre_server": 1,
         "use_server": 1,
-        "client_multiplier": 5,
+        "client_multiplier": 10,
+
+        "typecode": "rc",
+        "total_objects": 100,
+
+        "prep_ops_pre_obj": 10,
+        "num_reverse": [0],
+        "prep_ratio": [1, 0, 0],
+
+
+        "ops_per_object": 1000,
+        "op_ratio": [[0.15, 0.15, 0.7]],
+        "target_throughput": 0
+    }
+
+    test2 = {
+        "nodes_pre_server": [5],
+        "use_server": 2,
+        "client_multiplier": 7,
 
         "typecode": "rc",
         "total_objects": 100,
 
         "prep_ops_pre_obj": 1000,
         "num_reverse": [0],
-        "prep_ratio": [1, 0, 0],
-
-
-        "ops_per_object": 0,
-        "op_ratio": [[0.15, 0.15, 0.7]],
-        "target_throughput": 0
-    }
-
-    test2 = {
-        "nodes_pre_server": 1,
-        "use_server": 2,
-        "client_multiplier": 1,
-
-        "typecode": "rc",
-        "total_objects": 1,
-
-        "prep_ops_pre_obj": 100,
-        "num_reverse": [0],
         "prep_ratio": [0.5, 0.5, 0],
 
 
-        "ops_per_object": 100,
-        "op_ratio": [[0.25, 0.25, 0.5]],
+        "ops_per_object": 0,
+        "op_ratio": [0.25, 0.25, 0.5],
         "target_throughput": 0
     }
+    
 
 
     #generate_json(test, "num_reverse", "op_ratio", "test", True)
-    #generate_json(test2, "num_reverse", "op_ratio", "test")
+    generate_json(test2, "nodes_pre_server", "num_reverse", "test")
 
 
 
@@ -340,15 +340,15 @@ if __name__ == "__main__":
 
     # check scalability
     peak_tp_scale_rev_rc = {
-        "nodes_pre_server": [4],#,6,7], #[1,2,3,4,5,6,7],
+        "nodes_pre_server": [1,2,3,4,5,6,7],
         "use_server": 2,
-        "client_multiplier": 9,
+        "client_multiplier": 6,
 
         "typecode": "rc",
         "total_objects": 100,
 
         "prep_ops_pre_obj": 1000,
-        "num_reverse": [0], #, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+        "num_reverse": [0, 50, 100, 150, 200, 250, 300],
         "prep_ratio": [0.5, 0.5, 0],
 
 
@@ -357,7 +357,6 @@ if __name__ == "__main__":
         "target_throughput": 0
     }
     
-    generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt1_cont")
     # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt1")
     # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt2")
     # generate_json(peak_tp_scale_rev_rc, "nodes_pre_server", "num_reverse", "peak_tp_scale_rev_rc_lazy_noopt3")

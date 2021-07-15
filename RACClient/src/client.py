@@ -38,15 +38,21 @@ class Server:
             msg = self.s.recv(1024)   
             self.s.settimeout(None)
         except socket.timeout:
-            print("timeout on receive")
-            self.s.close()
+            self.disconnect()
+            self.connect()
+            print("Timeout on receive")
             return "F"
 
         return msg.decode('utf-16')
 
     def send(self, data):            
         self.s.send(data.encode('utf-16'))
-        return res_parse(self.response())
+        res = self.response()
+        if res != "F":
+            return res_parse(res)
+        else:
+            return "F"
+
 
     def disconnect(self):
         self.s.close()        

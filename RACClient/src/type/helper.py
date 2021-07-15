@@ -34,8 +34,9 @@ def res_parse(res):
     try:
         lines = res.split("CNT:")[1].strip().strip('-EOF-').splitlines()
     except IndexError:
-        print("Parsing failure")
+        print("Parsing failure:")
         print(res)
+        print("======================")
         return (False, "")
 
     if "Succeed" in lines[0]:

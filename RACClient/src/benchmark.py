@@ -443,7 +443,10 @@ class TestRunner():
 
             end = time.time_ns() 
 
-            if (self.timing):
+            if (res == "F"):
+                temp.append((req[0], -1))
+
+            elif (self.timing):
                 temp.append((req[0], end - start))
     
         self.results.latency.append(temp)
