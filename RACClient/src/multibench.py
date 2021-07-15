@@ -185,9 +185,9 @@ if __name__ == "__main__":
     }
 
     test2 = {
-        "nodes_pre_server": [5],
+        "nodes_pre_server": 3,
         "use_server": 2,
-        "client_multiplier": 7,
+        "client_multiplier": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
 
         "typecode": "rc",
         "total_objects": 100,
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         "prep_ratio": [0.5, 0.5, 0],
 
 
-        "ops_per_object": 0,
+        "ops_per_object": 1000,
         "op_ratio": [0.25, 0.25, 0.5],
         "target_throughput": 0
     }
@@ -205,7 +205,7 @@ if __name__ == "__main__":
 
 
     generate_json(test, "num_reverse", "op_ratio", "test", True)
-    #generate_json(test2, "nodes_pre_server", "num_reverse", "test")
+    #generate_json(test2, "client_multiplier", "num_reverse", "test")
 
 
 

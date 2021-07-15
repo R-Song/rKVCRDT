@@ -62,7 +62,7 @@ namespace RAC.Network
             string dataStream = "";
             int enderIndex = -1;
             string clientIP = "";
-            
+
 
             while (await reqQueue.OutputAvailableAsync())
             {
@@ -168,7 +168,7 @@ namespace RAC.Network
         void Read(TcpClient connection)
         {
             NetworkStream stream = connection.GetStream();
-            
+
 
             if (!connection.Connected)
             {
@@ -204,6 +204,11 @@ namespace RAC.Network
             TcpListener server = null;
             try
             {
+                if (!System.Threading.ThreadPool.SetMinThreads(50, 50) || System.Threading.ThreadPool.SetMaxThreads(100, 100))
+                {
+                    ERROR("Threadpool setup failed");
+                }
+
                 IPAddress localAddr = IPAddress.Parse(this.address);
                 Int32 port = this.port;
 
