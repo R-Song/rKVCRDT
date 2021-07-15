@@ -169,7 +169,7 @@ if __name__ == "__main__":
     test = {
         "nodes_pre_server": 1,
         "use_server": 1,
-        "client_multiplier": 10,
+        "client_multiplier": 30,
 
         "typecode": "rc",
         "total_objects": 100,
@@ -204,8 +204,8 @@ if __name__ == "__main__":
     
 
 
-    #generate_json(test, "num_reverse", "op_ratio", "test", True)
-    generate_json(test2, "nodes_pre_server", "num_reverse", "test")
+    generate_json(test, "num_reverse", "op_ratio", "test", True)
+    #generate_json(test2, "nodes_pre_server", "num_reverse", "test")
 
 
 

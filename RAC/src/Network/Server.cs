@@ -127,7 +127,7 @@ namespace RAC.Network
                 return;
             }
 
-            Byte[] buffer = new Byte[512];
+            Byte[] buffer = new Byte[1024];
             int i;
             MessagePacket msg = null;
             string data = "";
