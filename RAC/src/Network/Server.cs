@@ -202,8 +202,9 @@ namespace RAC.Network
         {
             TcpListener server = null;
             try
-            {
-                if (!System.Threading.ThreadPool.SetMinThreads(50, 50) || System.Threading.ThreadPool.SetMaxThreads(100, 100))
+            {   
+                // Very important, otherwise client handling threads may block
+                if (!System.Threading.ThreadPool.SetMinThreads(50, 50) || !System.Threading.ThreadPool.SetMaxThreads(100, 100))
                 {
                     ERROR("Threadpool setup failed");
                 }
