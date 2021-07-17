@@ -15,12 +15,14 @@ namespace RAC.Network
 
     public class ClientSession : TcpSession
     {
-        private BufferBlock<(String, ClientSession)> reqQueue;
+        private BufferBlock<MessagePacket> reqQueue;
         private BufferBlock<MessagePacket> respQueue;
         private Dictionary<string, TcpSession> activeClients = new Dictionary<string, TcpSession>();
+        private string dataStream = "";
+        private string clientIP;
 
 
-        public ClientSession(TcpServer server, ref BufferBlock<(String, ClientSession)> reqQueue,
+        public ClientSession(TcpServer server, ref BufferBlock<MessagePacket> reqQueue,
         ref BufferBlock<MessagePacket> respQueue) : base(server)
         {
             this.reqQueue = reqQueue;
@@ -28,16 +30,58 @@ namespace RAC.Network
 
         }
 
+        protected override void OnConnected()
+        {
+            this.clientIP = IPAddress.Parse(((IPEndPoint)this.Socket.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)this.Socket.RemoteEndPoint).Port.ToString();;
+        }
+
         protected override void OnReceived(byte[] buffer, long offset, long i)
         {
-            //
-            string clientIP = IPAddress.Parse(((IPEndPoint)this.Socket.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)this.Socket.RemoteEndPoint).Port.ToString();
-
             string data = Encoding.Unicode.GetString(buffer, 0, (int)i);
             DEBUG("Receiving the following message:\n" + data);
-            reqQueue.Post((data, this));
+            this.dataStream += data;
 
 
+            int enderIndex = dataStream.IndexOf("-EOF-");
+            MessagePacket msg;
+
+            // if found -EOF-
+            while (enderIndex != -1)
+            {
+                // take everything in front of first seen -EOF-
+                string msgstr = dataStream.Substring(0, enderIndex + "-EOF-".Length);
+                int starterIndex = msgstr.LastIndexOf("-RAC-");
+
+                if (starterIndex != -1)
+                {
+                    // take everything between last -RAC- and -EOF-
+                    // as a msg
+                    msgstr = msgstr.Substring(starterIndex);
+                    try
+                    {
+                        msg = new MessagePacket(msgstr);
+                        msg.from = clientIP;
+
+                        if (msg.msgSrc == MsgSrc.client && !this.activeClients.ContainsKey(clientIP))
+                            activeClients[clientIP] = this;
+
+                        DEBUG("Msg pushed to be handled:\n" + msgstr);
+
+                        reqQueue.Post(msg);
+
+                    }
+                    catch (InvalidMessageFormatException e)
+                    {
+                        WARNING("Parsing of incoming packet fails: " + e.Message + "\n Messages: \n " + msgstr + "\n");
+
+                    }
+                }
+
+                // remove everything before "-EOF-"
+                dataStream = dataStream.Substring(enderIndex + "-EOF-".Length);
+                // look for next "-EOF-"
+                enderIndex = dataStream.IndexOf("-EOF-");
+            }
         }
 
         protected override void OnDisconnecting()
@@ -57,10 +101,10 @@ namespace RAC.Network
 
     public class TcpHandler : TcpServer
     {
-        public BufferBlock<(String, ClientSession)> reqQueue;
+        public BufferBlock<MessagePacket> reqQueue;
         public BufferBlock<MessagePacket> respQueue;
 
-        public TcpHandler(IPAddress address, int port, ref BufferBlock<(String, ClientSession)> reqQueue,
+        public TcpHandler(IPAddress address, int port, ref BufferBlock<MessagePacket> reqQueue,
         ref BufferBlock<MessagePacket> respQueue) : base(address, port)
         {
             this.reqQueue = reqQueue;
@@ -85,7 +129,7 @@ namespace RAC.Network
     public class Server
     {
 
-        private BufferBlock<(String, ClientSession)> reqQueue;
+        private BufferBlock<MessagePacket> reqQueue;
         private BufferBlock<MessagePacket> respQueue;
 
         // no need for thread safety cuz one only write and the other only read
@@ -107,9 +151,9 @@ namespace RAC.Network
             this.address = IPAddress.Parse(node.address);
             this.port = node.port;
 
-            this.reqQueue = new BufferBlock<(string, ClientSession)>();
+            this.reqQueue = new BufferBlock<MessagePacket>();
             this.respQueue = new BufferBlock<MessagePacket>();
-            
+
             this.activeClients = new Dictionary<string, ClientSession>();
         }
 
@@ -141,82 +185,35 @@ namespace RAC.Network
             }
         }
 
+
         public async Task HandleRequestAsync()
         {
-            MessagePacket msg;
-            string dataStream = "";
-            int enderIndex = -1;
-            string clientIP = "";
-
 
             while (await reqQueue.OutputAvailableAsync())
             {
-
-                (String datastr, ClientSession connection) = reqQueue.Receive();
-
-                dataStream += datastr;
-                enderIndex = dataStream.IndexOf("-EOF-");
-
-                // if found -EOF-
-                while (enderIndex != -1)
+                MessagePacket msg = reqQueue.Receive();;
+                try
                 {
-                    // take everything in front of first seen -EOF-
-                    string msgstr = dataStream.Substring(0, enderIndex + "-EOF-".Length);
-                    int starterIndex = msgstr.LastIndexOf("-RAC-");
-
-                    if (starterIndex != -1)
-                    {
-                        // take everything between last -RAC- and -EOF-
-                        // as a msg
-                        msgstr = msgstr.Substring(starterIndex);
-                        try
-                        {
-                            msg = new MessagePacket(msgstr);
-
-                            clientIP = IPAddress.Parse(((IPEndPoint)connection.Socket.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)connection.Socket.RemoteEndPoint).Port.ToString();
-                            msg.from = clientIP;
-
-                            if (msg.msgSrc == MsgSrc.client && !this.activeClients.ContainsKey(clientIP))
-                                activeClients[clientIP] = connection;
-
-
-                            DEBUG("Msg pushed to be handled:\n" + msgstr);
-
-                            try
-                            {
-                                Responses res = Parser.RunCommand(msg.content, msg.msgSrc);
-                                StageResponse(res, msg.from);
-                                DEBUG("Resparing response");
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                // TODO: handle it 
-                                ERROR("Last error caused by message: \n" + msg);
-                                continue;
-                            }
-                            catch (Exception e)
-                            {
-                                ERROR("Error thrown when handling the request", e, false);
-                                ERROR("Last error caused by message: \n" + msg);
-                            }
-
-                        }
-                        catch (InvalidMessageFormatException e)
-                        {
-                            WARNING("Parsing of incoming packet fails: " + e.Message + "\n Messages: \n " + msgstr + "\n");
-
-                        }
-                    }
-
-                    // remove everything before "-EOF-"
-                    dataStream = dataStream.Substring(enderIndex + "-EOF-".Length);
-                    // look for next "-EOF-"
-                    enderIndex = dataStream.IndexOf("-EOF-");
+                    Responses res = Parser.RunCommand(msg.content, msg.msgSrc);
+                    StageResponse(res, msg.from);
+                    DEBUG("Resparing response");
+                }
+                catch (OperationCanceledException)
+                {
+                    ERROR("Last error caused by message: \n" + msg);
+                    continue;
+                }
+                catch (Exception e)
+                {
+                    ERROR("Error thrown when handling the request" , e, false);
+                    ERROR("Last error caused by message: \n" + msg);
                 }
 
             }
 
         }
+
+
 
         public async Task SendResponseAsync()
         {
@@ -248,40 +245,6 @@ namespace RAC.Network
             }
         }
 
-        // void Read(System.Net.Sockets.TcpClient connection)
-        // {
-        //     NetworkStream stream = connection.GetStream();
-
-
-        //     if (!connection.Connected)
-        //     {
-        //         WARNING("New connection error");
-        //         return;
-        //     }
-
-        //     Byte[] buffer = new Byte[1024];
-        //     string data;
-        //     int i;
-
-        //     string clientIP = IPAddress.Parse(((IPEndPoint)connection.Client.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)connection.Client.RemoteEndPoint).Port.ToString();
-
-        //     // try read data
-        //     while ((i = stream.Read(buffer, 0, buffer.Length)) != 0)
-        //     {
-
-        //         data = Encoding.Unicode.GetString(buffer, 0, i);
-        //         DEBUG("Reciving the following message:\n" + data);
-        //         //reqQueue.Post((data, connection));
-
-        //     }
-
-        //     // if connection closed
-        //     activeClients.Remove(clientIP);
-        //     connection.Close();
-        //     DEBUG("Client disconnected");
-        //     return;
-        // }
-
         public void Run()
         {
             try
@@ -296,7 +259,7 @@ namespace RAC.Network
 
                 // Enter the listening loop.
                 while (true)
-                { 
+                {
                     DEBUG("Waiting for a connection... ");
                     Console.ReadLine();
                 }
