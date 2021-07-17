@@ -1,15 +1,25 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using Newtonsoft.Json;
+using NetCoreServer;
 
 using static RAC.Errors.Log;
+using System.Net;
 
 namespace RAC.Network
 {
+
+    public class NodeCommClient : TcpClient
+    {
+        public NodeCommClient(IPAddress address, int port) : base(address, port)
+        {
+        }
+    }
+
+
+
     public class Node
     {
         public int nodeid;
@@ -20,7 +30,7 @@ namespace RAC.Network
 
         public bool isSelf = false;
 
-        public TcpClient connection;
+        public NodeCommClient connection;
 
         [JsonConstructor]
         public Node(int nodeid, string address, int port)
@@ -34,7 +44,6 @@ namespace RAC.Network
             catch(FormatException e)
             {
                 ERROR("Node " + nodeid + " has an incorrect ip address", e);
-                throw e;
             }
             
             this.address = address;
@@ -43,6 +52,8 @@ namespace RAC.Network
                 ERROR("Node " + nodeid + " has an incorrect port number of " + port, new ArgumentOutOfRangeException());
 
             this.port = port;
+
+            this.connection = new NodeCommClient(IPAddress.Parse(address), port);
         }
 
         public override string ToString() 
@@ -96,29 +107,28 @@ namespace RAC.Network
 
         public void connect()
         {   
-            try
-            {
-                this.connection = new TcpClient(this.address, this.port);
-            }
-            catch (SocketException e)
+            
+            if (!this.connection.Connect())
             {
                 this.connection = null;
-                ERROR("Cluster node " + this.address + ":" + this.port + " connection failed", e, false);
+                ERROR("Cluster node " + this.address + ":" + this.port + " connection failed");
             }
         }
 
         public void send(MessagePacket msg)
         {
             Byte[] data = msg.Serialize();
-            NetworkStream stream = this.connection.GetStream();
-            // TODO: important!!!!! write sync
-            stream.Write(data, 0, data.Length);
             DEBUG("Sending the following message:\n" + msg);
+            if (!this.connection.SendAsync(data))
+            {
+                ERROR("Failure sending Msg: " + msg);
+            }
+            
         }
 
         public void disconnect()
         {
-            this.connection.Close();
+            this.connection.Disconnect();
         }
 
 
@@ -181,7 +191,7 @@ namespace RAC.Network
                     continue;
 
                 int retry = 0;
-                while (n.connection is null && retry++ <= MAX_RETRY)
+                while (!n.connection.IsConnected && retry++ <= MAX_RETRY)
                     n.connect();
 
                 if (n.connection is null)
