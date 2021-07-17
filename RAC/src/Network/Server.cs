@@ -30,10 +30,9 @@ namespace RAC.Network
             this.reqQueue = reqQueue;
             this.respQueue = respQueue;
             this.activeClients = activeClients;
-
         }
 
-        protected override void OnConnected()
+        protected override void OnConnecting()
         {
             this.clientIP = IPAddress.Parse(((IPEndPoint)this.Socket.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)this.Socket.RemoteEndPoint).Port.ToString();
             DEBUG("New client from " + this.clientIP + " connected");
@@ -67,8 +66,10 @@ namespace RAC.Network
                         msg = new MessagePacket(msgstr);
                         msg.from = clientIP;
 
-                        if (msg.msgSrc == MsgSrc.client && !this.activeClients.ContainsKey(clientIP))
+                        if (msg.msgSrc == MsgSrc.client && (!this.activeClients.ContainsKey(clientIP) || this.activeClients[clientIP].Id != this.Id))
+                        {
                             activeClients[clientIP] = this;
+                        }
 
                         DEBUG("Msg pushed to be handled:\n" + msgstr);
 
