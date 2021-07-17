@@ -17,22 +17,27 @@ namespace RAC.Network
     {
         private BufferBlock<MessagePacket> reqQueue;
         private BufferBlock<MessagePacket> respQueue;
-        private Dictionary<string, TcpSession> activeClients = new Dictionary<string, TcpSession>();
+        private Dictionary<string, ClientSession> activeClients;
         private string dataStream = "";
         private string clientIP;
 
 
-        public ClientSession(TcpServer server, ref BufferBlock<MessagePacket> reqQueue,
-        ref BufferBlock<MessagePacket> respQueue) : base(server)
+        public ClientSession(TcpServer server, 
+        ref BufferBlock<MessagePacket> reqQueue,
+        ref BufferBlock<MessagePacket> respQueue,
+        ref Dictionary<string, ClientSession> activeClients) : base(server)
         {
             this.reqQueue = reqQueue;
             this.respQueue = respQueue;
+            this.activeClients = activeClients;
 
         }
 
         protected override void OnConnected()
         {
-            this.clientIP = IPAddress.Parse(((IPEndPoint)this.Socket.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)this.Socket.RemoteEndPoint).Port.ToString();;
+            this.clientIP = IPAddress.Parse(((IPEndPoint)this.Socket.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)this.Socket.RemoteEndPoint).Port.ToString();
+            DEBUG("New client from " + this.clientIP + " connected");
+
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long i)
@@ -84,12 +89,10 @@ namespace RAC.Network
             }
         }
 
-        protected override void OnDisconnecting()
+        protected override void OnDisconnected()
         {
-            // if connection closed
-            string clientIP = IPAddress.Parse(((IPEndPoint)this.Socket.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)this.Socket.RemoteEndPoint).Port.ToString();
-            activeClients.Remove(clientIP);
-            DEBUG("Client disconnected");
+            activeClients.Remove(this.clientIP);
+            DEBUG("Client " + this.clientIP + " disconnected");
         }
 
         protected override void OnError(SocketError error)
@@ -103,19 +106,23 @@ namespace RAC.Network
     {
         public BufferBlock<MessagePacket> reqQueue;
         public BufferBlock<MessagePacket> respQueue;
+        public Dictionary<string, ClientSession> activeClients;
 
-        public TcpHandler(IPAddress address, int port, ref BufferBlock<MessagePacket> reqQueue,
-        ref BufferBlock<MessagePacket> respQueue) : base(address, port)
+        public TcpHandler(IPAddress address, int port, 
+        ref BufferBlock<MessagePacket> reqQueue,
+        ref BufferBlock<MessagePacket> respQueue,
+        ref Dictionary<string, ClientSession> activeClients) : base(address, port)
         {
             this.reqQueue = reqQueue;
             this.respQueue = respQueue;
+            this.activeClients = activeClients;
 
         }
 
 
         protected override TcpSession CreateSession()
         {
-            return new ClientSession(this, ref reqQueue, ref respQueue);
+            return new ClientSession(this, ref this.reqQueue, ref this.respQueue, ref this.activeClients);
         }
 
 
@@ -160,7 +167,7 @@ namespace RAC.Network
         public void start()
         {
 
-            this.server = new TcpHandler(this.address, this.port, ref this.reqQueue, ref this.respQueue);
+            this.server = new TcpHandler(this.address, this.port, ref this.reqQueue, ref this.respQueue, ref this.activeClients);
 
         }
 
@@ -250,12 +257,12 @@ namespace RAC.Network
             try
             {
                 // TcpListener server = new TcpListener(port);
-                this.server = new TcpHandler(this.address, port, ref reqQueue, ref respQueue);
+                this.server = new TcpHandler(this.address, this.port, ref this.reqQueue, ref this.respQueue, ref this.activeClients);
 
                 // Start listening for client requests.
                 server.Start();
 
-                Console.WriteLine("Server Started");
+                LOG("Server Started");
 
                 // Enter the listening loop.
                 while (true)
