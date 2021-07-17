@@ -248,39 +248,39 @@ namespace RAC.Network
             }
         }
 
-        void Read(System.Net.Sockets.TcpClient connection)
-        {
-            NetworkStream stream = connection.GetStream();
+        // void Read(System.Net.Sockets.TcpClient connection)
+        // {
+        //     NetworkStream stream = connection.GetStream();
 
 
-            if (!connection.Connected)
-            {
-                WARNING("New connection error");
-                return;
-            }
+        //     if (!connection.Connected)
+        //     {
+        //         WARNING("New connection error");
+        //         return;
+        //     }
 
-            Byte[] buffer = new Byte[1024];
-            string data;
-            int i;
+        //     Byte[] buffer = new Byte[1024];
+        //     string data;
+        //     int i;
 
-            string clientIP = IPAddress.Parse(((IPEndPoint)connection.Client.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)connection.Client.RemoteEndPoint).Port.ToString();
+        //     string clientIP = IPAddress.Parse(((IPEndPoint)connection.Client.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)connection.Client.RemoteEndPoint).Port.ToString();
 
-            // try read data
-            while ((i = stream.Read(buffer, 0, buffer.Length)) != 0)
-            {
+        //     // try read data
+        //     while ((i = stream.Read(buffer, 0, buffer.Length)) != 0)
+        //     {
 
-                data = Encoding.Unicode.GetString(buffer, 0, i);
-                DEBUG("Reciving the following message:\n" + data);
-                //reqQueue.Post((data, connection));
+        //         data = Encoding.Unicode.GetString(buffer, 0, i);
+        //         DEBUG("Reciving the following message:\n" + data);
+        //         //reqQueue.Post((data, connection));
 
-            }
+        //     }
 
-            // if connection closed
-            activeClients.Remove(clientIP);
-            connection.Close();
-            DEBUG("Client disconnected");
-            return;
-        }
+        //     // if connection closed
+        //     activeClients.Remove(clientIP);
+        //     connection.Close();
+        //     DEBUG("Client disconnected");
+        //     return;
+        // }
 
         public void Run()
         {
@@ -292,9 +292,11 @@ namespace RAC.Network
                 // Start listening for client requests.
                 server.Start();
 
+                Console.WriteLine("Server Started");
+
                 // Enter the listening loop.
                 while (true)
-                {
+                { 
                     DEBUG("Waiting for a connection... ");
                     Console.ReadLine();
                 }
