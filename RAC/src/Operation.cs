@@ -1,5 +1,5 @@
 #define EAGER
-#undef EAGER
+// #undef EAGER
 
 using RAC.Payloads;
 using RAC.Errors;

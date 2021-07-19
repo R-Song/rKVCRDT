@@ -6,6 +6,7 @@ from benchmark import *
 from startservers import *
 import time
 import traceback
+import datetime 
 
 # 1. prep json
 # set & variables
@@ -22,7 +23,11 @@ BUILD_FLAG = True
 
 def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfilename, server_list, local = False):
 
+    start = datetime.datetime.now()
+    print("Currrent time: " + str(start))
     print("Running: " + rfilename)
+
+    
 
     # y-axis
     primaries = wokload_config[prime_variable]
@@ -139,7 +144,10 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
     parse_tpresult(mem_result, labels, rfilename + "_mem.csv")
     parse_latencyresults(latency_results, rfilename + "_lt.txt")
 
+    end = datetime.datetime.now()
     print("Experiment complete")
+    print("Elapsetime:" + str(end - start))
+    print("=============================================================")
 
 
 def parse_tpresult(result, labels, rfilename):
