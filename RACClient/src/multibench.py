@@ -25,9 +25,7 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
 
     start = datetime.datetime.now()
     print("Currrent time: " + str(start))
-    print("Running: " + rfilename)
-
-    
+    print("Running: " + rfilename)    
 
     # y-axis
     primaries = wokload_config[prime_variable]
@@ -133,6 +131,8 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
                 json_dict = wokload_config.copy()
                 count += 1
                 print(str(count) + "/" + str(total) + " done")
+                end = datetime.datetime.now()
+                print("Elapsetime:" + str(end - start))
                 time.sleep(5)
                 break
 
@@ -144,9 +144,8 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
     parse_tpresult(mem_result, labels, rfilename + "_mem.csv")
     parse_latencyresults(latency_results, rfilename + "_lt.txt")
 
-    end = datetime.datetime.now()
+
     print("Experiment complete")
-    print("Elapsetime:" + str(end - start))
     print("=============================================================")
 
 

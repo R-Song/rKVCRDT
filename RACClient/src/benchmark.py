@@ -479,9 +479,15 @@ class TestRunner():
 
         mem = 0
         for s in self.connections:
-            pref = Performance(s)
-            res = pref.get()
-            mem += int(res[1][2].split(":")[1])
+            try:
+                pref = Performance(s)
+                res = pref.get()
+                mem += int(res[1][2].split(":")[1])
+            except:
+                print("Error getting memory: ")
+                print(res)
+                mem = -1
+                break
 
         self.results.mem = mem / len(self.connections)
 

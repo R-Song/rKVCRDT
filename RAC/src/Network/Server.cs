@@ -41,10 +41,9 @@ namespace RAC.Network
 
         protected override void OnReceived(byte[] buffer, long offset, long i)
         {
-            string data = Encoding.Unicode.GetString(buffer, 0, (int)i);
-            DEBUG("Receiving the following message:\n" + data);
+            string data = Encoding.Unicode.GetString(buffer, (int)offset, (int)i);
+            DEBUG("Receiving the following message with length: " + i + " bytes \n" + data);
             this.dataStream += data;
-
 
             int enderIndex = dataStream.IndexOf("-EOF-");
             MessagePacket msg;
@@ -88,6 +87,7 @@ namespace RAC.Network
                 // look for next "-EOF-"
                 enderIndex = dataStream.IndexOf("-EOF-");
             }
+
         }
 
         protected override void OnDisconnected()
@@ -246,7 +246,7 @@ namespace RAC.Network
                     {
 
                         byte[] msg = toSent.Serialize();
-                        dest.SendAsync(msg);
+                        dest.SendAsync(msg, 0, msg.Length);
                     }
                     // else do nothing
                 }

@@ -15,6 +15,7 @@ namespace RAC.Network
     {
         public NodeCommClient(IPAddress address, int port) : base(address, port)
         {
+            this.OptionSendBufferSize = 1024;
         }
     }
 
@@ -119,7 +120,7 @@ namespace RAC.Network
         {
             Byte[] data = msg.Serialize();
             DEBUG("Sending the following message:\n" + msg);
-            if (!this.connection.SendAsync(data))
+            if (!this.connection.SendAsync(data, 0, data.Length))
             {
                 ERROR("Failure sending Msg: " + msg);
             }
