@@ -45,8 +45,7 @@ class Server:
                 print("Timeout on receive")
                 self.num_timeout += 1
             else:
-                pass
-
+                raise socket.timeout
             return "F"
 
         return msg.decode('utf-16')

@@ -477,7 +477,9 @@ class TestRunner():
         self.results.tp = (ops_per_object * len(self.data.keys)) / (end - start)
         self.results.hanlde_latency()
 
+        time.sleep(2)
         mem = 0
+        # TODO: this is not working properly, sometime, dont know why
         for s in self.connections:
             try:
                 pref = Performance(s)

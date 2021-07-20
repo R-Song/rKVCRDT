@@ -17,7 +17,7 @@ import datetime
 # 5. stop servers
 
 
-REDO = 0
+REDO = 5
 BUILD_FLAG = True
 
 
@@ -91,7 +91,7 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
 
                 with open(wlfilename, 'w') as json_file:
                     json.dump(json_dict, json_file)
-                time.sleep(5)
+                time.sleep(2)
 
                 try:
                     r = run_benchmark(wlfilename)
@@ -132,8 +132,8 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
                 count += 1
                 print(str(count) + "/" + str(total) + " done")
                 end = datetime.datetime.now()
-                print("Elapsetime:" + str(end - start))
-                time.sleep(5)
+                print("Elapsed time:" + str(end - start))
+                time.sleep(1)
                 break
 
         tp_result.append(p_result)

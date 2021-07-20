@@ -246,7 +246,7 @@ namespace RAC.Network
                     {
 
                         byte[] msg = toSent.Serialize();
-                        dest.SendAsync(msg, 0, msg.Length);
+                        dest.Send(msg, 0, msg.Length);
                     }
                     // else do nothing
                 }
