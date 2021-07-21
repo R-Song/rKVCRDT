@@ -48,10 +48,10 @@ class Server:
                 raise socket.timeout
             return "F"
 
-        return msg.decode('utf-16')
+        return msg.decode('utf-8')
 
     def send(self, data):            
-        self.s.send(data.encode('utf-16'))
+        self.s.send(data.encode('utf-8'))
         res = self.response()
         if res != "F":
             return res_parse(res)

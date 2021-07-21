@@ -15,7 +15,6 @@ namespace RAC.Network
     {
         public NodeCommClient(IPAddress address, int port) : base(address, port)
         {
-            this.OptionSendBufferSize = 1024;
         }
     }
 

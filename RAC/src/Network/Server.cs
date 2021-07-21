@@ -15,13 +15,14 @@ namespace RAC.Network
 
     public class ClientSession : TcpSession
     {
-        private string dataStream = "";
+
         private string clientIP;
-        
+        private NetCoreServer.Buffer cache;
 
 
         public ClientSession(TcpServer server) : base(server)
         {
+            cache = new NetCoreServer.Buffer();
         }
 
         protected override void OnConnecting()
@@ -31,28 +32,31 @@ namespace RAC.Network
 
         }
 
-        protected override void OnReceived(byte[] buffer, long offset, long i)
+        protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            string data = Encoding.Unicode.GetString(buffer, (int)offset, (int)i);
-            DEBUG("Receiving the following message:\n" + data);
-            this.dataStream += data;
+            cache.Append(buffer, (int)offset, (int)size);
+            DEBUG("Receiving the following message:\n" + cache.ToString());
 
-            int enderIndex = dataStream.IndexOf("-EOF-");
-            
+            int last_loc = 0;
 
-            // if found -EOF-
-            while (enderIndex != -1)
+            for (int i = 0; i < (int)cache.Size; i++)
             {
-                // take everything in front of first seen -EOF-
-                string msgstr = dataStream.Substring(0, enderIndex + "-EOF-".Length);
-                int starterIndex = msgstr.LastIndexOf("-RAC-");
-
-                if (starterIndex != -1)
+                // look for "-RAC-"
+                if (cache[i] == '-' && cache[i + 1] == 'R' && cache[i + 2] == 'A' && cache[i + 3] == 'C' && cache[i + 4] == '-')
                 {
-                    // take everything between last -RAC- and -EOF-
-                    // as a msg
-                    MessagePacket msg = ParseMsgStr(msgstr.Substring(starterIndex));
+                    int loc = i + 5;
+                    int len = 0;
 
+                    // look for "-EOF-"
+                    if (!(cache[i] == '-' && cache[i + 1] == 'E' && cache[i + 2] == 'O' && cache[i + 3] == 'F' && cache[i + 4] == '-'))
+                    {
+                        len++;
+                        continue;
+                    }
+
+                    string req = cache.ExtractString(loc, len);
+                    Console.WriteLine(req);
+                    MessagePacket msg = ParseMsgStr(req);
                     if (!(msg is null))
                     {
                         List<MessagePacket> responses = HandleRequest(msg);
@@ -62,13 +66,18 @@ namespace RAC.Network
                             this.SendResponses(responses);
                         }
                     }
-                }
+                    i = loc + len;
+                    last_loc = i;
+                    
 
-                // remove everything before "-EOF-"
-                dataStream = dataStream.Substring(enderIndex + "-EOF-".Length);
-                // look for next "-EOF-"
-                enderIndex = dataStream.IndexOf("-EOF-");
+                }
             }
+
+            // remove what has been read
+            cache.Remove(0, last_loc);
+
+
+
         }
 
         private MessagePacket ParseMsgStr(string msgstr)
@@ -227,10 +236,10 @@ namespace RAC.Network
         {
 
             this.server = new TcpHandler(this.address, this.port);
-            
+
             this.server.Start();
             LOG("Server Started");
-            
+
             while (true)
             {
                 DEBUG("Waiting for a connection... ");
@@ -239,7 +248,7 @@ namespace RAC.Network
             }
         }
 
-        
+
 
     }
 }
