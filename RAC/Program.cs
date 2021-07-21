@@ -16,10 +16,6 @@ namespace RAC
             string nodeconfigfile = args[0];
 
             Global.init(nodeconfigfile);
-
-            var recieveHandler = Global.server.HandleRequestAsync();
-            var sendHandler = Global.server.SendResponseAsync();
-
             Global.server.Run();
 
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using RAC.Network;
 
 namespace RAC
 {
@@ -62,6 +63,31 @@ namespace RAC
                 sb.AppendFormat("Content: \n -------- \n{0} \n -------- \n is on its way to {1} ", contents[i], destinations[i]);
 
             return sb.ToString();
+        }
+
+
+        public List<MessagePacket> StageResponse(string to = "")
+        {
+            List<MessagePacket> toSent = new List<MessagePacket>();
+            for (int i = 0; i < this.destinations.Count; i++)
+            {
+                MessagePacket msg = null;
+                Dest dest = this.destinations[i];
+                string content = this.contents[i];
+
+                if (dest == Dest.none)
+                    continue;
+                else if (dest == Dest.client)
+                    msg = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
+                                                to, content);
+                else if (dest == Dest.broadcast)
+                    msg = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
+                                                "", content);
+                if (msg is not null)
+                    toSent.Add(msg);
+            }
+
+            return toSent;
         }
     }
 
