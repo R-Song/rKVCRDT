@@ -155,6 +155,9 @@ def stop_server():
                         pid = int(ftemp.readline())
                     except ValueError:
                         break
+        
+        # duh
+        subprocess.run(["killall", "Project_RAC"])
 
     except FileNotFoundError:
         raise IndentationError("Servers are not started!")
