@@ -35,7 +35,7 @@ class Server:
 
     def response(self):
         try:
-            self.s.settimeout(20)
+            self.s.settimeout(60)
             msg = self.s.recv(1024)
             self.s.settimeout(None)
         except socket.timeout:
