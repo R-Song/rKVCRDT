@@ -120,7 +120,7 @@ namespace RAC.Network
         {
             Byte[] data = msg.Serialize();
             DEBUG("Sending the following message:\n" + msg);
-            if (!this.connection.SendAsync(data, 0, data.Length))
+            if (!this.connection.SendAsync(data))
             {
                 ERROR("Failure sending Msg: " + msg);
             }

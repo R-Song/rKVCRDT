@@ -17,7 +17,7 @@ import datetime
 # 5. stop servers
 
 
-REDO = 5
+REDO = 0
 BUILD_FLAG = True
 
 
