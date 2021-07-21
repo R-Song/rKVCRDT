@@ -198,7 +198,6 @@ namespace RAC.Network
                     ERROR("Broadcast failed to cluster node " + n.address + ":" + n.port);
                 else
                 {
-                    msg.to = n.address.ToString() + ":" + n.port.ToString();
                     n.send(msg);
                 }
             }

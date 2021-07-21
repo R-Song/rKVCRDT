@@ -33,7 +33,7 @@ class Server:
             print(e)
             return 0
 
-    def response(self):
+    def response(self) -> bytes:
         try:
             self.s.settimeout(60)
             msg = self.s.recv(1024)
@@ -48,10 +48,10 @@ class Server:
                 raise socket.timeout
             return "F"
 
-        return msg.decode('utf-8')
+        return msg
 
-    def send(self, data):            
-        self.s.send(data.encode('utf-8'))
+    def send(self, data: bytes):            
+        self.s.send(data)
         res = self.response()
         if res != "F":
             return res_parse(res)

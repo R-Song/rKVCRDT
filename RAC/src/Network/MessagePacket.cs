@@ -9,124 +9,109 @@ namespace RAC.Network
 {
     public enum MsgSrc
     {
-        server,
-        client
+        server = 1,
+        client = 2
     }
 
     // Protocol looks like this
-    // \f[FROM IP:PORT]\t[TO IP:PORT]\t[CLASS S\C(server/client)]\t[Content Length]\t[content]\f
+    // \f[4 bytes: MsgSrc][4xN bytes fields for future use][4 bytes: content length][content]
     public class MessagePacket
     {
-        public string from { get; set; }
-        public string to { get; set; }
+        // Number of headerfield
+        public static int NUM_FIELDS = 2;
+        // 1 byte '\f' + each field is 4 bytes * N
+        public static int HEADER_SIZE = 1 + NUM_FIELDS * 4;
+
         public MsgSrc msgSrc { get; }
         public int length { get; }
         public string content { get; }
-        
-        // Create a message packet from a string with '\f' from beginning and the end pruned
-        // This class do not verify that.
-        public MessagePacket(string str)
+    
+
+        public MessagePacket(MsgSrc src, int length, string content)
         {
-            string s = str;
-
-            string[] fields = str.Split('\t');
-            this.from = fields[0];
-            this.to = fields[1];
-            
-            if (fields[2].Equals("s"))
-                this.msgSrc = MsgSrc.server;
-            else if (fields[2].Equals("c"))
-                this.msgSrc = MsgSrc.client;
-            else
-                throw new InvalidMessageFormatException("Wrong message sender class: " + fields[2]);
-
-            this.length = Int32.Parse(fields[3]);
-            this.content = fields[4];
-
-            
-            if (fields[4].Length == this.length)
-                this.content = fields[4];
-            else
-                throw new InvalidMessageFormatException("Content length missmatch, actual: " + fields[4].Length + 
-                " expected: " + this.length);
-
-            if (fields.Length != 5)
-            {
-                throw new InvalidMessageFormatException("Number of fields in the given message is incorrect: " + fields.Length);
-            }
-        }
-
-        public MessagePacket(string from, string to, string content, MsgSrc sender = MsgSrc.server)
-        {
-            this.from = from;
-            this.to = to;
-            this.msgSrc = sender; // has to be server;
+            this.msgSrc = src;
+            this.length = length;
             this.content = content;
-            this.length = content.Length;
         }
 
-        public static List<MessagePacket> ParseReceivedMessage(NetCoreServer.Buffer cache, string clientIP, ref int handled)
-        {   
+        // create a msg to send
+        public MessagePacket(string content)
+        {
+            this.msgSrc = MsgSrc.server;
+            this.length = content.Length;
+            this.content = content;
+        }
+
+        public static List<MessagePacket> ParseReceivedMessage(NetCoreServer.Buffer cache, ref int parsedIndex)
+        {
             List<MessagePacket> res = new List<MessagePacket>();
 
-            handled = 0;
-
+            parsedIndex = 0;
 
             for (int i = 0; i < (int)cache.Size; i++)
             {
                 // look for the first "\f"
-                if (cache[i] == '\f' && i + 1 < cache.Size && cache[i + 1] != '\f')
-                {
-                    int loc = i;
-                    int len = 1;
+                if (cache[i] == '\f')
+                {   
 
-                    // look for the last "\f"
-                    while(loc + len < cache.Size && cache[loc + len] != '\f')
-                    {
-                        len++;
-                    }
+                    int handledSize = i;
+                    
+                    // if header cut-off
+                    if (i + HEADER_SIZE > cache.Size)
+                        break;
 
-                    string msgstr = cache.ExtractString(loc, len).Trim('\f');
+                    int srcOffset = i + 1;
+                    // length always the last one
+                    int contentLengthOffset = i + 1 + (NUM_FIELDS - 1) * 4;
 
                     try
                     {
-                        MessagePacket msg = new MessagePacket(msgstr);
-                        msg.from = clientIP;
+                        MsgSrc src = (MsgSrc)BitConverter.ToInt32(cache.Data, srcOffset);
+                        int contentlen = BitConverter.ToInt32(cache.Data, contentLengthOffset);
+
+                        // if content cut-off
+                        if (i + HEADER_SIZE + contentlen > cache.Size)
+                            break;
+
+                        string content = cache.ExtractString(i + HEADER_SIZE, contentlen);
+
+                        MessagePacket msg = new MessagePacket(src, contentlen, content);
+
+                        DEBUG("Msg to be handled:\n" + msg);
                         res.Add(msg);
+
+                        // next
+                        i = HEADER_SIZE + contentlen;
+                        parsedIndex = i;
 
                     }
                     catch (InvalidMessageFormatException e)
                     {
-                        WARNING("Parsing of incoming packet fails: " + e.Message + "\n Messages: \n " + msgstr + "\n");
+                        WARNING("Parsing of incoming packet fails: " + e.Message);
+                        continue; // just look for next '\f'
                     }
 
-                    // parts that already parsed
-                    i = handled = loc + len;
+
                 }
 
             }
-
-
             return res;
         }
-        
+
 
         public byte[] Serialize()
         {
-            string msgSrcstr;
-            if (this.msgSrc == MsgSrc.server)
-                msgSrcstr = "s\t";
-            else
-                msgSrcstr = "c\t";
+            byte[] srcb = BitConverter.GetBytes((int)this.msgSrc);
+            byte[] lenb = BitConverter.GetBytes(this.length);
+            byte[] contentb = Encoding.UTF8.GetBytes(this.content);
 
-            return Encoding.UTF8.GetBytes('\f' +
-                                              this.from + '\t' +
-                                              this.to + '\t' +
-                                              msgSrcstr + 
-                                              this.length + '\t' +
-                                              this.content + '\f');
+            List<byte> msgBytes = new List<byte>();
+            msgBytes.Add((byte)'\f');
+            msgBytes.AddRange(srcb);
+            msgBytes.AddRange(lenb);
+            msgBytes.AddRange(contentb);
 
-
+            return msgBytes.ToArray();
         }
 
         public override string ToString()
@@ -136,14 +121,12 @@ namespace RAC.Network
                 msgSrcstr = "server";
             else
                 msgSrcstr = "client";
-                
+
             return "Packet Content:\n" +
-            "Source: " + this.from + "\n" +
-            "Dest: " + this.to + "\n" +
             "Sender Class: " + msgSrcstr + "\n" +
             "Length: " + this.length + "\n" +
             "Content:\n" + this.content;
-            
+
         }
 
     }

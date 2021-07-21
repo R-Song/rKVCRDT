@@ -37,9 +37,9 @@ namespace RAC.Network
             cache.Append(buffer, (int)offset, (int)size);
             DEBUG("Receiving the following message:\n" + cache.ToString());
 
-            int handled = 0;
+            int handledSize = 0;
 
-            List<MessagePacket> ReceivedMsg = MessagePacket.ParseReceivedMessage(cache, this.clientIP, ref handled);
+            List<MessagePacket> ReceivedMsg = MessagePacket.ParseReceivedMessage(cache, ref handledSize);
 
             foreach (var msg in ReceivedMsg)
             {
@@ -48,10 +48,10 @@ namespace RAC.Network
             }
 
             // remove what has been read
-            if (handled + 1 == cache.Size)
+            if (handledSize == cache.Size)
                 cache.Clear();
             else
-                cache.Remove(0, handled);
+                cache.Remove(0, handledSize);
 
 
         }
@@ -64,20 +64,19 @@ namespace RAC.Network
                 Responses res = Parser.RunCommand(msg.content, msg.msgSrc);
                 
                 DEBUG("Sending responses");
-                foreach (MessagePacket toSent in res.StageResponse(msg.from))
+                foreach ((MessagePacket msg, Dest dest) toSent in res.StageResponse())
                 {
                     // broadcast
-                    if (toSent.to == "")
+                    if (toSent.dest == Dest.broadcast)
                     {
-                        Global.cluster.BroadCast(toSent);
+                        Global.cluster.BroadCast(toSent.msg);
                     }
                     // reply to client
                     else
                     {
-
                         if (this.IsConnected)
                         {
-                            byte[] data = toSent.Serialize();
+                            byte[] data = toSent.msg.Serialize();
                             this.SendAsync(data, 0, data.Length);
                         }
                     }
