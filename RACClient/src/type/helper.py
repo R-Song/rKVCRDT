@@ -7,12 +7,11 @@ opPrefix = "OP:"
 paramPrefix = "P:"
 
 def msg_construct(server, msg):
-    s = rac_starter + \
-        "FROM:" + client_addr + "\n" + \
-        "TO:" + str(server.ip) + ":" + str(server.port) + "\n" + \
-        "CLS:" + "c\n" + \
-        "LEN:" + str(len(msg)) + "\n" + \
-        "CNT:\n" + msg + str(rac_ender)
+    s = '\f'  + client_addr + '\t' + \
+        str(server.ip) + ':' + str(server.port) + '\t' + \
+        'c\t' + \
+        str(len(msg)) + '\t' + \
+        msg + '\f'
 
     return s
 
@@ -32,7 +31,7 @@ def res_parse(res):
     
     # TODO: add try for timeout
     try:
-        lines = res.split("CNT:")[1].strip().strip('-EOF-').splitlines()
+        lines = res.split('\t')[4].strip().splitlines()
     except IndexError:
         print("Parsing failure:")
         print(res)

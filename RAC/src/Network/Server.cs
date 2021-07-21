@@ -41,24 +41,28 @@ namespace RAC.Network
 
             for (int i = 0; i < (int)cache.Size; i++)
             {
-                // look for "-RAC-"
-                if (cache[i] == '-' && cache[i + 1] == 'R' && cache[i + 2] == 'A' && cache[i + 3] == 'C' && cache[i + 4] == '-')
+                // look for "\f"
+                if (cache[i] == '\f' && cache[i + 1] != '\f')
                 {
-                    int loc = i + 5;
+                    int loc = i + 1;
                     int len = 0;
+                    last_loc = loc;
 
                     // look for "-EOF-"
-                    if (!(cache[i] == '-' && cache[i + 1] == 'E' && cache[i + 2] == 'O' && cache[i + 3] == 'F' && cache[i + 4] == '-'))
+                    while(cache[loc + len] != '\f')
                     {
                         len++;
-                        continue;
+                        if (loc + len > cache.Size)
+                            break;
                     }
 
-                    string req = cache.ExtractString(loc, len);
-                    Console.WriteLine(req);
+                    string req = cache.ExtractString(loc, len).Trim('\f');
                     MessagePacket msg = ParseMsgStr(req);
+                    
                     if (!(msg is null))
                     {
+
+                        DEBUG("Handling Request: " + msg);
                         List<MessagePacket> responses = HandleRequest(msg);
 
                         if (!(responses is null))
@@ -66,10 +70,9 @@ namespace RAC.Network
                             this.SendResponses(responses);
                         }
                     }
-                    i = loc + len;
-                    last_loc = i;
                     
-
+                    i = loc + len + 1;
+                
                 }
             }
 
@@ -189,8 +192,6 @@ namespace RAC.Network
     public class Server
     {
 
-        private BufferBlock<MessagePacket> respQueue;
-
         // no need for thread safety cuz one only write and the other only read
 
         public Cluster cluster = Global.cluster;
@@ -210,7 +211,6 @@ namespace RAC.Network
             this.address = IPAddress.Parse(node.address);
             this.port = node.port;
 
-            this.respQueue = new BufferBlock<MessagePacket>();
 
         }
 
