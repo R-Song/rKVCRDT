@@ -37,18 +37,19 @@ namespace RAC.Network
             cache.Append(buffer, (int)offset, (int)size);
             DEBUG("Receiving the following message:\n" + cache.ToString());
 
-            int last_loc = 0;
+            int handled = 0;
+
+            string a = cache.ToString();
 
             for (int i = 0; i < (int)cache.Size; i++)
             {
-                // look for "\f"
-                if (cache[i] == '\f' && cache[i + 1] != '\f')
+                // look for the first "\f"
+                if (cache[i] == '\f' && i + 1 < cache.Size && cache[i + 1] != '\f')
                 {
-                    int loc = i + 1;
-                    int len = 0;
-                    last_loc = loc;
+                    int loc = i;
+                    int len = 1;
 
-                    // look for "-EOF-"
+                    // look for the last "\f"
                     while(cache[loc + len] != '\f')
                     {
                         len++;
@@ -71,14 +72,18 @@ namespace RAC.Network
                         }
                     }
                     
-                    i = loc + len + 1;
-                
+                    // parts that already parsed
+                    i = handled = loc + len;
                 }
+
             }
 
             // remove what has been read
-            cache.Remove(0, last_loc);
-
+            if (handled + 1 == cache.Size)
+                cache.Clear();
+            else 
+                cache.Remove(0, handled);
+            string b = cache.ToString();
 
 
         }
