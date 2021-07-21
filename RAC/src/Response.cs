@@ -66,26 +66,11 @@ namespace RAC
         }
 
 
-        public List<MessagePacket> StageResponse(string to = "")
+        public List<(MessagePacket, Dest)> StageResponse()
         {
-            List<MessagePacket> toSent = new List<MessagePacket>();
+            List<(MessagePacket, Dest)> toSent = new List<(MessagePacket, Dest)>();
             for (int i = 0; i < this.destinations.Count; i++)
-            {
-                MessagePacket msg = null;
-                Dest dest = this.destinations[i];
-                string content = this.contents[i];
-
-                if (dest == Dest.none)
-                    continue;
-                else if (dest == Dest.client)
-                    msg = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
-                                                to, content);
-                else if (dest == Dest.broadcast)
-                    msg = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
-                                                "", content);
-                if (!(msg is null))
-                    toSent.Add(msg);
-            }
+                toSent.Add((new MessagePacket(this.contents[i]), this.destinations[i]));
 
             return toSent;
         }

@@ -304,7 +304,7 @@ namespace RAC.History
             string broadcast = Parser.BuildCommand("h", "y", this.uid, syncPm);
 
             res.AddResponse(Dest.broadcast, broadcast, false);
-            var msg = res.StageResponse()[0];
+            var msg = res.StageResponse()[0].Item1;
             Global.cluster.BroadCast(msg);
 
         }
@@ -322,7 +322,7 @@ namespace RAC.History
             string broadcast = Parser.BuildCommand("h", "y", this.uid, syncPm);
 
             res.AddResponse(Dest.broadcast, broadcast, false);
-            var msg = res.StageResponse()[0];
+            var msg = res.StageResponse()[0].Item1;
             Global.cluster.BroadCast(msg);
 
 

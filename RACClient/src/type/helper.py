@@ -1,17 +1,20 @@
-rac_starter = "-RAC-\n"
-rac_ender = "\n-EOF-"
-client_addr = "Client"
+import sys
+
+num_fields = 2
+head_len = 1 + num_fields * 4
 typePrefix = "TYPE:"
 uidPrefix = "UID:"
 opPrefix = "OP:"
 paramPrefix = "P:"
 
-def msg_construct(server, msg):
-    s = '\f'  + client_addr + '\t' + \
-        str(server.ip) + ':' + str(server.port) + '\t' + \
-        'c\t' + \
-        str(len(msg)) + '\t' + \
-        msg + '\f'
+def msg_construct(server, msg: str):
+
+    msg_src = 2
+
+    s = '\f'.encode('utf-8') + \
+        msg_src.to_bytes(4, sys.byteorder) + \
+        len(msg).to_bytes(4, sys.byteorder) + \
+        msg.encode('utf-8')
 
     return s
 
@@ -27,11 +30,12 @@ def req_construct(tid, uid, op, params):
     return req
 
 
-def res_parse(res):
+def res_parse(res: bytes):
     
-    # TODO: add try for timeout
+    
     try:
-        lines = res.split('\t')[4].strip().splitlines()
+        # maybe do some checks as well?
+        lines = res[head_len:].decode("utf-8").split("\n")
     except IndexError:
         print("Parsing failure:")
         print(res)
