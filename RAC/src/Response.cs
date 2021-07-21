@@ -83,7 +83,7 @@ namespace RAC
                 else if (dest == Dest.broadcast)
                     msg = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
                                                 "", content);
-                if (msg is not null)
+                if (!(msg is null))
                     toSent.Add(msg);
             }
 

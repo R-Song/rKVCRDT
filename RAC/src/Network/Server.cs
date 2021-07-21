@@ -15,16 +15,13 @@ namespace RAC.Network
 
     public class ClientSession : TcpSession
     {
-        private Dictionary<string, ClientSession> activeClients;
         private string dataStream = "";
         private string clientIP;
         
 
 
-        public ClientSession(TcpServer server,
-        ref Dictionary<string, ClientSession> activeClients) : base(server)
+        public ClientSession(TcpServer server) : base(server)
         {
-            this.activeClients = activeClients;
         }
 
         protected override void OnConnecting()
@@ -56,11 +53,11 @@ namespace RAC.Network
                     // as a msg
                     MessagePacket msg = ParseMsgStr(msgstr.Substring(starterIndex));
 
-                    if (msg is not null)
+                    if (!(msg is null))
                     {
                         List<MessagePacket> responses = HandleRequest(msg);
 
-                        if (responses is not null)
+                        if (!(responses is null))
                         {
                             this.SendResponses(responses);
                         }
@@ -80,11 +77,6 @@ namespace RAC.Network
             {
                 MessagePacket msg = new MessagePacket(msgstr);
                 msg.from = clientIP;
-
-                if (msg.msgSrc == MsgSrc.client && (!this.activeClients.ContainsKey(clientIP) || this.activeClients[clientIP].Id != this.Id))
-                {
-                    this.activeClients[clientIP] = this;
-                }
 
                 DEBUG("Msg to be handled:\n" + msgstr);
 
@@ -147,7 +139,6 @@ namespace RAC.Network
 
         protected override void OnDisconnected()
         {
-            activeClients.Remove(this.clientIP);
             DEBUG("Client " + this.clientIP + " disconnected");
         }
 
@@ -162,17 +153,15 @@ namespace RAC.Network
     {
 
 
-        public Dictionary<string, ClientSession> activeClients;
 
         public TcpHandler(IPAddress address, int port) : base(address, port)
         {
-            this.activeClients = new Dictionary<string, ClientSession>();
         }
 
 
         protected override TcpSession CreateSession()
         {
-            return new ClientSession(this, ref this.activeClients);
+            return new ClientSession(this);
         }
 
 
