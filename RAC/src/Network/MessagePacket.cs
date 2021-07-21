@@ -81,11 +81,9 @@ namespace RAC.Network
                     int len = 1;
 
                     // look for the last "\f"
-                    while(cache[loc + len] != '\f')
+                    while(loc + len < cache.Size && cache[loc + len] != '\f')
                     {
                         len++;
-                        if (loc + len > cache.Size)
-                            break;
                     }
 
                     string msgstr = cache.ExtractString(loc, len).Trim('\f');
@@ -94,8 +92,6 @@ namespace RAC.Network
                     {
                         MessagePacket msg = new MessagePacket(msgstr);
                         msg.from = clientIP;
-
-                        DEBUG("Msg to be handled:\n" + msgstr);
                         res.Add(msg);
 
                     }

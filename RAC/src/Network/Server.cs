@@ -43,6 +43,7 @@ namespace RAC.Network
 
             foreach (var msg in ReceivedMsg)
             {
+                DEBUG("Msg to be handled:\n" + msg);
                 HandleRequest(msg);
             }
 
