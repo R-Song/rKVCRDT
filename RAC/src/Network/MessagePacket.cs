@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using RAC.Errors;
@@ -62,6 +63,55 @@ namespace RAC.Network
             this.msgSrc = sender; // has to be server;
             this.content = content;
             this.length = content.Length;
+        }
+
+        public static List<MessagePacket> ParseReceivedMessage(NetCoreServer.Buffer cache, string clientIP, ref int handled)
+        {   
+            List<MessagePacket> res = new List<MessagePacket>();
+
+            handled = 0;
+
+
+            for (int i = 0; i < (int)cache.Size; i++)
+            {
+                // look for the first "\f"
+                if (cache[i] == '\f' && i + 1 < cache.Size && cache[i + 1] != '\f')
+                {
+                    int loc = i;
+                    int len = 1;
+
+                    // look for the last "\f"
+                    while(cache[loc + len] != '\f')
+                    {
+                        len++;
+                        if (loc + len > cache.Size)
+                            break;
+                    }
+
+                    string msgstr = cache.ExtractString(loc, len).Trim('\f');
+
+                    try
+                    {
+                        MessagePacket msg = new MessagePacket(msgstr);
+                        msg.from = clientIP;
+
+                        DEBUG("Msg to be handled:\n" + msgstr);
+                        res.Add(msg);
+
+                    }
+                    catch (InvalidMessageFormatException e)
+                    {
+                        WARNING("Parsing of incoming packet fails: " + e.Message + "\n Messages: \n " + msgstr + "\n");
+                    }
+
+                    // parts that already parsed
+                    i = handled = loc + len;
+                }
+
+            }
+
+
+            return res;
         }
         
 

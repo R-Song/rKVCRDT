@@ -39,117 +39,58 @@ namespace RAC.Network
 
             int handled = 0;
 
-            string a = cache.ToString();
+            List<MessagePacket> ReceivedMsg = MessagePacket.ParseReceivedMessage(cache, this.clientIP, ref handled);
 
-            for (int i = 0; i < (int)cache.Size; i++)
+            foreach (var msg in ReceivedMsg)
             {
-                // look for the first "\f"
-                if (cache[i] == '\f' && i + 1 < cache.Size && cache[i + 1] != '\f')
-                {
-                    int loc = i;
-                    int len = 1;
-
-                    // look for the last "\f"
-                    while(cache[loc + len] != '\f')
-                    {
-                        len++;
-                        if (loc + len > cache.Size)
-                            break;
-                    }
-
-                    string req = cache.ExtractString(loc, len).Trim('\f');
-                    MessagePacket msg = ParseMsgStr(req);
-                    
-                    if (!(msg is null))
-                    {
-
-                        DEBUG("Handling Request: " + msg);
-                        List<MessagePacket> responses = HandleRequest(msg);
-
-                        if (!(responses is null))
-                        {
-                            this.SendResponses(responses);
-                        }
-                    }
-                    
-                    // parts that already parsed
-                    i = handled = loc + len;
-                }
-
+                HandleRequest(msg);
             }
 
             // remove what has been read
             if (handled + 1 == cache.Size)
                 cache.Clear();
-            else 
+            else
                 cache.Remove(0, handled);
-            string b = cache.ToString();
 
 
         }
 
-        private MessagePacket ParseMsgStr(string msgstr)
-        {
-            try
-            {
-                MessagePacket msg = new MessagePacket(msgstr);
-                msg.from = clientIP;
-
-                DEBUG("Msg to be handled:\n" + msgstr);
-
-                return msg;
-
-            }
-            catch (InvalidMessageFormatException e)
-            {
-                WARNING("Parsing of incoming packet fails: " + e.Message + "\n Messages: \n " + msgstr + "\n");
-                return null;
-            }
-
-        }
-
-        public List<MessagePacket> HandleRequest(MessagePacket msg)
+        public void HandleRequest(MessagePacket msg)
         {
 
             try
             {
                 Responses res = Parser.RunCommand(msg.content, msg.msgSrc);
-                List<MessagePacket> toRes = res.StageResponse(msg.from);
-                DEBUG("Resparing response");
-                return toRes;
+                
+                DEBUG("Sending responses");
+                foreach (MessagePacket toSent in res.StageResponse(msg.from))
+                {
+                    // broadcast
+                    if (toSent.to == "")
+                    {
+                        Global.cluster.BroadCast(toSent);
+                    }
+                    // reply to client
+                    else
+                    {
+
+                        if (this.IsConnected)
+                        {
+                            byte[] data = toSent.Serialize();
+                            this.SendAsync(data, 0, data.Length);
+                        }
+                    }
+                }
+
             }
             catch (OperationCanceledException)
             {
                 ERROR("Last error caused by message: \n" + msg);
-                return null;
             }
             catch (Exception e)
             {
                 ERROR("Error thrown when handling the request", e, false);
                 ERROR("Last error caused by message: \n" + msg);
-                return null;
-            }
-        }
-
-        public void SendResponses(List<MessagePacket> responses)
-        {
-            foreach (MessagePacket toSent in responses)
-            {
-                // broadcast
-                if (toSent.to == "")
-                {
-                    Global.cluster.BroadCast(toSent);
-                }
-                // reply to client
-                else
-                {
-
-                    if (this.IsConnected)
-                    {
-                        byte[] data = toSent.Serialize();
-                        this.SendAsync(data, 0, data.Length);
-                    }
-                }
             }
         }
 
@@ -168,9 +109,6 @@ namespace RAC.Network
 
     public class TcpHandler : TcpServer
     {
-
-
-
         public TcpHandler(IPAddress address, int port) : base(address, port)
         {
         }
@@ -186,13 +124,7 @@ namespace RAC.Network
         {
             Console.WriteLine($"Server caught an error with code {error}");
         }
-
-
-
-
-
     }
-
 
     public class Server
     {
@@ -252,8 +184,5 @@ namespace RAC.Network
                 Console.ReadLine();
             }
         }
-
-
-
     }
 }
