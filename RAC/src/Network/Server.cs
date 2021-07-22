@@ -16,14 +16,14 @@ namespace RAC.Network
     public class ClientSession : TcpSession
     {
         private BufferBlock<MessagePacket> reqQueue;
-        private BufferBlock<MessagePacket> respQueue;
+        private BufferBlock<(MessagePacket msg, ClientSession to)> respQueue;
         private NetCoreServer.Buffer cache;
         private string clientIP;
 
 
         public ClientSession(TcpServer server,
         ref BufferBlock<MessagePacket> reqQueue,
-        ref BufferBlock<MessagePacket> respQueue) : base(server)
+        ref BufferBlock<(MessagePacket msg, ClientSession to)> respQueue) : base(server)
         {
             this.reqQueue = reqQueue;
             this.respQueue = respQueue;
@@ -71,11 +71,11 @@ namespace RAC.Network
     public class TcpHandler : TcpServer
     {
         public BufferBlock<MessagePacket> reqQueue;
-        public BufferBlock<MessagePacket> respQueue;
+        public BufferBlock<(MessagePacket msg, ClientSession to)> respQueue;
 
         public TcpHandler(IPAddress address, int port,
         ref BufferBlock<MessagePacket> reqQueue,
-        ref BufferBlock<MessagePacket> respQueue) : base(address, port)
+        ref BufferBlock<(MessagePacket msg, ClientSession to)> respQueue) : base(address, port)
         {
             this.reqQueue = reqQueue;
             this.respQueue = respQueue;
@@ -99,7 +99,7 @@ namespace RAC.Network
     {
 
         private BufferBlock<MessagePacket> reqQueue;
-        private BufferBlock<MessagePacket> respQueue;
+        private BufferBlock<(MessagePacket msg, ClientSession to)> respQueue;
 
         // no need for thread safety cuz one only write and the other only read
         public Cluster cluster = Global.cluster;
@@ -120,7 +120,7 @@ namespace RAC.Network
             this.port = node.port;
 
             this.reqQueue = new BufferBlock<MessagePacket>();
-            this.respQueue = new BufferBlock<MessagePacket>();
+            this.respQueue = new BufferBlock<(MessagePacket msg, ClientSession to)>();
         }
 
         public void start()
@@ -146,26 +146,7 @@ namespace RAC.Network
                     Responses res = Parser.RunCommand(msg.content, msg.msgSrc);
                     foreach (MessagePacket toSent in res.StageResponse())
                     {
-                        // broadcast
-                        if (toSent.to == Dest.broadcast)
-                        {
-                            this.cluster.BroadCast(toSent);
-                        }
-                        // reply to client, if connection found to be ended, do nothing
-                        else if (toSent.to == Dest.client)
-                        {
-                            if (msg.from.IsConnected)
-                            {
-
-                                byte[] data = toSent.Serialize();
-                                msg.from.SendAsync(data);
-                            }
-                            
-                        }
-                        else
-                        {
-                            ERROR("Destination DNE for msg: " + msg);
-                        }
+                        this.respQueue.Post((toSent, toSent.from));
                     }
 
                 }
@@ -188,31 +169,32 @@ namespace RAC.Network
 
         public async Task SendResponseAsync()
         {
-            MessagePacket toSent;
+            ;
 
             while (await this.respQueue.OutputAvailableAsync())
             {
-                // toSent = this.respQueue.Receive();
+                (MessagePacket msg, ClientSession to) = this.respQueue.Receive();
 
-                // ClientSession dest;
+                       // broadcast
+                        if (msg.to == Dest.broadcast)
+                        {
+                            this.cluster.BroadCast(msg);
+                        }
+                        // reply to client, if connection found to be ended, do nothing
+                        else if (msg.to == Dest.client)
+                        {
+                            if (to.IsConnected)
+                            {
 
-                // // broadcast
-                // if (toSent.to == Dest.broadcast)
-                // {
-                //     this.cluster.BroadCast(toSent);
-                // }
-                // // reply to client, if connection found to be ended, do nothing
-                // else if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
-                // {
-
-                //     if (dest.IsConnected)
-                //     {
-
-                //         byte[] msg = toSent.Serialize();
-                //         dest.Send(msg, 0, msg.Length);
-                //     }
-                //     // else do nothing
-                // }
+                                byte[] data = msg.Serialize();
+                                to.SendAsync(data);
+                            }
+                            
+                        }
+                        else
+                        {
+                            ERROR("Destination DNE for msg: " + msg);
+                        }
             }
         }
 
