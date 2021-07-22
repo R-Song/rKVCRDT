@@ -54,16 +54,12 @@ namespace RAC.Network
 
         public static int ParseReceivedMessage(byte[] cache, in ClientSession from)
         {
-            int parsedIndex = 0;
-
+            int parsedSize = 0;
             for (int i = 0; i < (int)cache.Length; i++)
             {
                 // look for the first "\f"
                 if (cache[i] == '\f')
                 {   
-
-                    int handledSize = i;
-                    
                     // if header cut-off
                     if (i + HEADER_SIZE > cache.Length)
                         break;
@@ -87,9 +83,10 @@ namespace RAC.Network
 
                         Global.server.reqQueue.Post(msg);
 
-                        // next
-                        i = HEADER_SIZE + contentlen;
-                        parsedIndex = i;
+                        // next, -1 to offset +1 from for loop
+                        i = i + HEADER_SIZE + contentlen - 1;
+
+                        parsedSize += HEADER_SIZE + contentlen;
 
                     }
                     catch (InvalidMessageFormatException e)
@@ -103,7 +100,7 @@ namespace RAC.Network
 
             }
 
-            return parsedIndex;
+            return parsedSize;
         }
 
 

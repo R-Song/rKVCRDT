@@ -8,7 +8,7 @@ namespace RAC
     class Program
     {
         //TODO: use proper versioning
-        static string VERSION = "8";
+        static string VERSION = "9";
 
         static int Main(string[] args)
         {
