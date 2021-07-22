@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks.Dataflow;
 using RAC.Errors;
 using static RAC.Errors.Log;
 
@@ -28,7 +29,7 @@ namespace RAC.Network
         public string content { get; }
 
         // --meta data--
-        public ClientSession from { get; set; }
+        public ClientSession connection { get; set; }
         public Dest to { get; set; }
 
         // create a msg from received
@@ -38,7 +39,7 @@ namespace RAC.Network
             this.length = length;
             this.content = content;
             
-            this.from = from;
+            this.connection = from;
         }
 
         // create a msg to send
@@ -51,12 +52,11 @@ namespace RAC.Network
             this.to = to;
         }
 
-        public static int ParseReceivedMessage(in NetCoreServer.Buffer cache, out List<MessagePacket> res, in ClientSession from)
+        public static int ParseReceivedMessage(byte[] cache, in ClientSession from)
         {
-            res = new List<MessagePacket>();
             int parsedIndex = 0;
 
-            for (int i = 0; i < (int)cache.Size; i++)
+            for (int i = 0; i < (int)cache.Length; i++)
             {
                 // look for the first "\f"
                 if (cache[i] == '\f')
@@ -65,7 +65,7 @@ namespace RAC.Network
                     int handledSize = i;
                     
                     // if header cut-off
-                    if (i + HEADER_SIZE > cache.Size)
+                    if (i + HEADER_SIZE > cache.Length)
                         break;
 
                     int srcOffset = i + 1;
@@ -74,18 +74,18 @@ namespace RAC.Network
 
                     try
                     {
-                        MsgSrc src = (MsgSrc)BitConverter.ToInt32(cache.Data, srcOffset);
-                        int contentlen = BitConverter.ToInt32(cache.Data, contentLengthOffset);
+                        MsgSrc src = (MsgSrc)BitConverter.ToInt32(cache, srcOffset);
+                        int contentlen = BitConverter.ToInt32(cache, contentLengthOffset);
 
                         // if content cut-off
-                        if (i + HEADER_SIZE + contentlen > cache.Size)
+                        if (i + HEADER_SIZE + contentlen > cache.Length)
                             break;
 
-                        string content = cache.ExtractString(i + HEADER_SIZE, contentlen);
+                        string content = Encoding.UTF8.GetString(cache, i + HEADER_SIZE, contentlen); // cache.ExtractString(i + HEADER_SIZE, contentlen);
 
                         MessagePacket msg = new MessagePacket(src, contentlen, content, from);
 
-                        res.Add(msg);
+                        Global.server.reqQueue.Post(msg);
 
                         // next
                         i = HEADER_SIZE + contentlen;

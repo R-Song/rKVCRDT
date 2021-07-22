@@ -16,18 +16,20 @@ namespace RAC.Network
     public class ClientSession : TcpSession
     {
         private BufferBlock<MessagePacket> reqQueue;
-        private BufferBlock<(MessagePacket msg, ClientSession to)> respQueue;
-        private NetCoreServer.Buffer cache;
-        private string clientIP;
+        private BufferBlock<MessagePacket> respQueue;
+        //private NetCoreServer.Buffer cache;
+        private List<byte> cache;
+        public string clientIP { get; private set; }
 
 
         public ClientSession(TcpServer server,
         ref BufferBlock<MessagePacket> reqQueue,
-        ref BufferBlock<(MessagePacket msg, ClientSession to)> respQueue) : base(server)
+        ref BufferBlock<MessagePacket> respQueue) : base(server)
         {
             this.reqQueue = reqQueue;
             this.respQueue = respQueue;
-            cache = new NetCoreServer.Buffer();
+            //cache = new NetCoreServer.Buffer();
+            cache = new List<byte>();
         }
 
         protected override void OnConnecting()
@@ -39,21 +41,18 @@ namespace RAC.Network
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            cache.Append(buffer, (int)offset, (int)size);
+            //cache.Append(buffer, (int)offset, (int)size);
+            byte[] temp = new byte[size];
+            Array.Copy(buffer, (int)offset, temp, 0, (int)size);
+            cache.AddRange(temp);
+
             DEBUG("Receiving the following message with length: " + size + " bytes \n" + cache.ToString());
+            int handledSize = MessagePacket.ParseReceivedMessage(cache.ToArray(), this);
 
-            List<MessagePacket> ReceivedMsg;
-            int handledSize = MessagePacket.ParseReceivedMessage(cache, out ReceivedMsg, this);
-
-            foreach (var msg in ReceivedMsg)
-            {
-                reqQueue.Post(msg);
-            }
-
-            if (handledSize == cache.Size)
+            if (handledSize == cache.Count)
                 cache.Clear();
             else
-                cache.Remove(0, handledSize);
+                cache.RemoveRange(0, handledSize);
         }
 
         protected override void OnDisconnected()
@@ -71,11 +70,11 @@ namespace RAC.Network
     public class TcpHandler : TcpServer
     {
         public BufferBlock<MessagePacket> reqQueue;
-        public BufferBlock<(MessagePacket msg, ClientSession to)> respQueue;
+        public BufferBlock<MessagePacket> respQueue;
 
         public TcpHandler(IPAddress address, int port,
         ref BufferBlock<MessagePacket> reqQueue,
-        ref BufferBlock<(MessagePacket msg, ClientSession to)> respQueue) : base(address, port)
+        ref BufferBlock<MessagePacket> respQueue) : base(address, port)
         {
             this.reqQueue = reqQueue;
             this.respQueue = respQueue;
@@ -98,8 +97,8 @@ namespace RAC.Network
     public class Server
     {
 
-        private BufferBlock<MessagePacket> reqQueue;
-        private BufferBlock<(MessagePacket msg, ClientSession to)> respQueue;
+        public BufferBlock<MessagePacket> reqQueue;
+        public BufferBlock<MessagePacket> respQueue;
 
         // no need for thread safety cuz one only write and the other only read
         public Cluster cluster = Global.cluster;
@@ -120,7 +119,7 @@ namespace RAC.Network
             this.port = node.port;
 
             this.reqQueue = new BufferBlock<MessagePacket>();
-            this.respQueue = new BufferBlock<(MessagePacket msg, ClientSession to)>();
+            this.respQueue = new BufferBlock<MessagePacket>();
         }
 
         public void start()
@@ -144,11 +143,7 @@ namespace RAC.Network
                     DEBUG("Resparing response");
 
                     Responses res = Parser.RunCommand(msg.content, msg.msgSrc);
-                    foreach (MessagePacket toSent in res.StageResponse())
-                    {
-                        this.respQueue.Post((toSent, toSent.from));
-                    }
-
+                    res.StageResponse(msg.connection);
                 }
                 catch (OperationCanceledException)
                 {
@@ -173,7 +168,7 @@ namespace RAC.Network
 
             while (await this.respQueue.OutputAvailableAsync())
             {
-                (MessagePacket msg, ClientSession to) = this.respQueue.Receive();
+                MessagePacket msg = this.respQueue.Receive();
 
                        // broadcast
                         if (msg.to == Dest.broadcast)
@@ -183,11 +178,15 @@ namespace RAC.Network
                         // reply to client, if connection found to be ended, do nothing
                         else if (msg.to == Dest.client)
                         {
-                            if (to.IsConnected)
+                            if (msg.connection.IsConnected)
                             {
 
                                 byte[] data = msg.Serialize();
-                                to.SendAsync(data);
+                                msg.connection.Send(data);
+                            }
+                            else
+                            {
+                                WARNING("Connection to client " + msg.connection.clientIP + " is lost, reply cannot be sent " + msg);
                             }
                             
                         }
