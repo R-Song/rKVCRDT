@@ -542,6 +542,8 @@ def run_benchmark(workloadfile) -> Results:
     print("Preping Ops with " + str(prep_ops_pre_obj) + " prep ops and " + str(num_reverse) + " reverses")
     tr.prep_ops(prep_ops_pre_obj, prep_ratio, num_reverse)
 
+    time.sleep(2)
+
     print("Total ops:" + str(total_objects * ops_per_object) + " with each obj " + str(ops_per_object) + " ops")
     print("Measuing Throughput")
     tr.benchmark(ops_per_object, op_ratio, target_throughput)
