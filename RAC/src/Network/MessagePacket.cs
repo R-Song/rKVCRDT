@@ -77,7 +77,6 @@ namespace RAC.Network
 
                         MessagePacket msg = new MessagePacket(src, contentlen, content);
 
-                        DEBUG("Msg to be handled:\n" + msg);
                         res.Add(msg);
 
                         // next

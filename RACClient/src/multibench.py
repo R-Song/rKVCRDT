@@ -78,10 +78,13 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
                 global BUILD_FLAG
 
                 if local:
+                    i = 1
                     addresses = start_server(num_server)
                 else:
                     addresses = start_server_remote(
                         num_server, server_list[0:wokload_config["use_server"]], BUILD_FLAG)
+
+                #addresses = ["192.168.41.136:5000", "192.168.41.136:5001"]
 
                 # only build once per run
                 if BUILD_FLAG:
@@ -110,6 +113,7 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
 
                 finally:
                     if local:
+                        i = 2
                         stop_server()
                     else:
                         stop_server_remote(server_list[0:wokload_config["use_server"]])
