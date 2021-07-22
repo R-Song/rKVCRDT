@@ -17,19 +17,17 @@ namespace RAC.Network
     {
         private BufferBlock<MessagePacket> reqQueue;
         private BufferBlock<MessagePacket> respQueue;
-        private Dictionary<string, ClientSession> activeClients;
-        private string dataStream = "";
+        private NetCoreServer.Buffer cache;
         private string clientIP;
 
 
-        public ClientSession(TcpServer server, 
+        public ClientSession(TcpServer server,
         ref BufferBlock<MessagePacket> reqQueue,
-        ref BufferBlock<MessagePacket> respQueue,
-        ref Dictionary<string, ClientSession> activeClients) : base(server)
+        ref BufferBlock<MessagePacket> respQueue) : base(server)
         {
             this.reqQueue = reqQueue;
             this.respQueue = respQueue;
-            this.activeClients = activeClients;
+            cache = new NetCoreServer.Buffer();
         }
 
         protected override void OnConnecting()
@@ -39,60 +37,27 @@ namespace RAC.Network
 
         }
 
-        protected override void OnReceived(byte[] buffer, long offset, long i)
+        protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            string data = Encoding.Unicode.GetString(buffer, (int)offset, (int)i);
-            DEBUG("Receiving the following message with length: " + i + " bytes \n" + data);
-            this.dataStream += data;
+            cache.Append(buffer, (int)offset, (int)size);
+            DEBUG("Receiving the following message with length: " + size + " bytes \n" + cache.ToString());
 
-            int enderIndex = dataStream.IndexOf("-EOF-");
-            MessagePacket msg;
+            List<MessagePacket> ReceivedMsg;
+            int handledSize = MessagePacket.ParseReceivedMessage(cache, out ReceivedMsg, this);
 
-            // if found -EOF-
-            while (enderIndex != -1)
+            foreach (var msg in ReceivedMsg)
             {
-                // take everything in front of first seen -EOF-
-                string msgstr = dataStream.Substring(0, enderIndex + "-EOF-".Length);
-                int starterIndex = msgstr.LastIndexOf("-RAC-");
-
-                if (starterIndex != -1)
-                {
-                    // take everything between last -RAC- and -EOF-
-                    // as a msg
-                    msgstr = msgstr.Substring(starterIndex);
-                    try
-                    {
-                        msg = new MessagePacket(msgstr);
-                        msg.from = clientIP;
-
-                        if (msg.msgSrc == MsgSrc.client && (!this.activeClients.ContainsKey(clientIP) || this.activeClients[clientIP].Id != this.Id))
-                        {
-                            activeClients[clientIP] = this;
-                        }
-
-                        DEBUG("Msg pushed to be handled:\n" + msgstr);
-
-                        reqQueue.Post(msg);
-
-                    }
-                    catch (InvalidMessageFormatException e)
-                    {
-                        WARNING("Parsing of incoming packet fails: " + e.Message + "\n Messages: \n " + msgstr + "\n");
-
-                    }
-                }
-
-                // remove everything before "-EOF-"
-                dataStream = dataStream.Substring(enderIndex + "-EOF-".Length);
-                // look for next "-EOF-"
-                enderIndex = dataStream.IndexOf("-EOF-");
+                reqQueue.Post(msg);
             }
 
+            if (handledSize == cache.Size)
+                cache.Clear();
+            else
+                cache.Remove(0, handledSize);
         }
 
         protected override void OnDisconnected()
         {
-            activeClients.Remove(this.clientIP);
             DEBUG("Client " + this.clientIP + " disconnected");
         }
 
@@ -107,23 +72,19 @@ namespace RAC.Network
     {
         public BufferBlock<MessagePacket> reqQueue;
         public BufferBlock<MessagePacket> respQueue;
-        public Dictionary<string, ClientSession> activeClients;
 
-        public TcpHandler(IPAddress address, int port, 
+        public TcpHandler(IPAddress address, int port,
         ref BufferBlock<MessagePacket> reqQueue,
-        ref BufferBlock<MessagePacket> respQueue,
-        ref Dictionary<string, ClientSession> activeClients) : base(address, port)
+        ref BufferBlock<MessagePacket> respQueue) : base(address, port)
         {
             this.reqQueue = reqQueue;
             this.respQueue = respQueue;
-            this.activeClients = activeClients;
-
         }
 
 
         protected override TcpSession CreateSession()
         {
-            return new ClientSession(this, ref this.reqQueue, ref this.respQueue, ref this.activeClients);
+            return new ClientSession(this, ref this.reqQueue, ref this.respQueue);
         }
 
 
@@ -141,7 +102,6 @@ namespace RAC.Network
         private BufferBlock<MessagePacket> respQueue;
 
         // no need for thread safety cuz one only write and the other only read
-        private Dictionary<string, ClientSession> activeClients;
         public Cluster cluster = Global.cluster;
 
         public TcpHandler tcpHandler;
@@ -161,37 +121,16 @@ namespace RAC.Network
 
             this.reqQueue = new BufferBlock<MessagePacket>();
             this.respQueue = new BufferBlock<MessagePacket>();
-
-            this.activeClients = new Dictionary<string, ClientSession>();
         }
 
         public void start()
         {
 
-            this.server = new TcpHandler(this.address, this.port, ref this.reqQueue, ref this.respQueue, ref this.activeClients);
+            this.server = new TcpHandler(this.address, this.port, ref this.reqQueue, ref this.respQueue);
 
         }
 
-        public void StageResponse(Responses res, string to = "")
-        {
-            MessagePacket toSent = null;
-            for (int i = 0; i < res.destinations.Count; i++)
-            {
-                Dest dest = res.destinations[i];
-                string content = res.contents[i];
 
-                if (dest == Dest.none)
-                    continue;
-                else if (dest == Dest.client)
-                    toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
-                                                to, content);
-                else if (dest == Dest.broadcast)
-                    toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
-                                                "", content);
-                this.respQueue.Post(toSent);
-
-            }
-        }
 
 
         public async Task HandleRequestAsync()
@@ -199,12 +138,36 @@ namespace RAC.Network
 
             while (await reqQueue.OutputAvailableAsync())
             {
-                MessagePacket msg = reqQueue.Receive();;
+                MessagePacket msg = reqQueue.Receive(); ;
                 try
                 {
-                    Responses res = Parser.RunCommand(msg.content, msg.msgSrc);
-                    StageResponse(res, msg.from);
                     DEBUG("Resparing response");
+
+                    Responses res = Parser.RunCommand(msg.content, msg.msgSrc);
+                    foreach (MessagePacket toSent in res.StageResponse())
+                    {
+                        // broadcast
+                        if (toSent.to == Dest.broadcast)
+                        {
+                            this.cluster.BroadCast(toSent);
+                        }
+                        // reply to client, if connection found to be ended, do nothing
+                        else if (toSent.to == Dest.client)
+                        {
+                            if (msg.from.IsConnected)
+                            {
+
+                                byte[] data = toSent.Serialize();
+                                msg.from.SendAsync(data);
+                            }
+                            
+                        }
+                        else
+                        {
+                            ERROR("Destination DNE for msg: " + msg);
+                        }
+                    }
+
                 }
                 catch (OperationCanceledException)
                 {
@@ -213,7 +176,7 @@ namespace RAC.Network
                 }
                 catch (Exception e)
                 {
-                    ERROR("Error thrown when handling the request" , e, false);
+                    ERROR("Error thrown when handling the request", e, false);
                     ERROR("Last error caused by message: \n" + msg);
                 }
 
@@ -229,27 +192,27 @@ namespace RAC.Network
 
             while (await this.respQueue.OutputAvailableAsync())
             {
-                toSent = this.respQueue.Receive();
+                // toSent = this.respQueue.Receive();
 
-                ClientSession dest;
+                // ClientSession dest;
 
-                // broadcast
-                if (toSent.to == "")
-                {
-                    this.cluster.BroadCast(toSent);
-                }
-                // reply to client, if connection found to be ended, do nothing
-                else if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
-                {
+                // // broadcast
+                // if (toSent.to == Dest.broadcast)
+                // {
+                //     this.cluster.BroadCast(toSent);
+                // }
+                // // reply to client, if connection found to be ended, do nothing
+                // else if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
+                // {
 
-                    if (dest.IsConnected)
-                    {
+                //     if (dest.IsConnected)
+                //     {
 
-                        byte[] msg = toSent.Serialize();
-                        dest.Send(msg, 0, msg.Length);
-                    }
-                    // else do nothing
-                }
+                //         byte[] msg = toSent.Serialize();
+                //         dest.Send(msg, 0, msg.Length);
+                //     }
+                //     // else do nothing
+                // }
             }
         }
 
@@ -258,7 +221,7 @@ namespace RAC.Network
             try
             {
                 // TcpListener server = new TcpListener(port);
-                this.server = new TcpHandler(this.address, this.port, ref this.reqQueue, ref this.respQueue, ref this.activeClients);
+                this.server = new TcpHandler(this.address, this.port, ref this.reqQueue, ref this.respQueue);
 
                 // Start listening for client requests.
                 server.Start();

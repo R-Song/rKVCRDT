@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using RAC.Network;
 
 namespace RAC
 {
@@ -52,6 +53,22 @@ namespace RAC
             this.contents.Add(statusContent);
             this.destinations.Add(destination);
             contentLength++;
+        }
+
+        public List<MessagePacket> StageResponse()
+        {
+            List<MessagePacket> toSent = new List<MessagePacket>();
+            for (int i = 0; i < this.destinations.Count; i++)
+            {
+                Dest dest = this.destinations[i];
+                string content = this.contents[i];
+
+                MessagePacket msg = new MessagePacket(content, dest);    
+                toSent.Add(msg);
+
+            }
+
+            return toSent;
         }
 
 

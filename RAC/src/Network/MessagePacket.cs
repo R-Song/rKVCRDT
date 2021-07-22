@@ -17,6 +17,7 @@ namespace RAC.Network
     // \f[4 bytes: MsgSrc][4xN bytes fields for future use][4 bytes: content length][content]
     public class MessagePacket
     {
+        // ---packet info-- 
         // Number of headerfield
         public static int NUM_FIELDS = 2;
         // 1 byte '\f' + each field is 4 bytes * N
@@ -25,28 +26,35 @@ namespace RAC.Network
         public MsgSrc msgSrc { get; }
         public int length { get; }
         public string content { get; }
-    
 
-        public MessagePacket(MsgSrc src, int length, string content)
+        // --meta data--
+        public ClientSession from { get; set; }
+        public Dest to { get; set; }
+
+        // create a msg from received
+        public MessagePacket(MsgSrc src, int length, string content, ClientSession from)
         {
             this.msgSrc = src;
             this.length = length;
             this.content = content;
+            
+            this.from = from;
         }
 
         // create a msg to send
-        public MessagePacket(string content)
+        public MessagePacket(string content, Dest to)
         {
             this.msgSrc = MsgSrc.server;
             this.length = content.Length;
             this.content = content;
+
+            this.to = to;
         }
 
-        public static List<MessagePacket> ParseReceivedMessage(NetCoreServer.Buffer cache, ref int parsedIndex)
+        public static int ParseReceivedMessage(in NetCoreServer.Buffer cache, out List<MessagePacket> res, in ClientSession from)
         {
-            List<MessagePacket> res = new List<MessagePacket>();
-
-            parsedIndex = 0;
+            res = new List<MessagePacket>();
+            int parsedIndex = 0;
 
             for (int i = 0; i < (int)cache.Size; i++)
             {
@@ -75,7 +83,7 @@ namespace RAC.Network
 
                         string content = cache.ExtractString(i + HEADER_SIZE, contentlen);
 
-                        MessagePacket msg = new MessagePacket(src, contentlen, content);
+                        MessagePacket msg = new MessagePacket(src, contentlen, content, from);
 
                         res.Add(msg);
 
@@ -94,7 +102,8 @@ namespace RAC.Network
                 }
 
             }
-            return res;
+
+            return parsedIndex;
         }
 
 
