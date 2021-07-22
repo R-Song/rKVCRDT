@@ -182,7 +182,7 @@ namespace RAC.Network
                             {
 
                                 byte[] data = msg.Serialize();
-                                msg.connection.Send(data);
+                                msg.connection.SendAsync(data);
                             }
                             else
                             {
