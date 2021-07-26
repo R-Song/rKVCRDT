@@ -1,5 +1,5 @@
 #define OPTMIZE
-//#undef OPTMIZE
+#undef OPTMIZE
 //TODO: make these better
 
 using System;
