@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Collections.Generic;
+using NetCoreServer;
 
 using RAC.Errors;
 using static RAC.Errors.Log;
@@ -12,227 +13,207 @@ using static RAC.Errors.Log;
 namespace RAC.Network
 {
 
+    public class ClientSession : TcpSession
+    {
+        private BufferBlock<MessagePacket> reqQueue;
+        private BufferBlock<MessagePacket> respQueue;
+        //private NetCoreServer.Buffer cache;
+        private List<byte> cache;
+        public string clientIP { get; private set; }
+
+
+        public ClientSession(TcpServer server,
+        ref BufferBlock<MessagePacket> reqQueue,
+        ref BufferBlock<MessagePacket> respQueue) : base(server)
+        {
+            this.reqQueue = reqQueue;
+            this.respQueue = respQueue;
+            //cache = new NetCoreServer.Buffer();
+            cache = new List<byte>();
+        }
+
+        protected override void OnConnecting()
+        {
+            this.clientIP = IPAddress.Parse(((IPEndPoint)this.Socket.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)this.Socket.RemoteEndPoint).Port.ToString();
+            DEBUG("New client from " + this.clientIP + " connected");
+
+        }
+
+        protected override void OnReceived(byte[] buffer, long offset, long size)
+        {
+            //cache.Append(buffer, (int)offset, (int)size);
+            byte[] temp = new byte[size];
+            Array.Copy(buffer, (int)offset, temp, 0, (int)size);
+            cache.AddRange(temp);
+
+            DEBUG("Receiving the following message with length: " + size + " bytes \n" + cache.ToString());
+            int handledSize = MessagePacket.ParseReceivedMessage(cache.ToArray(), this);
+
+            if (handledSize == cache.Count)
+                cache.Clear();
+            else
+                cache.RemoveRange(0, handledSize);
+        }
+
+        protected override void OnDisconnected()
+        {
+            DEBUG("Client " + this.clientIP + " disconnected");
+        }
+
+        protected override void OnError(SocketError error)
+        {
+            Console.WriteLine($"Session caught an error with code {error}");
+        }
+    }
+
+
+    public class TcpHandler : TcpServer
+    {
+        public BufferBlock<MessagePacket> reqQueue;
+        public BufferBlock<MessagePacket> respQueue;
+
+        public TcpHandler(IPAddress address, int port,
+        ref BufferBlock<MessagePacket> reqQueue,
+        ref BufferBlock<MessagePacket> respQueue) : base(address, port)
+        {
+            this.reqQueue = reqQueue;
+            this.respQueue = respQueue;
+        }
+
+
+        protected override TcpSession CreateSession()
+        {
+            return new ClientSession(this, ref this.reqQueue, ref this.respQueue);
+        }
+
+
+        protected override void OnError(SocketError error)
+        {
+            Console.WriteLine($"Server caught an error with code {error}");
+        }
+    }
+
+
     public class Server
     {
 
-        private BufferBlock<MessagePacket> reqQueue = new BufferBlock<MessagePacket>();
-        private BufferBlock<MessagePacket> respQueue = new BufferBlock<MessagePacket>();
+        public BufferBlock<MessagePacket> reqQueue;
+        public BufferBlock<MessagePacket> respQueue;
 
         // no need for thread safety cuz one only write and the other only read
-        private Dictionary<string, TcpClient> activeClients = new Dictionary<string, TcpClient>();
         public Cluster cluster = Global.cluster;
 
-        public string address { get; }
+        public TcpHandler tcpHandler;
+
+        public IPAddress address { get; }
         public int port { get; }
+        public TcpHandler server;
+
 
         // threshold for stop reading if still no starter detected
         private const int readThreshold = 100;
 
         public Server(Node node)
         {
-            this.address = node.address;
+            this.address = IPAddress.Parse(node.address);
             this.port = node.port;
+
+            this.reqQueue = new BufferBlock<MessagePacket>();
+            this.respQueue = new BufferBlock<MessagePacket>();
         }
 
-        public void StageResponse(Responses res, string to = "")
+        public void start()
         {
-            MessagePacket toSent = null;
-            for (int i = 0; i < res.destinations.Count; i++)
-            {
-                Dest dest = res.destinations[i];
-                string content = res.contents[i];
 
-                if (dest == Dest.none)
-                    continue;
-                else if (dest == Dest.client)
-                    toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
-                                                to, content);
-                else if (dest == Dest.broadcast)
-                    toSent = new MessagePacket(Global.selfNode.address + ":" + Global.selfNode.port.ToString(),
-                                                "", content);
-                this.respQueue.Post(toSent);
+            this.server = new TcpHandler(this.address, this.port, ref this.reqQueue, ref this.respQueue);
 
-            }
         }
+
+
+
 
         public async Task HandleRequestAsync()
         {
-            MessagePacket data;
 
             while (await reqQueue.OutputAvailableAsync())
-            {   
-                data = reqQueue.Receive();
+            {
+                MessagePacket msg = reqQueue.Receive(); ;
                 try
                 {
-                    Responses res = Parser.RunCommand(data.content, data.msgSrc);
-                    StageResponse(res, data.from);
                     DEBUG("Resparing response");
+
+                    Responses res = Parser.RunCommand(msg.content, msg.msgSrc);
+                    res.StageResponse(msg.connection);
                 }
                 catch (OperationCanceledException)
                 {
-                    // TODO: handle it 
-                    ERROR("Last error caused by message: \n" + data);
+                    ERROR("Last error caused by message: \n" + msg);
                     continue;
                 }
                 catch (Exception e)
                 {
-                    ERROR("Error thrown when handling the request" , e, false);
-                    ERROR("Last error caused by message: \n" + data);
+                    ERROR("Error thrown when handling the request", e, false);
+                    ERROR("Last error caused by message: \n" + msg);
                 }
 
             }
 
         }
+
+
 
         public async Task SendResponseAsync()
         {
-            MessagePacket toSent;
+            ;
 
             while (await this.respQueue.OutputAvailableAsync())
             {
-                toSent = this.respQueue.Receive();
+                MessagePacket msg = this.respQueue.Receive();
 
-                TcpClient dest;
-
-                // broadcast
-                if (toSent.to == "")
-                {
-                    this.cluster.BroadCast(toSent);
-                }
-                // reply to client, if connection found to be ended, do nothing
-                else if (activeClients.TryGetValue(toSent.to.Trim(), out dest))
-                {
-                    if (dest.Connected)
-                    {
-                        byte[] msg = toSent.Serialize();
-                        NetworkStream stream = dest.GetStream();
-
-                        DEBUG("Sending the following message:\n" + toSent);
-
-                        stream.Write(msg, 0, msg.Length);
-                    }
-                    // else do nothing
-                }
-            }
-        }
-
-        void Read(TcpClient connection)
-        {
-            NetworkStream stream = connection.GetStream();
-            bool first = true;
-
-            if (!connection.Connected)
-            {
-                WARNING("New connection error");
-                return;
-            }
-
-            Byte[] buffer = new Byte[1024];
-            int i;
-            MessagePacket msg = null;
-            string data = "";
-            int enderIndex = -1;
-            string clientIP = "";
-
-            // try read data
-            while ((i = stream.Read(buffer, 0, buffer.Length)) != 0)
-            {
-                
-                data += Encoding.Unicode.GetString(buffer, 0, i);
-                enderIndex = data.IndexOf("-EOF-");
-
-                DEBUG("Reciving the following message:\n" + data);
-
-                // if found -EOF-
-                while (enderIndex != -1)
-                {
-                    // take everything in front of first seen -EOF-
-                    string msgstr = data.Substring(0, enderIndex + "-EOF-".Length);
-                    int starterIndex = msgstr.LastIndexOf("-RAC-");
-
-                    if (starterIndex != -1)
-                    {
-                        // take everything between last -RAC- and -EOF-
-                        // as a msg
-                        msgstr = msgstr.Substring(starterIndex);
-                        try
+                       // broadcast
+                        if (msg.to == Dest.broadcast)
                         {
-                            msg = new MessagePacket(msgstr);
-                            
-                            clientIP = IPAddress.Parse (((IPEndPoint)connection.Client.RemoteEndPoint).Address.ToString()) + ":" + ((IPEndPoint)connection.Client.RemoteEndPoint).Port.ToString();
-                            msg.from = clientIP;
-
-                            // if new connection, add to the client list
-                            if (first && msg.msgSrc == MsgSrc.client)
+                            this.cluster.BroadCast(msg);
+                        }
+                        // reply to client, if connection found to be ended, do nothing
+                        else if (msg.to == Dest.client)
+                        {
+                            if (msg.connection.IsConnected)
                             {
-                                activeClients[clientIP] = connection;
+
+                                byte[] data = msg.Serialize();
+                                msg.connection.SendAsync(data);
                             }
-
-                            DEBUG("Msg pushed to be handled:\n" + msgstr);
-
-                            reqQueue.Post(msg);
-                            first = false;
-
-                        }
-                        catch (InvalidMessageFormatException e)
-                        {
-                            WARNING("Parsing of incoming packet fails: " + e.Message + "\n Messages: \n " + msgstr + "\n");
+                            else
+                            {
+                                WARNING("Connection to client " + msg.connection.clientIP + " is lost, reply cannot be sent " + msg);
+                            }
                             
                         }
-                    }
-
-                    // remove everything before "-EOF-"
-                    data = data.Substring(enderIndex + "-EOF-".Length);
-                    // look for next "-EOF-"
-                    enderIndex = data.IndexOf("-EOF-");                  
-                }
-
-                Array.Clear(buffer, 0, buffer.Length);
+                        else
+                        {
+                            ERROR("Destination DNE for msg: " + msg);
+                        }
             }
-
-            // if connection closed
-            activeClients.Remove(clientIP);
-            connection.Close();
-            DEBUG("Client disconnected");
-            return;
         }
-
 
         public void Run()
         {
-            TcpListener server = null;
             try
-            {   
-                // Very important, otherwise client handling threads may block
-                if (!System.Threading.ThreadPool.SetMinThreads(50, 50) || !System.Threading.ThreadPool.SetMaxThreads(100, 100))
-                {
-                    ERROR("Threadpool setup failed");
-                }
-
-                IPAddress localAddr = IPAddress.Parse(this.address);
-                Int32 port = this.port;
-
+            {
                 // TcpListener server = new TcpListener(port);
-                server = new TcpListener(localAddr, port);
+                this.server = new TcpHandler(this.address, this.port, ref this.reqQueue, ref this.respQueue);
 
                 // Start listening for client requests.
                 server.Start();
 
-                // Buffer for reading data
-                Byte[] bytes = new Byte[1024];
+                LOG("Server Started");
 
                 // Enter the listening loop.
                 while (true)
                 {
                     DEBUG("Waiting for a connection... ");
-
-                    // Perform a blocking call to accept requests.
-                    // You could also use server.AcceptSocket() here.
-                    TcpClient client = server.AcceptTcpClient();
-                    DEBUG("New connection!");
-
-                    // start new thread here
-                    Task.Run(() => { Read(client); });
+                    Console.ReadLine();
                 }
             }
             catch (SocketException e)
@@ -249,6 +230,7 @@ namespace RAC.Network
                 this.respQueue.Complete();
             }
         }
-    }
 
+
+    }
 }

@@ -1,10 +1,15 @@
 ﻿using System;
 using RAC.Network;
 
+
+
 namespace RAC
 {
     class Program
     {
+        //TODO: use proper versioning
+        static string VERSION = "10";
+
         static int Main(string[] args)
         {
             if (args.Length != 1)
@@ -13,12 +18,14 @@ namespace RAC
                 return 1;
             }
 
+            Console.WriteLine("Running rac version " + VERSION);
+
             string nodeconfigfile = args[0];
 
             Global.init(nodeconfigfile);
 
-            var asynchanlder = Global.server.HandleRequestAsync();
-            var asynchanlder2 = Global.server.SendResponseAsync();
+            var recieveHandler = Global.server.HandleRequestAsync();
+            var sendHandler = Global.server.SendResponseAsync();
 
             Global.server.Run();
 

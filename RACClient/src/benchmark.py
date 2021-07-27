@@ -477,11 +477,19 @@ class TestRunner():
         self.results.tp = (ops_per_object * len(self.data.keys)) / (end - start)
         self.results.hanlde_latency()
 
+        time.sleep(2)
         mem = 0
+        # TODO: this is not working properly, sometime, dont know why
         for s in self.connections:
-            pref = Performance(s)
-            res = pref.get()
-            mem += int(res[1][2].split(":")[1])
+            try:
+                pref = Performance(s)
+                res = pref.get()
+                mem += int(res[1][2].split(":")[1])
+            except:
+                print("Error getting memory: ")
+                print(res)
+                mem = -1
+                break
 
         self.results.mem = mem / len(self.connections)
 
@@ -533,6 +541,8 @@ def run_benchmark(workloadfile) -> Results:
 
     print("Preping Ops with " + str(prep_ops_pre_obj) + " prep ops and " + str(num_reverse) + " reverses")
     tr.prep_ops(prep_ops_pre_obj, prep_ratio, num_reverse)
+
+    time.sleep(2)
 
     print("Total ops:" + str(total_objects * ops_per_object) + " with each obj " + str(ops_per_object) + " ops")
     print("Measuing Throughput")
