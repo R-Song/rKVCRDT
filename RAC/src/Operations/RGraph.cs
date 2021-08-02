@@ -219,7 +219,7 @@ namespace RAC.Operations
             this.payload.vertices.Add(v);
 
             // history
-            string opid = this.history.AddNewEntry("", v.ToString());
+            string opid = this.history.AddNewEntry("", v.ToString(), false, null, 1);
             this.payload.vaddops[v.Item1] = opid;
             DEBUG("Vertex " + v.Item1 + " with opid " + opid + " added");
             Responses res = new Responses(Status.success);
@@ -260,7 +260,7 @@ namespace RAC.Operations
             this.payload.vertices.Remove(toRemove);
 
             // history
-            string opid = this.history.AddNewEntry(toRemove.ToString(), "");
+            string opid = this.history.AddNewEntry(toRemove.ToString(), "", false, null, 1);
 
             res = new Responses(Status.success);
             res.AddResponse(Dest.client, opid);
@@ -289,7 +289,7 @@ namespace RAC.Operations
             this.payload.edges.Add(e);
 
             // hisotry
-            string opid = this.history.AddNewEntry("", e.ToString());
+            string opid = this.history.AddNewEntry("", e.ToString(), false, null, 1);
             this.history.addRelated(this.payload.vaddops[v1], opid);
 
             res = new Responses(Status.success);
@@ -319,7 +319,7 @@ namespace RAC.Operations
             this.payload.edges.Remove(toRemove);
 
             // hisotry
-            string opid = this.history.AddNewEntry(toRemove.ToString(), "");
+            string opid = this.history.AddNewEntry(toRemove.ToString(), "", false, null, 1);
             this.history.addRelated(this.payload.vaddops[v1], opid);
 
             res = new Responses(Status.success);

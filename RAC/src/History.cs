@@ -129,13 +129,13 @@ namespace RAC.History
         /// <param name="after"></param>
         /// <param name="time"></param>
         /// <returns></returns>
-        public string AddNewEntry(string before, string after, bool rev = false, Clock time = null)
+        public string AddNewEntry(string before, string after, bool rev = false, Clock time = null, int searchtype = 0)
         {
-            var opid = InsertEntry(before, after, rev);
+            var opid = InsertEntry(before, after, rev, time, searchtype);
             return opid;
         }
 
-        private string InsertEntry(string before, string after, bool rev, Clock time = null)
+        private string InsertEntry(string before, string after, bool rev, Clock time = null, int searchtype = 0)
         {
             if (time is null)
                 time = this.curTime;
@@ -157,7 +157,7 @@ namespace RAC.History
             this.heads.Add(opid);
 
 
-            Sync(newEntry);
+            Sync(newEntry, 0, searchtype);
 
             time.Increment();
             this.curTime = time;
@@ -438,7 +438,7 @@ namespace RAC.History
         public void addRelated(string opid, string related)
         {
             this.log[opid].related.Add(related);
-            Sync(this.log[opid], 2);
+            Sync(this.log[opid], 2, 1);
         }
 
         /// <summary>
