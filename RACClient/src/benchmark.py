@@ -334,7 +334,7 @@ class RGExperimentData(GExperimentData):
 
         num_read_per_cycle = math.floor(num_ops * ops_ratio[1] / num_cycles_per_key)
 
-        print("Each graph has " + str(num_read_per_cycle) + " cycles")
+        print("Each graph has " + str(num_read_per_cycle) + " read cycles")
         i = 0
 
         for k in self.keys:
@@ -403,15 +403,32 @@ class TestRunner():
 
 
     
-    def split_work(self, list_reqs):
+    def split_work(self, list_reqs, method : int = 0):
         '''
         list_reqs: expecting [("op", "key", "value"), ("op", "key", "value"), ...]
         '''
-        split = math.ceil(len(list_reqs) / len(self.crdts))
-        works = []
 
-        for i in range(0, len(list_reqs), split):
-            works.append(mix_lists(list_reqs[i:i + split]))
+        works = []
+        if method == 0:
+            split = math.ceil(len(list_reqs) / len(self.crdts))
+            
+
+            for i in range(0, len(list_reqs), split):
+                works.append(mix_lists(list_reqs[i:i + split]))
+        
+        elif method == 1:
+            ops = mix_lists(list_reqs)
+            for _ in range(self.num_clients):
+                temp = [] 
+                for i in range(len(ops)):
+                    op = ops[i]
+                    if i == 0 or op[0] == ops[i-1][0]:
+                        temp.append(op)
+                    else:
+                        break
+
+                works.append(temp)
+                
 
 
         workers_pool = multiprocessing.Pool(self.num_clients)
@@ -419,9 +436,11 @@ class TestRunner():
         workers_pool.close()
         workers_pool.join() 
 
+
     def worker(self, crdt, list_reqs):
         temp = []
         last_rid = {}
+
         for req in list_reqs:
             if self.sleeptime > 0:
                 time.sleep(self.sleeptime)
@@ -429,7 +448,8 @@ class TestRunner():
             start = time.time_ns() 
             
             if self.do_reverse:
-                if req[0] == "r":
+
+                if req[0] == "r" and req[1]:
                     res = self.data.op_execute(crdt, req, last_rid[req[1]])
                 else:
                     try:
@@ -456,7 +476,7 @@ class TestRunner():
         if reverse > 0: 
             self.do_reverse = True 
         reqs = self.data.generate_op_values(total_prep_ops, pre_ops_ratio, reverse)
-        self.split_work(reqs)
+        self.split_work(reqs, 1)
 
 
     def benchmark(self, ops_per_object, ops_ratio, throughput = 0):
