@@ -1,6 +1,4 @@
-# Project_RAC
-
-Replicate Anywhere with CRDT
+# Reversible CRDT
 
 ## How to run:
 1. Set-up .Net (.Net 5): https://dotnet.microsoft.com/download
