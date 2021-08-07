@@ -265,21 +265,19 @@ class GExperimentData(ExperimentData):
         res = []
 
         num_write_ops = num_ops * ops_ratio[0]
-        num_cycles_per_key = num_write_ops / 5
+        num_cycles_per_key = math.floor(num_write_ops / 5)
 
         num_read_per_cycle = math.floor(num_ops * ops_ratio[1] / num_cycles_per_key)
-        print("Each graph has " + str(num_read_per_cycle) + " cycles")
 
+        print("Each graph has " + str(num_read_per_cycle) + " read cycles")
 
         for k in self.keys:
-
             for _ in range(num_cycles_per_key):
                 values = self._generate_values(3, VAR_TYPE.STRING)
-                
                 ops = self._generate_ops(k, values[0], values[1], values[2])
                 res.append(ops)
                 res.append([("g", k, "")] * num_read_per_cycle)
-                i = i + 1
+
 
         return res
 
@@ -520,7 +518,7 @@ class TestRunner():
 TYPECODE_MAP = {
     "pnc": PNCExperimentData,
     "rc": RCExperimentData,
-    "g": GExperimentData,
+    "gh": GExperimentData,
     "rg": RGExperimentData
 }
 
