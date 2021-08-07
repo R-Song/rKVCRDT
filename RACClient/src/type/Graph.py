@@ -7,42 +7,42 @@ class Graph:
         self.server = s
 
     def get(self, id):
-        req = req_construct("rg", id, "g", [])
+        req = req_construct("gh", id, "g", [])
         req = msg_construct(self.server, req)
 
         res = self.server.send(req)
         return res
 
     def set(self, id):
-        req = req_construct("rg", id, "s", [])
+        req = req_construct("gh", id, "s", [])
         req = msg_construct(self.server, req)
         
         res = self.server.send(req)
         return res
 
     def addvertex(self, id, value):
-        req = req_construct("rg", id, "av", [str(value)])
+        req = req_construct("gh", id, "av", [str(value)])
         req = msg_construct(self.server, req)
 
         res = self.server.send(req)
         return res
 
     def remvoevertex(self, id, value):
-        req = req_construct("rg", id, "rv", [str(value)])
+        req = req_construct("gh", id, "rv", [str(value)])
         req = msg_construct(self.server, req)
 
         res = self.server.send(req)
         return res
 
     def addedge(self, id, value1, value2):
-        req = req_construct("rg", id, "ae", [str(value1), str(value2)])
+        req = req_construct("gh", id, "ae", [str(value1), str(value2)])
         req = msg_construct(self.server, req)
 
         res = self.server.send(req)
         return res
 
     def removeedge(self, id, value1, value2):
-        req = req_construct("rg", id, "re", [str(value1), str(value2)])
+        req = req_construct("gh", id, "re", [str(value1), str(value2)])
         req = msg_construct(self.server, req)
 
         res = self.server.send(req)

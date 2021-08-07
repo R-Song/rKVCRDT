@@ -93,6 +93,16 @@ namespace RAC
             AddNewAPI("RGraph", "RemoveEdge", "re", "string, string");
             AddNewAPI("RGraph", "Synchronization", "y", "string, string, string");
             AddNewAPI("RGraph", "Reverse", "r", "string");
+
+            //  Graph
+            AddNewType("Graph", "gh");
+            AddNewAPI("Graph", "GetValue", "g", "");
+            AddNewAPI("Graph", "SetValue", "s", "");
+            AddNewAPI("Graph", "AddVertex", "av", "string");
+            AddNewAPI("Graph", "RemoveVertex", "rv", "string");
+            AddNewAPI("Graph", "AddEdge", "ae", "string, string");
+            AddNewAPI("Graph", "RemoveEdge", "re", "string, string");
+            AddNewAPI("Graph", "Synchronization", "y", "string, string, string");
         }
     }
 }
