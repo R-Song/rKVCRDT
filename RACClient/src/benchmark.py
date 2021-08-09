@@ -333,17 +333,24 @@ class RGExperimentData(GExperimentData):
         num_read_per_cycle = math.floor(num_ops * ops_ratio[1] / num_cycles_per_key)
 
         print("Each graph has " + str(num_read_per_cycle) + " read cycles")
-        i = 0
+        
+        num_rev_pre_cycle = math.ceil(reverse / num_cycles_per_key)
 
         for k in self.keys:
+            i = 0
             for _ in range(num_cycles_per_key):
                 values = self._generate_values(3, VAR_TYPE.STRING)
                 ops = self._generate_ops(k, values[0], values[1], values[2])
+                if (i < reverse):
+                    for _ in range(num_rev_pre_cycle):
+                        r = random.randint(1, 5)
+
+                        ops.insert(r, ("r", k, ""))  
+                        i = i + 1
+
                 res.append(ops)
                 res.append([("g", k, "")] * num_read_per_cycle)
-                if (i < reverse):
-                    res.append([("r", k, "")])
-                i = i + 1
+
 
         return res
 
@@ -405,34 +412,41 @@ class TestRunner():
         '''
         list_reqs: expecting [("op", "key", "value"), ("op", "key", "value"), ...]
         '''
-
         works = []
         if method == 0:
             split = math.ceil(len(list_reqs) / len(self.crdts))
             
-
             for i in range(0, len(list_reqs), split):
                 works.append(mix_lists(list_reqs[i:i + split]))
         
         elif method == 1:
             ops = mix_lists(list_reqs)
+
             for _ in range(self.num_clients):
-                temp = [] 
-                for i in range(len(ops)):
-                    op = ops[i]
-                    if i == 0 or op[0] == ops[i-1][0]:
-                        temp.append(op)
-                    else:
-                        break
+                works.append([])
 
-                works.append(temp)
-                
+            j = 0
+            for i in range(len(ops)):
+                op = ops[i]
+                if i != 0 and op[1] != ops[i-1][1]:
+                    j += 1
 
+                if (j > self.num_clients - 1):
+                    j = 0
+
+                works[j].append(op)
+
+        t = 0
+        for w in works:
+            t += len(w)
+        print("Total " + str(t) + " ops generated")
 
         workers_pool = multiprocessing.Pool(self.num_clients)
         workers_pool.starmap(self.worker, zip(self.crdts, works))
         workers_pool.close()
         workers_pool.join() 
+
+        return t
 
 
     def worker(self, crdt, list_reqs):
@@ -466,7 +480,7 @@ class TestRunner():
 
             elif (self.timing):
                 temp.append((req[0], end - start))
-    
+
         self.results.latency.append(temp)
 
 
@@ -489,10 +503,10 @@ class TestRunner():
 
         reqs = self.data.generate_op_values(ops_per_object, ops_ratio)
         start = time.time()
-        self.split_work(reqs)
+        t = self.split_work(reqs)
         end = time.time()
 
-        self.results.tp = (ops_per_object * len(self.data.keys)) / (end - start)
+        self.results.tp = t / (end - start)
         self.results.hanlde_latency()
 
         time.sleep(2)
