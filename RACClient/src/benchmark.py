@@ -343,7 +343,7 @@ class RGExperimentData(GExperimentData):
                 ops = self._generate_ops(k, values[0], values[1], values[2])
                 if (i < reverse):
                     for _ in range(num_rev_pre_cycle):
-                        r = random.randint(1, 5)
+                        r = random.randint(3, 5)
 
                         ops.insert(r, ("r", k, ""))  
                         i = i + 1
@@ -466,7 +466,7 @@ class TestRunner():
                 else:
                     try:
                         res = self.data.op_execute(crdt, req)
-                        if res[1][0] != "":
+                        if res[0] == True and res[1][0] != "":
                             last_rid[req[1]] = res[1][0] 
                     except Exception:
                         continue
