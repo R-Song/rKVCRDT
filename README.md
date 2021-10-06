@@ -1,6 +1,6 @@
 # Reversible CRDT
 
-## How to run:
+## How to run the servers:
 1. Set-up .Net (.Net 5): https://dotnet.microsoft.com/download
 2. Go to `Project_RAC/RAC/`
 3. For #n of nodes you want, make n copies of `cluster_config_example.json`, where in each of the copy, make n copies of 
@@ -16,10 +16,10 @@
 
 elements.,
 
-4. Use `dotnet run cluster_config_example.[node_id].json` or the binary to run a instance of sever as a node
+4. Use `dotnet run cluster_config_example.[node_id].json` or the binary to run an instance of sever as a node
 
 
-## How to use client
+## How to use the client
 1. Install python 3.8.5+
 2. Go to `Project_RAC/RACClient/src/`
 3. Run `client.py [server_ip:port]` to connect a node(use `python3 client.py [server_ip:port]` if its not working.
