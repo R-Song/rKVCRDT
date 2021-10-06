@@ -31,12 +31,17 @@ elements.,
 Type supported:
 PN-Counter: typecode `pnc`
   set `s [initial_value]`
+  
   get `r`
+  
   increment `i [number_to_add]`
+  
   decrement `d [number_to_subtract]`
   
 OR-Set: typecode `os`
+
 Graph: typecode `g`
+
 and their reversible counterpart
 
 see https://github.com/yunhaom94/Project_RAC/blob/master/RAC/src/API.cs for more infomation
