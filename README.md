@@ -16,7 +16,7 @@
 
 elements.,
 
-4. Use run `dotnet run cluster_config_example.[node_id].json` to run a instance of sever as a node
+4. Use `dotnet run cluster_config_example.[node_id].json` or the binary to run a instance of sever as a node
 
 
 ## How to use client
