@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using RAC.Network;
+using System.Threading.Tasks.Dataflow;
 
 namespace RAC
 {
@@ -52,6 +54,21 @@ namespace RAC
             this.contents.Add(statusContent);
             this.destinations.Add(destination);
             contentLength++;
+        }
+
+        public void StageResponse(ClientSession to = null)
+        {
+            for (int i = 0; i < this.destinations.Count; i++)
+            {
+                Dest dest = this.destinations[i];
+                string content = this.contents[i];
+
+                MessagePacket msg = new MessagePacket(content, dest);
+                msg.connection = to;    
+                Global.server.respQueue.Post(msg);
+            }
+
+
         }
 
 

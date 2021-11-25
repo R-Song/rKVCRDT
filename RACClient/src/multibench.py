@@ -6,6 +6,7 @@ from benchmark import *
 from startservers import *
 import time
 import traceback
+import datetime 
 
 # 1. prep json
 # set & variables
@@ -16,13 +17,15 @@ import traceback
 # 5. stop servers
 
 
-REDO = 0
+REDO = 5
 BUILD_FLAG = True
 
 
 def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfilename, server_list, local = False):
 
-    print("Running: " + rfilename)
+    start = datetime.datetime.now()
+    print("Currrent time: " + str(start))
+    print("Running: " + rfilename)    
 
     # y-axis
     primaries = wokload_config[prime_variable]
@@ -75,10 +78,13 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
                 global BUILD_FLAG
 
                 if local:
+                    i = 1
                     addresses = start_server(num_server)
                 else:
                     addresses = start_server_remote(
                         num_server, server_list[0:wokload_config["use_server"]], BUILD_FLAG)
+
+                #addresses = ["192.168.41.136:5000", "192.168.41.136:5001"]
 
                 # only build once per run
                 if BUILD_FLAG:
@@ -88,7 +94,7 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
 
                 with open(wlfilename, 'w') as json_file:
                     json.dump(json_dict, json_file)
-                time.sleep(5)
+                time.sleep(2)
 
                 try:
                     r = run_benchmark(wlfilename)
@@ -107,6 +113,7 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
 
                 finally:
                     if local:
+                        i = 2
                         stop_server()
                     else:
                         stop_server_remote(server_list[0:wokload_config["use_server"]])
@@ -128,7 +135,9 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
                 json_dict = wokload_config.copy()
                 count += 1
                 print(str(count) + "/" + str(total) + " done")
-                time.sleep(5)
+                end = datetime.datetime.now()
+                print("Elapsed time:" + str(end - start))
+                time.sleep(1)
                 break
 
         tp_result.append(p_result)
@@ -139,7 +148,9 @@ def run_experiment(wokload_config: dict, prime_variable, secondary_variable, rfi
     parse_tpresult(mem_result, labels, rfilename + "_mem.csv")
     parse_latencyresults(latency_results, rfilename + "_lt.txt")
 
+
     print("Experiment complete")
+    print("=============================================================")
 
 
 def parse_tpresult(result, labels, rfilename):

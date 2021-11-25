@@ -1,4 +1,4 @@
-#!/usr/bin/python3        
+#!/usr/bin/python3
 
 import socket
 import random
@@ -14,39 +14,44 @@ from type.helper import res_parse
 from type.Type import Type
 from type.Action import Action
 
+
 class Server:
 
     def __init__(self, ip, port):
+        self.num_timeout = 0
         self.s = None
         self.ip = ip
-        self.port = port 
+        self.port = port
 
     def connect(self):
         try:
-            self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+            self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.s.connect((self.ip, self.port))
             return 1
         except Exception as e:
             print(e)
             return 0
-            
 
-    def response(self):
+    def response(self) -> bytes:
         try:
-            self.s.settimeout(5)
-            msg = self.s.recv(1024)   
+            self.s.settimeout(60)
+            msg = self.s.recv(1024)
             self.s.settimeout(None)
         except socket.timeout:
             self.disconnect()
-            self.connect()
-            print("Timeout on receive")
+            if self.num_timeout < 5:
+                self.connect()
+                print("Timeout on receive")
+                self.num_timeout += 1
+            else:
+                raise socket.timeout
             return "F"
 
-        return msg.decode('utf-16')
+        return msg
 
-    def send(self, data):            
-        self.s.send(data.encode('utf-16'))
+    def send(self, data: bytes):            
+        self.s.send(data)
         res = self.response()
         if res != "F":
             return res_parse(res)
